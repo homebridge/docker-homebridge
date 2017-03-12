@@ -30,7 +30,7 @@ Plugins can be uninstalled by removing the entry from the **package.json** and r
 
 ## Docker Compose
 
-If you prefer to use Docker Compose:
+If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
 
 ```yml
 version: '2'
