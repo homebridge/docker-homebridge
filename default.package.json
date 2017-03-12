@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "homebridge-fakebulb": "^0.0.3"
+  }
+}
