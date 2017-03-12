@@ -1,6 +1,6 @@
 # Docker Homebridge
 
-This a lightweight alpine-based docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network that emulates the iOS HomeKit API.
+This alpine-based docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
 
 ## Compatibility
 
@@ -32,4 +32,4 @@ Plugins can be uninstalled by removing the entry from the **package.json** and r
 
 ### 1. Verify your config.json and package.json syntax
 
-Many issues appear because of invalid JSON. A good way to verify your config is to use the jsonlint.com validator.
+Many issues appear because of invalid JSON. A good way to verify your config is to use the [jsonlint.com](http://jsonlint.com/) validator.
