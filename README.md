@@ -17,12 +17,12 @@ docker run --net=host -v </path/to/config>:/homebridge oznu/homebridge
 
 ## Config
 
-The Homebridge config file is located at **/</path/to/config>/config.json***
+The Homebridge config file is located at ```/</path/to/config>/config.json```
 This file will be created the first time you run the container with a sample [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) accessory.
 
 ## Plugins
 
-Plugins should be defined in the **/</path/to/config>/package.json** file in the standard NPM format.
+Plugins should be defined in the ```</path/to/config>/package.json``` file in the standard NPM format.
 This file will be created the first time you run the container with the [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) module.
 
 Any plugins added to the **package.json** will be installed each time the container is restarted.
