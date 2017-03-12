@@ -36,11 +36,11 @@ If you prefer to use Docker Compose:
 version: '2'
 services:
   homebridge:
-  image: oznu/homebridge
-  restart: always
-  network_mode: host
-  volumes:
-    - "./volumes/homebridge:/homebridge"
+    image: oznu/homebridge
+    restart: always
+    network_mode: host
+    volumes:
+      - ./volumes/homebridge:/homebridge
 ```
 
 ## Troubleshooting
