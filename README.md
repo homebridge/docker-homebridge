@@ -28,6 +28,21 @@ This file will be created the first time you run the container with the [FakeBul
 Any plugins added to the **package.json** will be installed each time the container is restarted.
 Plugins can be uninstalled by removing the entry from the **package.json** and restarting the container.
 
+## Docker Compose
+
+If you prefer to use Docker Compose:
+
+```yml
+version: '2'
+services:
+  homebridge:
+  image: oznu/homebridge
+  restart: always
+  network_mode: host
+  volumes:
+    - "./volumes/homebridge:/homebridge"
+```
+
 ## Troubleshooting
 
 ### 1. Verify your config.json and package.json syntax
