@@ -22,7 +22,7 @@ This file will be created the first time you run the container with a sample [Fa
 
 ## Plugins
 
-Plugins should be defined in the ```</path/to/config>/package.json``` file in the standard NPM format.
+Plugins should be defined in the ```/</path/to/config>/package.json``` file in the standard NPM format.
 This file will be created the first time you run the container with the [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) module.
 
 Any plugins added to the **package.json** will be installed each time the container is restarted.
