@@ -12,8 +12,20 @@ Currently this will not work when using [Docker for Mac](https://docs.docker.com
 Quick Setup:
 
 ```shell
-docker run --net=host -v </path/to/config>:/homebridge oznu/homebridge
+docker run
+  --net=host
+  -e TZ=<timezone>
+  -v </path/to/config>:/homebridge
+  oznu/homebridge
 ```
+
+## Parameters
+
+The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
+
+* `--net=host` - Shares host networking with container, **required**.
+* `-v /homebridge` - The Homebridge config and plugin location.
+* `-e TZ` - for timezone information *eg Europe/London, etc*
 
 ## Config
 
@@ -39,6 +51,8 @@ services:
     image: oznu/homebridge
     restart: always
     network_mode: host
+    environment:
+      - TZ=Australia/Sydney
     volumes:
       - ./volumes/homebridge:/homebridge
 ```

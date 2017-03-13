@@ -1,5 +1,7 @@
 #!/bin/sh
 
+/init.d/set-timezone.sh
+
 dbus-daemon --system
 avahi-daemon -D
 
