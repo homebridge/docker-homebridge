@@ -2,6 +2,9 @@
 
 /init.d/set-timezone.sh
 
+rm -rf /var/run/dbus.pid
+rm -rf /var/run/avahi-daemon//pid
+
 dbus-daemon --system
 avahi-daemon -D
 
@@ -11,6 +14,8 @@ avahi-daemon -D
 echo "Removing old plugins..."
 npm prune
 echo "Installing plugins..."
-npm install --silent
+yarn install
+
+sleep 5
 
 exec "$@"
