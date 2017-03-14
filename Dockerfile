@@ -1,8 +1,10 @@
 FROM node:7.7.2-alpine
 
-RUN apk add --no-cache tzdata git python make g++ libffi-dev openssl-dev avahi-compat-libdns_sd avahi-dev openrc dbus
+RUN apk add --no-cache tzdata curl git python make g++ libffi-dev openssl-dev avahi-compat-libdns_sd avahi-dev openrc dbus
+RUN apk --update add tar
 
-RUN npm install --silent -g homebridge
+RUN curl -o- -L https://yarnpkg.com/install.sh | sh
+RUN npm install -g homebridge
 
 RUN mkdir /homebridge && mkdir -p /home/root/homebridge
 WORKDIR /homebridge
