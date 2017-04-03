@@ -1,0 +1,5 @@
+node_modules
+raspberry-pi
+.gitignore
+Dockerfile
+README.md
