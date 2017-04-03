@@ -40,6 +40,14 @@ This file will be created the first time you run the container with the [FakeBul
 Any plugins added to the **package.json** will be installed each time the container is restarted.
 Plugins can be uninstalled by removing the entry from the **package.json** and restarting the container.
 
+## Raspberry Pi
+
+This image will also run on a Raspberry Pi using the ```raspberry-pi``` tag:
+
+```
+docker run --net=host oznu/homebridge:raspberry-pi
+```
+
 ## Docker Compose
 
 If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
