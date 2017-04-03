@@ -1,10 +1,9 @@
-FROM node:7.7.2-alpine
+FROM node:6.10.1-alpine
 
 RUN apk add --no-cache tzdata curl git python make g++ libffi-dev openssl-dev avahi-compat-libdns_sd avahi-dev openrc dbus
-RUN apk --update add tar
 
-RUN curl -o- -L https://yarnpkg.com/install.sh | sh
-RUN npm install -g homebridge
+RUN yarn global add node-gyp
+RUN yarn global add homebridge
 
 RUN mkdir /homebridge && mkdir -p /home/root/homebridge
 WORKDIR /homebridge
