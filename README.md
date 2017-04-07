@@ -1,3 +1,8 @@
+
+[![Docker Automated buil](https://img.shields.io/docker/automated/oznu/homebridge.svg)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
+
+
 # Docker Homebridge
 
 This Alpine Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
