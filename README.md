@@ -1,6 +1,5 @@
 
-[![Docker Automated buil](https://img.shields.io/docker/automated/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
+[![Docker Automated buil](https://img.shields.io/docker/automated/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
 
 
 # Docker Homebridge
