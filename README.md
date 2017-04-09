@@ -18,6 +18,7 @@ Quick Setup:
 ```shell
 docker run
   --net=host
+  --name=homebridge
   -e TZ=<timezone>
   -v </path/to/config>:/homebridge
   oznu/homebridge
@@ -44,12 +45,40 @@ This file will be created the first time you run the container with the [FakeBul
 Any plugins added to the **package.json** will be installed each time the container is restarted.
 Plugins can be uninstalled by removing the entry from the **package.json** and restarting the container.
 
+You can also install plugins using [yarn](https://yarnpkg.com) (an npm replacement) which will automatically update the package.json file as you add and remove modules.
+
+> You must restart the container after installing or removing plugins for the changes to take effect.
+
+**To add plugins using yarn:**
+
+```
+docker exec <container name or id> yarn add <module name>
+```
+
+Example:
+
+```
+docker exec homebridge yarn add homebridge-hue
+```
+
+**To remove plugins using yarn:**
+
+```
+docker exec <container name or id> yarn remove <module name>
+```
+
+Example:
+
+```
+docker exec homebridge yarn remove homebridge-hue
+```
+
 ## Raspberry Pi
 
 This image will also run on a Raspberry Pi using the ```raspberry-pi``` tag:
 
 ```
-docker run --net=host oznu/homebridge:raspberry-pi
+docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
 ```
 
 ## Docker Compose
