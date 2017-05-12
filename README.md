@@ -24,6 +24,20 @@ docker run
   oznu/homebridge
 ```
 
+## Raspberry Pi
+
+This image will also run on a Raspberry Pi using the ```raspberry-pi``` tag:
+
+```
+docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
+```
+
+This docker image has been tested on the following Raspberry Pi models:
+
+* Raspberry Pi 1 Model B
+* Raspberry Pi 3 Model B
+* Raspberry Pi Zero W
+
 ## Parameters
 
 The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
@@ -73,13 +87,6 @@ Example:
 docker exec homebridge yarn remove homebridge-hue
 ```
 
-## Raspberry Pi
-
-This image will also run on a Raspberry Pi using the ```raspberry-pi``` tag:
-
-```
-docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
-```
 
 ## Docker Compose
 
