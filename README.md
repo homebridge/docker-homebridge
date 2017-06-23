@@ -44,7 +44,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `--net=host` - Shares host networking with container, **required**.
 * `-v /homebridge` - The Homebridge config and plugin location.
-* `-e TZ` - for timezone information *eg Europe/London, etc*
+* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) *e.g. Europe/London, etc*
 
 ## Config
 
