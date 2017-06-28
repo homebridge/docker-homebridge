@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv sh
+s6-svwait -t 7000 -U /var/run/s6/services/avahi
+s6-setuidgid abc homebridge -U /homebridge -P /homebridge/node_modules

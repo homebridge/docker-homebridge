@@ -1,0 +1,2 @@
+#!/usr/bin/with-contenv sh
+dbus-daemon --system --nofork
