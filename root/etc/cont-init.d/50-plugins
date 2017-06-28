@@ -3,9 +3,9 @@
 [ -f /homebridge/package.json ] || cp /home/root/homebridge/default.package.json /homebridge/package.json
 [ -f /homebridge/config.json ] || cp /home/root/homebridge/default.config.json /homebridge/config.json
 
-echo "Removing old plugins..."
+echo "Homebridge: Removing old plugins..."
 npm prune
-echo "Installing plugins..."
+echo "Homebridge: Installing plugins..."
 yarn install
 
 chown -R abc:abc /homebridge

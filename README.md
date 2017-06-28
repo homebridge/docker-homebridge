@@ -13,14 +13,13 @@ Currently this will not work when using [Docker for Mac](https://docs.docker.com
 
 ## Usage
 
-Quick Setup:
-
 ```shell
-docker run
-  --net=host
-  --name=homebridge
-  -e TZ=<timezone>
-  -v </path/to/config>:/homebridge
+docker run \
+  --net=host \
+  --name=homebridge \
+  -e PUID=<UID> -e PGID=<GID> \
+  -e TZ=<timezone> \
+  -v </path/to/config>:/homebridge \
   oznu/homebridge
 ```
 
@@ -45,13 +44,26 @@ The parameters are split into two halves, separated by a colon, the left hand si
 * `--net=host` - Shares host networking with container, **required**.
 * `-v /homebridge` - The Homebridge config and plugin location.
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) *e.g. Europe/London, etc*
+* `-e PGID=` for for GroupID - see below for explanation
+* `-e PUID=` for for UserID - see below for explanation
 
-## Config
+### User / Group Identifiers
+
+Sometimes when using data volumes (`-v` flags) permissions issues can arise between the host OS and the container. We avoid this issue by allowing you to specify the user `PUID` and group `PGID`. Ensure the data volume directory on the host is owned by the same user you specify and it will "just work".
+
+In this instance `PUID=1001` and `PGID=1001`. To find yours use `id user` as below:
+
+```
+  $ id <dockeruser>
+    uid=1001(dockeruser) gid=1001(dockergroup) groups=1001(dockergroup)
+```
+
+## Homebridge Config
 
 The Homebridge config file is located at ```</path/to/config>/config.json```
 This file will be created the first time you run the container with a sample [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) accessory.
 
-## Plugins
+## Homebridge Plugins
 
 Plugins should be defined in the ```</path/to/config>/package.json``` file in the standard NPM format.
 This file will be created the first time you run the container with the [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) module.

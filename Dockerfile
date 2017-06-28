@@ -13,4 +13,6 @@ COPY default.config.json /home/root/homebridge
 
 VOLUME /homebridge
 
+ENV S6_KEEP_ENV=1
+
 COPY root /

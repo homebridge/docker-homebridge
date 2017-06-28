@@ -1,2 +1,4 @@
 #!/usr/bin/with-contenv sh
-dbus-daemon --system --nofork
+
+echo "Starting dbus-daemon"
+exec dbus-daemon --system --nofork
