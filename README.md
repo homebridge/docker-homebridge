@@ -113,6 +113,8 @@ services:
     network_mode: host
     environment:
       - TZ=Australia/Sydney
+      - PGID=911
+      - PUID=911
     volumes:
       - ./volumes/homebridge:/homebridge
 ```
