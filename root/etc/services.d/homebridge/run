@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv sh
+sleep 5
+s6-setuidgid abc homebridge -U /homebridge -P /homebridge/node_modules
