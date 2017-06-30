@@ -1,4 +1,4 @@
-FROM oznu/s6-node:armhf-6.11.0
+FROM oznu/s6-node:6.11.0-armhf
 
 RUN apk add --no-cache git python make g++ libffi-dev openssl-dev avahi-compat-libdns_sd avahi-dev openrc dbus
 
