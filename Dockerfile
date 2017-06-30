@@ -1,4 +1,4 @@
-FROM oznu/s6-node
+FROM oznu/s6-node:6.11.0
 
 RUN apk add --no-cache git python make g++ libffi-dev openssl-dev avahi-compat-libdns_sd avahi-dev openrc dbus
 
