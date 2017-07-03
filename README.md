@@ -37,7 +37,7 @@ This docker image has been tested on the following Raspberry Pi models:
 * Raspberry Pi 3 Model B
 * Raspberry Pi Zero W
 
-[See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Install-on-Raspberry-Pi).
+[See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
 
 ## Parameters
 
