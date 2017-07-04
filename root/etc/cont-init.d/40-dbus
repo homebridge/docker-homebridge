@@ -1,0 +1,8 @@
+#!/usr/bin/with-contenv sh
+
+# delete existing pid if found
+[[ -f /var/run/dbus.pid ]] && rm -f /var/run/dbus.pid
+
+# permissions
+dbus-uuidgen --ensure
+sleep 1
