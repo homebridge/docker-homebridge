@@ -5,4 +5,4 @@ until [[ -e /var/run/dbus/system_bus_socket ]]; do
 done
 
 echo "Starting Avahi daemon"
-exec avahi-daemon --no-chroot
+exec avahi-daemon --no-chroot -f /etc/avahi/avahi-daemon.conf
