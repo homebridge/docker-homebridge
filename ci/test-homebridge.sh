@@ -2,7 +2,7 @@
 
 setup() {
   docker run --name homebridge -d -p 51826:51826 homebridge
-  sleep 20
+  sleep 15
 }
 
 teardown() {
@@ -23,7 +23,7 @@ testCmd() {
 
 @test "test homebridge starts after a graceful restart" {
   docker restart homebridge
-  sleep 20
+  sleep 15
   run testCmd
   [ "$status" -eq 0 ]
 }
@@ -31,7 +31,14 @@ testCmd() {
 @test "test homebridge starts after being killed" {
   docker kill homebridge
   docker start homebridge
-  sleep 20
+  sleep 15
   run testCmd
   [ "$status" -eq 0 ]
+}
+
+@test "test container exits when homebridge process stops" {
+  docker exec homebridge pkill homebridge
+  sleep 10
+  run docker exec homebridge echo "This should fail."
+  [ "$status" -ne 0 ]
 }
