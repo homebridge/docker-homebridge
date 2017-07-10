@@ -9,10 +9,6 @@ ENV HOMEBRIDGE_VERSION 0.4.22
 RUN yarn global add homebridge@$HOMEBRIDGE_VERSION
 
 WORKDIR /homebridge
-
-COPY default.package.json /home/root/homebridge
-COPY default.config.json /home/root/homebridge
-
 VOLUME /homebridge
 
 ENV S6_KEEP_ENV=1
