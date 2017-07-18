@@ -55,7 +55,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 *Optional Settings:*
 
-* `-e PACKAGES` - Additional [Packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=ffmpeg,openssh`
+* `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=ffmpeg,openssh`
 
 ### User / Group Identifiers
 
