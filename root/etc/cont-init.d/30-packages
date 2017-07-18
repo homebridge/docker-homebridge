@@ -1,0 +1,28 @@
+#!/usr/bin/with-contenv sh
+
+# parse extra packages list
+if [ ! -z "$PACKAGES" ]; then
+
+  for job in $(echo "$PACKAGES" | tr "," " "); do
+    export EXTRA_PACKAGES="$EXTRA_PACKAGES ${job}"
+  done
+
+  echo "Installing extra packages: $EXTRA_PACKAGES"
+
+  apk add --no-cache $EXTRA_PACKAGES
+
+  if [ $? -ne 0 ]; then
+    echo
+    echo "--------------------------------------------------------------"
+    echo "ERROR INSTALLING CUSTOM PACKAGES"
+    echo "--------------------------------------------------------------"
+    echo "Failed to install custom packages. See log above for details."
+    echo "Please ensure all packages requested are named correctly."
+    echo
+    echo "A full list of available packages can be found here:"
+    echo "https://pkgs.alpinelinux.org/packages"
+    echo "--------------------------------------------------------------"
+    echo
+  fi
+
+fi
