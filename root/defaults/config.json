@@ -9,10 +9,6 @@
     "description": "This is an example configuration file. You can use this as a template for creating your own configuration file containing devices you actually own.",
 
     "accessories": [
-      {
-        "accessory": "FakeBulb",
-        "name": "Fake Light"
-      }
     ],
 
     "platforms": [
