@@ -71,21 +71,21 @@ In this instance `PUID=1001` and `PGID=1001`. To find yours use `id user` as bel
 ## Homebridge Config
 
 The Homebridge config file is located at ```</path/to/config>/config.json```
-This file will be created the first time you run the container with a sample [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) accessory.
+This file will be created the first time you run the container if it does not already exist.
 
 ## Homebridge Plugins
 
 Plugins should be defined in the ```</path/to/config>/package.json``` file in the standard NPM format.
-This file will be created the first time you run the container with the [FakeBulb](https://www.npmjs.com/package/homebridge-fakebulb) module.
+This file will be created the first time you run the container if it does not already exist.
 
-Any plugins added to the **package.json** will be installed each time the container is restarted.
-Plugins can be uninstalled by removing the entry from the **package.json** and restarting the container.
+Any plugins added to the `package.json` will be installed each time the container is restarted.
+Plugins can be uninstalled by removing the entry from the `package.json` and restarting the container.
 
 You can also install plugins using [yarn](https://yarnpkg.com) (an npm replacement) which will automatically update the package.json file as you add and remove modules.
 
-> You must restart the container after installing or removing plugins for the changes to take effect.
+**You must restart the container after installing or removing plugins for the changes to take effect.**
 
-**To add plugins using yarn:**
+### To add plugins using yarn:
 
 ```
 docker exec <container name or id> yarn add <module name>
@@ -97,7 +97,7 @@ Example:
 docker exec homebridge yarn add homebridge-hue
 ```
 
-**To remove plugins using yarn:**
+### To remove plugins using yarn:
 
 ```
 docker exec <container name or id> yarn remove <module name>
