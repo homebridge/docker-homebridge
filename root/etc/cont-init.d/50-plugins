@@ -1,11 +1,12 @@
 #!/usr/bin/with-contenv sh
 
-[ -f /homebridge/package.json ] || cp /defaults/package.json /homebridge/package.json
-[ -f /homebridge/config.json ] || cp /defaults/config.json /homebridge/config.json
-
+# remove any plugins not in the package.json file
 echo "Homebridge: Removing old plugins..."
 npm prune
+
+# install plugins defined in the package.json file
 echo "Homebridge: Installing plugins..."
 yarn install
 
+# fix permissions
 chown -R abc:abc /homebridge
