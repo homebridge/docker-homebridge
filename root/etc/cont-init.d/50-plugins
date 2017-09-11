@@ -10,3 +10,4 @@ yarn install
 
 # fix permissions
 chown -R abc:abc /homebridge
+chown -R abc:abc /root
