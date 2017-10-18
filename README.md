@@ -50,8 +50,8 @@ The parameters are split into two halves, separated by a colon, the left hand si
 * `--net=host` - Shares host networking with container, **required**
 * `-v /homebridge` - The Homebridge config and plugin location
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Europe/London`
-* `-e PGID` - for for GroupID - see below for explanation
-* `-e PUID` - for for UserID - see below for explanation
+* `-e PGID` - for GroupID - see below for explanation
+* `-e PUID` - for UserID - see below for explanation
 
 *Optional Settings:*
 
