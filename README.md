@@ -94,7 +94,7 @@ docker exec <container name or id> yarn add <module name>
 Example:
 
 ```
-docker exec homebridge yarn add homebridge-hue
+docker exec homebridge yarn add homebridge-dummy
 ```
 
 ### To remove plugins using yarn:
@@ -106,9 +106,20 @@ docker exec <container name or id> yarn remove <module name>
 Example:
 
 ```
-docker exec homebridge yarn remove homebridge-hue
+docker exec homebridge yarn remove homebridge-dummy
 ```
 
+### To add plugins using `startup.sh` script:
+
+The first time you run the container a script named [`startup.sh`](/root/defaults/startup.sh) will be created in your mounted `/homebridge` volume. This file is executed before Homebridge loads everytime the container is started and can be used to install plugins if you don't want to edit the `package.json` file manually.
+
+To add plugins using the `startup.sh` script just use the `yarn add` syntax.
+
+```
+yarn add homebridge-dummy
+```
+
+This container does **NOT** require you to install plugins globally (using `npm install -g` or `yarn global add`) and doing so is **NOT** recommended.
 
 ## Docker Compose
 
@@ -118,13 +129,13 @@ If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge
+    image: oznu/homebridge:latest
     restart: always
     network_mode: host
     environment:
       - TZ=Australia/Sydney
-      - PGID=911
-      - PUID=911
+      - PGID=1000
+      - PUID=1000
     volumes:
       - ./volumes/homebridge:/homebridge
 ```
