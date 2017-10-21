@@ -5,7 +5,7 @@ RUN apk add --no-cache git python make g++ libffi-dev openssl-dev avahi-compat-l
   && mkdir /homebridge \
   && mkdir -p /home/root/homebridge
 
-ENV HOMEBRIDGE_VERSION 0.4.28
+ENV HOMEBRIDGE_VERSION 0.4.29
 RUN yarn global add homebridge@$HOMEBRIDGE_VERSION
 
 WORKDIR /homebridge
