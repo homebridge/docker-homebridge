@@ -111,7 +111,7 @@ docker exec homebridge yarn remove homebridge-dummy
 
 ### To add plugins using `startup.sh` script:
 
-The first time you run the container a script named [`startup.sh`](/root/defaults/startup.sh) will be created in your mounted `/homebridge` volume. This script is executed before Homebridge loads everytime the container is started and can be used to install plugins if you don't want to edit the `package.json` file manually.
+The first time you run the container a script named [`startup.sh`](/root/defaults/startup.sh) will be created in your mounted `/homebridge` volume. This script is executed everytime the container is started, before Homebridge loads, and can be used to install plugins if you don't want to edit the `package.json` file manually.
 
 To add plugins using the `startup.sh` script just use the `yarn add` syntax.
 
