@@ -13,3 +13,13 @@ chown messagebus:messagebus /var/run/dbus
 chown avahi:avahi /var/run/avahi-daemon
 dbus-uuidgen --ensure
 sleep 1
+
+# avahi config
+cp /defaults/avahi-daemon.conf /etc/avahi/avahi-daemon.conf
+
+# fix for synology dsm - see #35
+if [[ ! -z "$DSM_HOSTNAME" ]]; then
+  sed -i "s/.*host-name.*/host-name=${DSM_HOSTNAME}/" /etc/avahi/avahi-daemon.conf
+else
+  sed -i "s/.*host-name.*/#host-name=/" /etc/avahi/avahi-daemon.conf
+fi

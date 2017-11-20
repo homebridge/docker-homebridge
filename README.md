@@ -147,3 +147,7 @@ services:
 ### 1. Verify your config.json and package.json syntax
 
 Many issues appear because of invalid JSON. A good way to verify your config is to use the [jsonlint.com](http://jsonlint.com/) validator.
+
+### 2. When running on Synology DSM set the `DSM_HOSTNAME` environment variable
+
+You may need to provide the server name of your Synology NAS using the `DSM_HOSTNAME` environment variable to prevent [hostname conflict errors](https://github.com/oznu/docker-homebridge/issues/35). The value of the `DSM_HOSTNAME` environment should exactly match the server name as shown under `Synology DSM Control Panel` -> `Info Centre` -> `Server name`, it should contain no spaces or special characters.
