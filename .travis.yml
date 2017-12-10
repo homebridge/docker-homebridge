@@ -16,7 +16,7 @@ jobs:
       script:
       - bats ci/test-homebridge.sh
 
-    - stage: arm-build
+    - stage: build armhf
       before_install:
         - git clone https://github.com/oznu/docker-arm-ci.git ~/docker-arm-ci
       before_script:
@@ -27,5 +27,5 @@ jobs:
 
 stages:
   - test
-  - name: arm-build
-    # if: branch = master AND type = push AND fork = false
+  - name: build armhf
+    if: branch = master AND type = push AND fork = false
