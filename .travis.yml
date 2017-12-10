@@ -27,5 +27,4 @@ jobs:
 
 stages:
   - test
-  - name: build armhf
-    if: branch = master AND type = push AND fork = false
+  - build armhf
