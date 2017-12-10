@@ -3,13 +3,29 @@ language: bash
 services:
   - docker
 
-before_install:
-  - sudo add-apt-repository ppa:duggan/bats --yes
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq bats
+jobs:
+  include:
 
-install:
-  - docker build . -t homebridge
+    - stage: test
+      before_install:
+        - sudo add-apt-repository ppa:duggan/bats --yes
+        - sudo apt-get update -qq
+        - sudo apt-get install -qq bats
+      install:
+        - docker build . -t homebridge
+      script:
+      - bats ci/test-homebridge.sh
 
-script:
-  - bats ci/test-homebridge.sh
+    - stage: arm-build
+      before_install:
+        - git clone https://github.com/oznu/docker-arm-ci.git ~/docker-arm-ci
+      before_script:
+        - export TARGET_IMAGE_TAG=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then if [ "$TRAVIS_BRANCH" = "master" ]; then echo "raspberry-pi"; else echo "$TRAVIS_BRANCH-raspberry-pi"; fi; else echo ""; fi)
+        - echo $TARGET_IMAGE_TAG
+      script:
+        - ~/docker-arm-ci/run.sh
+
+stages:
+  - test
+  - name: arm-build
+    # if: branch = master AND type = push AND fork = false
