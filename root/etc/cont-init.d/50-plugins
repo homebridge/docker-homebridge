@@ -5,4 +5,5 @@ echo "Homebridge: Installing plugins..."
 yarn install --production --force --ignore-engines
 
 # fix permissions
-chown -R abc:abc /homebridge /root /usr/local/share/.config/yarn
+chown -R abc:abc /homebridge /root
+chown -R abc:abc /usr/local/share/.config/yarn &

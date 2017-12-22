@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-  docker run --name homebridge -d -p 51826:51826 homebridge
+  docker run --name homebridge -d -p 51826:51826 -e TERMINATE_ON_ERROR=1 homebridge
   sleep 15
 }
 
