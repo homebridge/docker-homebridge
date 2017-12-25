@@ -1,3 +1,3 @@
 #!/usr/bin/with-contenv sh
 sleep 7
-s6-setuidgid abc homebridge -U /homebridge -P /homebridge/node_modules | tee -a /homebridge/logs/homebridge.log
+s6-setuidgid abc homebridge -U /homebridge -P /homebridge/node_modules 2>&1 | tee -a /homebridge/logs/homebridge.log

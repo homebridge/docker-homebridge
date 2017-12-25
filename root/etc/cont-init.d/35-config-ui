@@ -1,0 +1,14 @@
+#!/usr/bin/with-contenv sh
+
+if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ]; then
+  echo "Enabling homebridge-config-ui-x..."
+
+  # install homebridge-config-ui-x on first run
+  [[ -f /usr/local/share/.config/yarn/global/node_modules/homebridge-config-ui-x/package.json ]] || yarn global add homebridge-config-ui-x
+
+  # enable homebridge-config-ui-x service
+  [[ -e /etc/services.d/homebridge-config-ui-x ]] || mv /etc/services.d/.homebridge-config-ui-x /etc/services.d/homebridge-config-ui-x
+else
+  # disable homebridge-config-ui-x service
+  [[ -e /etc/services.d/homebridge-config-ui-x ]] && mv /etc/services.d/homebridge-config-ui-x /etc/services.d/.homebridge-config-ui-x
+fi

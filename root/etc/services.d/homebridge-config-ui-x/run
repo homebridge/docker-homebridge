@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv sh
+
+s6-setuidgid abc homebridge-config-ui-x \
+  -U /homebridge \
+  -P /homebridge/node_modules \
+  -H /usr/local/share/.config/yarn/global/node_modules/homebridge \
+  2>&1 | tee -a /homebridge/logs/homebridge.log
