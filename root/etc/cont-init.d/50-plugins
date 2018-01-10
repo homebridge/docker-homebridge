@@ -2,8 +2,8 @@
 
 # install plugins defined in the package.json file, prune others.
 echo "Homebridge: Installing plugins..."
-yarn install --production --force --ignore-engines
+npm install --production
+npm prune
 
 # fix permissions
-chown -R abc:abc /homebridge /root
-chown -R abc:abc /usr/local/share/.config/yarn &
+chown -R abc:abc /root /homebridge

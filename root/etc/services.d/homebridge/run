@@ -1,3 +1,9 @@
 #!/usr/bin/with-contenv sh
-sleep 7
+
+# fix permissions
+chown -R abc:abc /homebridge
+
+# wait for services to come up
+sleep 6
+
 s6-setuidgid abc homebridge -U /homebridge -P /homebridge/node_modules 2>&1 | tee -a /homebridge/logs/homebridge.log
