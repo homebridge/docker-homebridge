@@ -4,7 +4,7 @@ RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus
   && npm config set package-lock false \
   && mkdir /homebridge
 
-ENV HOMEBRIDGE_VERSION 0.4.34
+ENV HOMEBRIDGE_VERSION 0.4.35
 RUN npm install -g --unsafe-perm homebridge@$HOMEBRIDGE_VERSION
 
 WORKDIR /homebridge
