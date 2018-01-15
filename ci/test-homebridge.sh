@@ -1,12 +1,12 @@
 #!/usr/bin/env bats
 
-setup() {
-  docker run --name homebridge -d -p 51826:51826 -e TERMINATE_ON_ERROR=1 homebridge
-  sleep 15
-}
-
 teardown() {
   docker rm -f homebridge
+}
+
+launch() {
+  docker run --name homebridge -d -p 51826:51826 -e TERMINATE_ON_ERROR=1 homebridge
+  sleep 15
 }
 
 testCmd() {
@@ -17,11 +17,13 @@ testCmd() {
 }
 
 @test "test homebridge starts" {
+  launch
   run testCmd
   [ "$status" -eq 0 ]
 }
 
 @test "test homebridge starts after a graceful restart" {
+  launch
   docker restart homebridge
   sleep 15
   run testCmd
@@ -29,6 +31,7 @@ testCmd() {
 }
 
 @test "test homebridge starts after being killed" {
+  launch
   docker kill homebridge
   docker start homebridge
   sleep 15
@@ -37,6 +40,7 @@ testCmd() {
 }
 
 @test "test container exits when homebridge process stops" {
+  launch
   docker exec homebridge pkill homebridge
   sleep 10
   run docker exec homebridge echo "This should fail."
@@ -44,9 +48,23 @@ testCmd() {
 }
 
 @test "test extra packages are installed" {
-  docker rm -f homebridge
   docker run --name homebridge -d -e "PACKAGES=ffmpeg,openssh" homebridge
   sleep 30
   run docker exec homebridge ffmpeg -h
   [ "$status" -eq 0 ]
+}
+
+@test "test homebridge-config-ui-x is running if option is enabled" {
+  docker run --name homebridge -d -p 51826:51826 -p 8581:8581 -e HOMEBRIDGE_CONFIG_UI=1 -e HOMEBRIDGE_CONFIG_UI_PORT=8581 homebridge
+  sleep 15
+  run testCmd \
+    && curl -If http://localhost:8581/favicon.ico \
+    && docker exec homebridge pidof homebridge-config-ui-x
+  [ "$status" -eq 0 ]
+}
+
+@test "test homebridge-config-ui-x not running if option is not enabled" {
+  launch
+  run docker exec homebridge pidof homebridge-config-ui-x
+  [ "$status" -ne 0 ]
 }
