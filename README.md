@@ -12,7 +12,7 @@ This Alpine Linux based Docker image allows you to run [Nfarina's](https://githu
 ## Compatibility
 
 Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
-Currently this will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) due to [this issue](https://github.com/docker/for-mac/issues/68).
+Currently this image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543).
 
 ## Usage
 
@@ -26,9 +26,9 @@ docker run \
   oznu/homebridge
 ```
 
-## Raspberry Pi
+## Raspberry Pi / ARMv6
 
-This image will also run on a Raspberry Pi using the ```raspberry-pi``` tag:
+This image will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices by using the using the ```raspberry-pi``` tag:
 
 ```
 docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
@@ -133,7 +133,7 @@ If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge:latest
+    image: oznu/homebridge:latest  # use "raspberry-pi" instead of "latest" for arm devices
     restart: always
     network_mode: host
     environment:
