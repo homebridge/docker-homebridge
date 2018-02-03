@@ -1,5 +1,10 @@
 FROM oznu/s6-node:8.9.4
-
+RUN set -x \
+    && add-apt-repository ppa:mc3man/trusty-media \
+    && apt-get update \
+    && apt-get dist-upgrade \
+    && apt-get install -y --no-install-recommends \
+        ffmpeg \ 
 RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
   && mkdir /homebridge
 
