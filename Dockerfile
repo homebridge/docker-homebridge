@@ -1,5 +1,6 @@
 FROM oznu/s6-node:8.9.4
-
+RUN apk add --update ffmpeg 
+RUN apk add ffmpeg-libs
 RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
   && mkdir /homebridge
 
