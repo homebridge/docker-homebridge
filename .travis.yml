@@ -17,6 +17,8 @@ jobs:
       - bats ci/test-homebridge.sh
 
     - stage: build armhf
+      git:
+        depth: false
       before_install:
         - git clone https://github.com/oznu/docker-arm-ci.git ~/docker-arm-ci
       before_script:
