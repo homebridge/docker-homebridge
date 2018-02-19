@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv sh
 
-source /etc/os-release
+. /etc/os-release
 
 # parse extra packages list
 if [ ! -z "$PACKAGES" ]; then
