@@ -1,5 +1,7 @@
 #!/usr/bin/with-contenv sh
 
+source /etc/os-release
+
 # parse extra packages list
 if [ ! -z "$PACKAGES" ]; then
 
@@ -7,9 +9,10 @@ if [ ! -z "$PACKAGES" ]; then
     export EXTRA_PACKAGES="$EXTRA_PACKAGES ${job}"
   done
 
-  echo "Installing extra packages: $EXTRA_PACKAGES"
+  echo "Installing extra packages for $ID linux: $EXTRA_PACKAGES"
 
-  apk add --no-cache $EXTRA_PACKAGES
+  [ "$ID" = "alpine" ] && apk add --no-cache $EXTRA_PACKAGES
+  [ "$ID" = "debian" ] && apt-get update && apt-get install -y $EXTRA_PACKAGES
 
   if [ $? -ne 0 ]; then
     echo
@@ -18,9 +21,9 @@ if [ ! -z "$PACKAGES" ]; then
     echo "--------------------------------------------------------------"
     echo "Failed to install custom packages. See log above for details."
     echo "Please ensure all packages requested are named correctly."
-    echo
-    echo "A full list of available packages can be found here:"
-    echo "https://pkgs.alpinelinux.org/packages"
+    [ "$ID" = "alpine" ] && echo
+    [ "$ID" = "alpine" ] && echo "A full list of available packages can be found here:"
+    [ "$ID" = "alpine" ] && echo "https://pkgs.alpinelinux.org/packages"
     echo "--------------------------------------------------------------"
     echo
   fi
