@@ -48,9 +48,9 @@ testCmd() {
 }
 
 @test "test extra packages are installed" {
-  docker run --name homebridge -d -e "PACKAGES=ffmpeg,openssh" homebridge
+  docker run --name homebridge -d -e "PACKAGES=bats" homebridge
   sleep 30
-  run docker exec homebridge ffmpeg -h
+  run docker exec homebridge which bats
   [ "$status" -eq 0 ]
 }
 
