@@ -6,6 +6,7 @@ mkdir -p /var/run/avahi-daemon
 
 # delete existing pid if found
 [ -e /var/run/dbus.pid ] && rm -f /var/run/dbus.pid
+[ -e /var/run/dbus/pid ] && rm -f /var/run/dbus/pid
 [ -e /var/run/avahi-daemon/pid ] && rm -f /var/run/avahi-daemon/pid
 
 # permissions
