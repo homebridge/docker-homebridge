@@ -3,7 +3,7 @@
 # install plugins defined in the package.json file, prune others.
 echo "Homebridge: Installing plugins..."
 npm prune
-npm install --production
+npm install --unsafe-perm --production
 
 # fix permissions
 chown -R abc:abc /root /homebridge
