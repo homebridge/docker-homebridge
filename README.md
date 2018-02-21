@@ -56,6 +56,8 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=ffmpeg,openssh`
 * `-e TERMINATE_ON_ERROR=1` - If `TERMINATE_ON_ERROR` is set to `1` then the container will exit when the Homebridge process ends, otherwise it will be restarted.
+* `-e HOMEBRIDGE_INSECURE=1` - Start homebridge in insecure mode using the `-I` flag.
+* `-e HOMEBRIDGE_DEBUG=1` - Enable debug level logging using the `-D` flag.
 
 ##### *Homebridge UI Options*:
 
