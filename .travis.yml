@@ -6,16 +6,6 @@ services:
 jobs:
   include:
 
-    - stage: test
-      before_install:
-        - sudo add-apt-repository ppa:duggan/bats --yes
-        - sudo apt-get update -qq
-        - sudo apt-get install -qq bats
-      install:
-        - docker build . -t homebridge
-      script:
-      - bats ci/test-homebridge.sh
-
     - stage: build armhf
       git:
         depth: false
