@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/usr/bin/with-localenv sh
 
 # fix permissions
 chown -R abc:abc /homebridge

@@ -1,7 +1,13 @@
-#!/usr/bin/with-contenv sh
+#!/usr/bin/with-localenv sh
+
+if [ ! -z $HOMEBRIDGE_CONFIG_UI_NPM_PKG ] && [ -d /usr/local/lib/node_modules/$HOMEBRIDGE_CONFIG_UI_NPM_PKG ]; then
+  _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/$HOMEBRIDGE_CONFIG_UI_NPM_PKG
+else
+  _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/homebridge
+fi 
 
 s6-setuidgid root homebridge-config-ui-x \
   -U /homebridge \
   -P /homebridge/node_modules \
-  -H /usr/local/lib/node_modules/homebridge \
+  -H $_HOMEBRIDGE_PATH \
   2>&1 | tee -a /homebridge/logs/homebridge.log

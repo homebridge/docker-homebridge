@@ -169,7 +169,18 @@ You can enable `ffmpeg` by adding this environment variable to your run command 
 PACKAGES=ffmpeg,ffmpeg-libs
 ```
 
-#### 4. Ask on Slack
+#### 4. Try the debian tag
+
+Some plugins don't like Alpine Linux so this project also provides a Debian based version of the image.
+
+```
+docker run oznu/homebridge:debian
+docker run oznu/homebridge:debian-raspberry-pi
+```
+
+See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
+
+#### 5. Ask on Slack
 
 [![Slack Status](https://slackin-znyruquwmv.now.sh/badge.svg)](https://slackin-znyruquwmv.now.sh)
 
