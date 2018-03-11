@@ -4,6 +4,7 @@
 [ -e /homebridge/package.json ] || cp /defaults/package.json /homebridge/package.json
 [ -e /homebridge/config.json ] || cp /defaults/config.json /homebridge/config.json
 [ -e /homebridge/startup.sh ] || cp /defaults/startup.sh /homebridge/startup.sh
+[ -e /homebridge/.docker.env ] || cp /defaults/.docker.env /homebridge/.docker.env
 [ -e /homebridge/logs ] || mkdir -p /homebridge/logs
 
 # run user defined custom startup script

@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv sh
+
+set -a
+[ -f /homebridge/.docker.env ] && . /homebridge/.docker.env
+set +a
+
+$@

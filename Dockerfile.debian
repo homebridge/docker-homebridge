@@ -1,7 +1,10 @@
 ARG S6_ARCH
-FROM oznu/s6-node:8.10.0-${S6_ARCH:-amd64}
+FROM oznu/s6-node:8.10.0-debian-${S6_ARCH:-amd64}
 
-RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
+RUN apt-get update \
+  && apt-get install -y git python make g++ psmisc procps iputils-ping libnss-mdns avahi-discover libavahi-compat-libdnssd-dev \
+  && apt-get clean \
+  && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && chmod 4755 /bin/ping \
   && mkdir /homebridge
 
