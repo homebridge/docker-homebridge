@@ -6,4 +6,4 @@ npm prune
 npm install --unsafe-perm --production
 
 # fix permissions
-chown -R abc:abc /root /homebridge
+chown -R abc:abc /homebridge

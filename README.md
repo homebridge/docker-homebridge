@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/oznu/docker-homebridge.svg?style=for-the-badge)](https://github.com/oznu/docker-homebridge/releases) [![Docker Build Status](https://img.shields.io/docker/build/oznu/homebridge.svg?label=x64%20build&style=for-the-badge)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge.svg?label=arm%20build&style=for-the-badge)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg?style=for-the-badge)](https://hub.docker.com/r/oznu/homebridge/)
+[![GitHub release](https://img.shields.io/github/release/oznu/docker-homebridge.svg)](https://github.com/oznu/docker-homebridge/releases) [![Docker Build Status](https://img.shields.io/docker/build/oznu/homebridge.svg?label=x64%20build)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge.svg?label=arm%20build)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
 
 # Docker Homebridge
 
@@ -166,7 +166,7 @@ You may need to provide the server name of your Synology NAS using the `DSM_HOST
 You can enable `ffmpeg` by adding this environment variable to your run command or docker-compose.yml:
 
 ```
-PACKAGES=ffmpeg,ffmpeg-libs
+PACKAGES=ffmpeg
 ```
 
 #### 4. Try the debian tag

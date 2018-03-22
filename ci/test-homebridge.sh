@@ -11,8 +11,6 @@ launch() {
 
 testCmd() {
   curl -I http://localhost:51826/accessories \
-    && docker exec homebridge pidof avahi-daemon \
-    && docker exec homebridge pidof dbus-daemon \
     && docker exec homebridge pidof homebridge
 }
 
