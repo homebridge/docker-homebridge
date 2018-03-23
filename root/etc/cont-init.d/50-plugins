@@ -7,3 +7,6 @@ npm install --unsafe-perm --production
 
 # fix permissions
 chown -R abc:abc /homebridge
+
+# change owner of root home dir
+chown abc:abc /root
