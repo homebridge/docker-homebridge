@@ -6,12 +6,14 @@ services:
 env:
   - S6_ARCH=amd64 DOCKERFILE="Dockerfile" TAG_SUFFIX=""
   - S6_ARCH=armhf DOCKERFILE="Dockerfile" TAG_SUFFIX="raspberry-pi"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" TAG_SUFFIX="aarch64"
 
   - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" TAG_SUFFIX="debian"
   - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" TAG_SUFFIX="debian-raspberry-pi"
 
   - S6_ARCH=amd64 DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi"
   - S6_ARCH=armhf DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi-raspberry-pi"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi-aarch64"
 
 before_script:
   - sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
