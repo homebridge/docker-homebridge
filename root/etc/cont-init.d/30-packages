@@ -1,4 +1,4 @@
-#!/usr/bin/with-localenv sh
+#!/usr/bin/with-contenv sh
 
 . /etc/os-release
 

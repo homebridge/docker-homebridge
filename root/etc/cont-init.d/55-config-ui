@@ -13,25 +13,6 @@ else
 fi
 
 # check homebridge-config-ui-x is not installed in /homebridge/node_modules when enabled with the HOMEBRIDGE_CONFIG_UI flag
-if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ] && [ -e /homebridge/config.json ]; then
-  if node -e "const c = require('./config'); if (c.platforms.find(x => x.platform === 'config')) { process.exit(1) };"; then
-    [ -e /homebridge/node_modules/homebridge-config-ui-x ] && npm uninstall --save homebridge-config-ui-x
-  else
-    # disable homebridge-config-ui-x service since it might conflict with the local install
-    [ -e /etc/services.d/homebridge-config-ui-x ] && mv /etc/services.d/homebridge-config-ui-x /etc/services.d/.homebridge-config-ui-x
-    echo
-    echo "--------------------------------------------------------------"
-    echo "ERROR: Homebridge Config UI X platform exists in config.json"
-    echo "--------------------------------------------------------------"
-    echo "When HOMEBRIDGE_CONFIG_UI=1 you should not configure this"
-    echo "plugin using the Homebridge config.json."
-    echo
-    echo "Please remove this platform from /homebridge/config.json:"
-    echo
-    node -e "const c = require('./config'); console.log(JSON.stringify(c.platforms.find(x => x.platform === 'config'), null, 4));"
-    echo
-    echo "HOMEBRIDGE_CONFIG_UI=1 flag is being ignored."
-    echo "--------------------------------------------------------------"
-    echo
-  fi
+if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ]; then
+  [ -e /homebridge/node_modules/homebridge-config-ui-x ] && npm uninstall --save homebridge-config-ui-x
 fi

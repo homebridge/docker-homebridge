@@ -4,7 +4,7 @@
 chown -R abc:abc /homebridge
 
 # wait for services to come up
-sleep 6
+sleep 2
 
 # Homebridge Startup Flags
 _HOMEBRIDGE_OPTS='-U /homebridge -P /homebridge/node_modules'
