@@ -6,6 +6,9 @@ chown -R abc:abc /homebridge
 # wait for services to come up
 sleep 2
 
+# prevent npm update checks
+export NO_UPDATE_NOTIFIER=1
+
 # Homebridge Startup Flags
 _HOMEBRIDGE_OPTS='-U /homebridge -P /homebridge/node_modules'
 
