@@ -8,10 +8,10 @@ RUN apt-get update \
   && chmod 4755 /bin/ping \
   && mkdir /homebridge
 
-ENV HOMEBRIDGE_VERSION=0.4.42
+ENV HOMEBRIDGE_VERSION=0.4.43
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=3.6.6
+ENV CONFIG_UI_VERSION=3.8.2
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge
