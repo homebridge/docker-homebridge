@@ -15,3 +15,6 @@ WORKDIR /homebridge
 VOLUME /homebridge
 
 COPY root /
+
+ARG AVAHI
+RUN [ "${AVAHI:-1}" == "1" ] || (rm -rf /etc/services.d/avahi /etc/services.d/dbus)

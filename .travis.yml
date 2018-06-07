@@ -4,16 +4,18 @@ services:
   - docker
 
 env:
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile" TAG_SUFFIX=""
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile" TAG_SUFFIX="raspberry-pi"
-  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" TAG_SUFFIX="aarch64"
+  - S6_ARCH=amd64 DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX=""
+  - S6_ARCH=amd64 DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi"
+  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian"
+  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="debian-no-avahi-raspberry-pi"
 
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" TAG_SUFFIX="debian"
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" TAG_SUFFIX="debian-raspberry-pi"
+  - S6_ARCH=armhf DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX="raspberry-pi"
+  - S6_ARCH=armhf DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-raspberry-pi"
+  - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian-raspberry-pi"
+  - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="debian-no-avahi-raspberry-pi"
 
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi"
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi-raspberry-pi"
-  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile.no-avahi" TAG_SUFFIX="no-avahi-aarch64"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX="aarch64"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-aarch64"
 
 before_script:
   - sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
@@ -22,6 +24,6 @@ before_script:
   - docker pull $TARGET_IMAGE:$TARGET_IMAGE_TAG && export IMAGE_CACHE="--cache-from $TARGET_IMAGE:$TARGET_IMAGE_TAG" || export IMAGE_CACHE=""
 
 script:
-  - docker build -f $DOCKERFILE $IMAGE_CACHE --build-arg S6_ARCH=${S6_ARCH} -t $TARGET_IMAGE:$TARGET_IMAGE_TAG .
+  - docker build -f $DOCKERFILE $IMAGE_CACHE --build-arg S6_ARCH=$S6_ARCH --build-arg AVAHI=$AVAHI -t $TARGET_IMAGE:$TARGET_IMAGE_TAG .
   - docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
   - docker push $TARGET_IMAGE:$TARGET_IMAGE_TAG
