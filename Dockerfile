@@ -17,4 +17,4 @@ VOLUME /homebridge
 COPY root /
 
 ARG AVAHI
-RUN [ "${AVAHI:-1}" == "1" ] || (rm -rf /etc/services.d/avahi /etc/services.d/dbus)
+RUN [ "${AVAHI:-1}" = "1" ] || (echo "Removing Avahi" && rm -rf /etc/services.d/avahi /etc/services.d/dbus)
