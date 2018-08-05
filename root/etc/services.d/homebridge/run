@@ -10,7 +10,7 @@ sleep 2
 export NO_UPDATE_NOTIFIER=1
 
 # Homebridge Startup Flags
-_HOMEBRIDGE_OPTS='-U /homebridge -P /homebridge/node_modules'
+_HOMEBRIDGE_OPTS='-U /homebridge -P /homebridge/node_modules -C'
 
 if [ "$HOMEBRIDGE_INSECURE" = "1" ]; then
   _HOMEBRIDGE_OPTS=$_HOMEBRIDGE_OPTS' -I'
