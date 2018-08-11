@@ -8,7 +8,7 @@ RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus
 ENV HOMEBRIDGE_VERSION=0.4.44
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=3.8.8
+ENV CONFIG_UI_VERSION=3.8.9
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge
@@ -18,6 +18,6 @@ COPY root /
 
 ARG AVAHI
 RUN [ "${AVAHI:-1}" = "1" ] || (echo "Removing Avahi" && \
-    rm -rf /etc/services.d/avahi \
-           /etc/services.d/dbus \
-           /etc/cont-init.d/40-dbus-avahi)
+  rm -rf /etc/services.d/avahi \
+    /etc/services.d/dbus \
+    /etc/cont-init.d/40-dbus-avahi)

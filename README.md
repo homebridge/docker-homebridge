@@ -42,6 +42,14 @@ This docker image has been tested on the following Raspberry Pi models:
 
 [See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
 
+## AARCH64
+
+This image will also run on AARCH64 devices using the `aarch64` tag:
+
+```
+docker run --net=host --name=homebridge oznu/homebridge:aarch64
+```
+
 ## Parameters
 
 The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
@@ -180,7 +188,24 @@ docker run oznu/homebridge:debian-raspberry-pi
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
 
-#### 5. Ask on Slack
+#### 5. Logs showing `Service name conflict` or `Host name conflict`
+
+You may need to use a `no-avahi` version of this image to prevent conflicts with the Avahi service running on the host:
+
+```shell
+# Alpine
+docker run oznu/homebridge:no-avahi
+docker run oznu/homebridge:no-avahi-raspberry-pi
+docker run oznu/homebridge:no-avahi-aarch64
+
+# Debian
+docker run oznu/homebridge:debian-no-avahi
+docker run oznu/homebridge:debian-no-avahi-raspberry-pi
+```
+
+See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
+
+#### 6. Ask on Slack
 
 [![Slack Status](https://slackin-znyruquwmv.now.sh/badge.svg)](https://slackin-znyruquwmv.now.sh)
 
