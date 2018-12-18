@@ -11,8 +11,11 @@ if [ ! -z "$PACKAGES" ]; then
 
   echo "Installing extra packages for $ID linux: $EXTRA_PACKAGES"
 
-  [ "$ID" = "alpine" ] && apk add --no-cache $EXTRA_PACKAGES
-  [ "$ID" = "debian" ] && apt-get update && apt-get install -y $EXTRA_PACKAGES
+  if [ "$ID" = "alpine" ]; then
+    apk add $EXTRA_PACKAGES
+  elif [ "$ID" = "debian" ]; then
+    apt-get update && apt-get install -y $EXTRA_PACKAGES
+  fi
 
   if [ $? -ne 0 ]; then
     echo

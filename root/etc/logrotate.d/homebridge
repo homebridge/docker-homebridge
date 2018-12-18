@@ -1,5 +1,5 @@
 /homebridge/logs/homebridge.log {
-  size 10mb
+  size 10M
   copytruncate
   missingok
   rotate 4
