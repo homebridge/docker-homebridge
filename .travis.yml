@@ -69,4 +69,4 @@ jobs:
 
 # notify me when things fail
 notifications:
-    email: false
+    email: true
