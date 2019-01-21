@@ -19,7 +19,9 @@ env:
   - S6_ARCH=aarch64 DOCKER_FILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-alpine-arm64v8"
 
 before_script:
+  # Prepare Docker
   - ./docker.sh prepare
+
   # Set BUILD_VERSION
   - if [ ! -z "${TRAVIS_TAG}" ]; then export BUILD_VERSION=${TRAVIS_TAG:1}; else export BUILD_VERSION=beta; fi
 
