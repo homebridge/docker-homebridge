@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/oznu/docker-homebridge.svg)](https://github.com/oznu/docker-homebridge/releases) [![Docker Build Status](https://img.shields.io/docker/build/oznu/homebridge.svg?label=x64%20build)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge.svg?label=arm%20build)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
+[![GitHub release](https://img.shields.io/github/release/oznu/docker-homebridge.svg)](https://github.com/oznu/docker-homebridge/releases) [![Docker Build Status](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=amd64%20build)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=arm%20build)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
 
 # Docker Homebridge
 
@@ -28,10 +28,10 @@ docker run \
 
 ## Raspberry Pi / ARMv6
 
-This image will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices by using the using the ```raspberry-pi``` tag:
+This image will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices by using the using the ```arm32v6``` tag:
 
 ```
-docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
+docker run --net=host --name=homebridge oznu/homebridge:arm32v6
 ```
 
 This docker image has been tested on the following Raspberry Pi models:
@@ -42,12 +42,12 @@ This docker image has been tested on the following Raspberry Pi models:
 
 [See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
 
-## AARCH64
+## AARCH64 / arm64v8
 
-This image will also run on AARCH64 devices using the `aarch64` tag:
+This image will also run on AARCH64/arm64v8 devices using the `arm64v8` tag:
 
 ```
-docker run --net=host --name=homebridge oznu/homebridge:aarch64
+docker run --net=host --name=homebridge oznu/homebridge:arm64v8
 ```
 
 ## Parameters
@@ -148,7 +148,7 @@ If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge:latest  # use "raspberry-pi" instead of "latest" for arm devices
+    image: oznu/homebridge:latest  # use "arm32v6" instead of "latest" for arm devices
     restart: always
     network_mode: host
     environment:
@@ -183,7 +183,7 @@ Some plugins don't like Alpine Linux so this project also provides a Debian base
 
 ```
 docker run oznu/homebridge:debian
-docker run oznu/homebridge:debian-raspberry-pi
+docker run oznu/homebridge:debian-arm32v7
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
@@ -195,12 +195,12 @@ You may need to use a `no-avahi` version of this image to prevent conflicts with
 ```shell
 # Alpine
 docker run oznu/homebridge:no-avahi
-docker run oznu/homebridge:no-avahi-raspberry-pi
-docker run oznu/homebridge:no-avahi-aarch64
+docker run oznu/homebridge:no-avahi-arm32v6
+docker run oznu/homebridge:no-avahi-arm64v8
 
 # Debian
 docker run oznu/homebridge:debian-no-avahi
-docker run oznu/homebridge:debian-no-avahi-raspberry-pi
+docker run oznu/homebridge:debian-no-avahi-arm32v7
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
