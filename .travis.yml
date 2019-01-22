@@ -4,26 +4,69 @@ services:
   - docker
 
 env:
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX=""
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi"
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian"
-  - S6_ARCH=amd64 DOCKERFILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="debian-no-avahi"
+  - S6_ARCH=amd64 DOCKER_FILE="Dockerfile" AVAHI=1 TAG_SUFFIX="alpine-amd64"
+  - S6_ARCH=amd64 DOCKER_FILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-alpine-amd64"
+  - S6_ARCH=amd64 DOCKER_FILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian-amd64"
+  - S6_ARCH=amd64 DOCKER_FILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="no-avahi-debian-amd64"
 
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX="raspberry-pi"
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-raspberry-pi"
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian-raspberry-pi"
-  - S6_ARCH=armhf DOCKERFILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="debian-no-avahi-raspberry-pi"
+  - S6_ARCH=armhf DOCKER_FILE="Dockerfile" AVAHI=1 TAG_SUFFIX="alpine-arm32v6"
+  - S6_ARCH=armhf DOCKER_FILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-alpine-arm32v6"
 
-  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX="aarch64"
-  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-aarch64"
+  - S6_ARCH=armhf DOCKER_FILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian-arm32v7"
+  - S6_ARCH=armhf DOCKER_FILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="no-avahi-debian-arm32v7"
+
+  - S6_ARCH=aarch64 DOCKER_FILE="Dockerfile" AVAHI=1 TAG_SUFFIX="alpine-arm64v8"
+  - S6_ARCH=aarch64 DOCKER_FILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-alpine-arm64v8"
 
 before_script:
-  - sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
-  - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-  - export TARGET_IMAGE_TAG=$(if [ "$TRAVIS_BRANCH" = "master" ]; then if [ "$TAG_SUFFIX" = "" ]; then echo "latest"; else echo "$TAG_SUFFIX"; fi; else if [ "$TAG_SUFFIX" = "" ]; then echo "$TRAVIS_BRANCH"; else echo "$TRAVIS_BRANCH-$TAG_SUFFIX"; fi; fi)
-  - docker pull $TARGET_IMAGE:$TARGET_IMAGE_TAG && export IMAGE_CACHE="--cache-from $TARGET_IMAGE:$TARGET_IMAGE_TAG" || export IMAGE_CACHE=""
+  # Prepare Docker
+  - ./docker.sh prepare
+
+  # Set BUILD_VERSION
+  - if [ ! -z "${TRAVIS_TAG}" ]; then export BUILD_VERSION=${TRAVIS_TAG:1}; else export BUILD_VERSION=beta; fi
+
+  #- export TARGET_IMAGE_TAG=$(if [ "$TRAVIS_BRANCH" = "master" ]; then if [ "$TAG_SUFFIX" = "" ]; then echo "latest"; else echo "$TAG_SUFFIX"; fi; else if [ "$TAG_SUFFIX" = "" ]; then echo "$TRAVIS_BRANCH"; else echo "$TRAVIS_BRANCH-$TAG_SUFFIX"; fi; fi)
+  #- docker pull ${TARGET_IMAGE}:build-${TAG_SUFFIX} && export IMAGE_CACHE="--cache-from ${TARGET_IMAGE}:build-${TAG_SUFFIX}" || export IMAGE_CACHE=""
 
 script:
-  - docker build -f $DOCKERFILE $IMAGE_CACHE --build-arg S6_ARCH=$S6_ARCH --build-arg AVAHI=$AVAHI -t $TARGET_IMAGE:$TARGET_IMAGE_TAG .
-  - docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
-  - docker push $TARGET_IMAGE:$TARGET_IMAGE_TAG
+  # Build Docker image
+  - ./docker.sh build
+  #- docker build -f $DOCKERFILE $IMAGE_CACHE --build-arg S6_ARCH=$S6_ARCH --build-arg AVAHI=$AVAHI -t $TARGET_IMAGE:$TARGET_IMAGE_TAG .
+
+  # Test Docker image
+  #- ./docker.sh test
+
+  # Push Docker image
+  - >
+    if [ ! -z "${TRAVIS_TAG}" ]; then
+      # Tag Docker image
+      ./docker.sh tag
+
+      # Docker Login
+      echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+      # Push Docker image
+      ./docker.sh push
+
+      # Docker Logout
+      docker logout
+    fi
+
+jobs:
+  include:
+    - stage: manifest
+      if: tag =~ ^v
+      script:
+        # Docker Login
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+        # Create and Push Docker Manifest Lists to Docker Hub
+        - echo "Create manifest list for all docker images."
+        - ./docker.sh manifest-list
+
+        # Docker Logout
+        - docker logout
+
+# notify me when things fail
+notifications:
+    email: true
