@@ -1,25 +1,6 @@
 ARG S6_ARCH
 FROM oznu/s6-node:10.15.0-debian-${S6_ARCH:-amd64}
 
-# Define ARGs again to make them available after FROM
-ARG BUILD_DATE
-ARG BUILD_VERSION
-ARG BUILD_REF
-
-# Basic build-time metadata as defined at http://label-schema.org
-LABEL org.label-schema.build-date=${BUILD_DATE} \
-    org.label-schema.docker.dockerfile="Dockerfile.debian" \
-    org.label-schema.license="GNU" \
-    org.label-schema.name="homebridge" \
-    org.label-schema.version=${BUILD_VERSION} \
-    org.label-schema.description="Homebridge is a lightweight NodeJS server you can run on your home network that emulates the iOS HomeKit API." \
-    org.label-schema.url="https://homebridge.io" \
-    org.label-schema.vcs-ref=${BUILD_REF} \
-    org.label-schema.vcs-type="Git" \
-    org.label-schema.vcs-url="https://github.com/oznu/docker-homebridge" \
-    maintainer1="Oznu <dev@oz.nu>" \
-    maintainer2="Raymond M Mouthaan <raymondmmouthaan@gmail.com>"
-
 RUN apt-get update \
   && apt-get install -y git python make g++ libnss-mdns avahi-discover libavahi-compat-libdnssd-dev \
   && apt-get clean \

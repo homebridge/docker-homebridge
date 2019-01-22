@@ -9,42 +9,6 @@ This Alpine Linux based Docker image allows you to run [Nfarina's](https://githu
 - [Running Homebridge on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi)
 - [Running Homebridge on a Synology NAS](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Synology)
 
-<!-- ## Image Variants Todo: old tags
-
-| Image Tag | OS | Architecture | Note |
-| --------- | ------------ | --- | --- |
-| latest | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| beta | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version} | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version}-alpine-amd64 | Alpine Linux | amd64 | i.e. Synology NAS |
-| {version}-no-avahi-alpine-amd64 </br> {version}-no-avahi | Alpine Linux | amd64 | no avahi |
-| {version}-debian-amd64 </br> {version}-debian | Debian stretch | amd64 | i.e. Synology NAS |
-| {version}-no-avahi-debian-amd64 </br> {version}-no-avahi-debian  | Debian stretch | amd64 | no avahi |
-| {version}-alpine-arm32v6 </br> {version}-raspberry-pi | Alpine Linux | arm32v6 | i.e. Raspberry Pi Zero |
-| {version}-no-avahi-alpine-arm32v6 </br> {version}-no-avahi-raspberry-pi | Alpine Linux | arm32v6 | no avahi |
-| {version}-debian-arm32v7 </br> {version}-debian-raspberry-pi | Debian stretch | arm32v7 | i.e. Raspberry Pi 3 |
-| {version}-no-avahi-debian-arm32v7 </br> {version}-no-avahi-debian-raspberry-pi | Debian stretch | arm32v7 | no avahi |
-| {version}-alpine-arm64v8 </br> {version}-alpine-aarch64 | Alpine Linux | arm64v8 | i.e. Pine64 |
-| {version}-no-avahi-alpine-arm64v8 </br> {version}-no-avahi-alpine-aarch64 | Alpine Linux | arm64v8 | no avahi | -->
-
-## Image Variants
-
-| Image Tag | OS | Architecture | Note |
-| --------- | ------------ | --- | --- |
-| latest | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| beta | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version} | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version}-alpine-amd64 | Alpine Linux | amd64 | i.e. Synology NAS |
-| {version}-no-avahi-alpine-amd64 | Alpine Linux | amd64 | no avahi |
-| {version}-debian-amd64 | Debian stretch | amd64 | i.e. Synology NAS |
-| {version}-no-avahi-debian-amd64  | Debian stretch | amd64 | no avahi |
-| {version}-alpine-arm32v6 | Alpine Linux | arm32v6 | i.e. Raspberry Pi Zero |
-| {version}-no-avahi-alpine-arm32v6 | Alpine Linux | arm32v6 | no avahi |
-| {version}-debian-arm32v7 | Debian stretch | arm32v7 | i.e. Raspberry Pi 3 |
-| {version}-no-avahi-debian-arm32v7 | Debian stretch | arm32v7 | no avahi |
-| {version}-alpine-arm64v8 | Alpine Linux | arm64v8 | i.e. Pine64 |
-| {version}-no-avahi-alpine-arm64v8 | Alpine Linux | arm64v8 | no avahi |
-
 ## Compatibility
 
 Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
@@ -64,10 +28,10 @@ docker run \
 
 ## Raspberry Pi / ARMv6
 
-This image will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices by using the using the ```raspberry-pi``` tag:
+This image will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices by using the using the ```arm32v6``` tag:
 
 ```
-docker run --net=host --name=homebridge oznu/homebridge:raspberry-pi
+docker run --net=host --name=homebridge oznu/homebridge:arm32v6
 ```
 
 This docker image has been tested on the following Raspberry Pi models:
@@ -78,12 +42,12 @@ This docker image has been tested on the following Raspberry Pi models:
 
 [See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
 
-## AARCH64
+## AARCH64 / arm64v8
 
-This image will also run on AARCH64 devices using the `aarch64` tag:
+This image will also run on AARCH64/arm64v8 devices using the `arm64v8` tag:
 
 ```
-docker run --net=host --name=homebridge oznu/homebridge:aarch64
+docker run --net=host --name=homebridge oznu/homebridge:arm64v8
 ```
 
 ## Parameters
@@ -184,7 +148,7 @@ If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge:latest  # use "raspberry-pi" instead of "latest" for arm devices
+    image: oznu/homebridge:latest  # use "arm32v6" instead of "latest" for arm devices
     restart: always
     network_mode: host
     environment:
@@ -219,7 +183,7 @@ Some plugins don't like Alpine Linux so this project also provides a Debian base
 
 ```
 docker run oznu/homebridge:debian
-docker run oznu/homebridge:debian-raspberry-pi
+docker run oznu/homebridge:debian-arm32v7
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
@@ -231,12 +195,12 @@ You may need to use a `no-avahi` version of this image to prevent conflicts with
 ```shell
 # Alpine
 docker run oznu/homebridge:no-avahi
-docker run oznu/homebridge:no-avahi-raspberry-pi
-docker run oznu/homebridge:no-avahi-aarch64
+docker run oznu/homebridge:no-avahi-arm32v6
+docker run oznu/homebridge:no-avahi-arm64v8
 
 # Debian
 docker run oznu/homebridge:debian-no-avahi
-docker run oznu/homebridge:debian-no-avahi-raspberry-pi
+docker run oznu/homebridge:debian-no-avahi-arm32v7
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
@@ -246,21 +210,3 @@ See the wiki for a list of image variants: https://github.com/oznu/docker-homebr
 [![Slack Status](https://slackin-znyruquwmv.now.sh/badge.svg)](https://slackin-znyruquwmv.now.sh)
 
 Join the [Homebridge Slack](https://slackin-znyruquwmv.now.sh/) chat and ask in the [#docker](https://homebridgeteam.slack.com/messages/C961HJHCP) channel.
-
-## Image Variants
-
-| Image Tag | OS | Architecture | Note |
-| --------- | ------------ | --- | --- |
-| latest | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| beta | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version} | Alpine Linux | amd64, arm32v6, arm64v8 | auto-detect |
-| {version}-alpine-amd64 | Alpine Linux | amd64 | Synology NAS |
-| {version}-no-avahi-alpine-amd64 | Alpine Linux | amd64 | no avahi |
-| {version}-debian-amd64 | Debian stretch | amd64 | i.e. Synology NAS |
-| {version}-no-avahi-debian-amd64 | Debian stretch | amd64 | no avahi |
-| {version}-alpine-arm32v6 | Alpine Linux | arm32v6 | i.e. Raspberry Pi Zero |
-| {version}-no-avahi-alpine-arm32v6 | Alpine Linux | arm32v6 | no avahi |
-| {version}-debian-arm32v7 | Debian stretch | arm32v7 | i.e. Raspberry Pi 3 |
-| {version}-no-avahi-debian-arm32v7 | Debian stretch | arm32v7 | no avahi |
-| {version}-alpine-arm64v8 | Alpine Linux | arm64v8 | i.e. Pine64 |
-| {version}-no-avahi-alpine-arm64v8 | Alpine Linux | arm64v8 | no avahi |
