@@ -16,6 +16,8 @@ env:
 
   - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=1 TAG_SUFFIX="arm64v8" ALT_SUFFIX="aarch64"
   - S6_ARCH=aarch64 DOCKERFILE="Dockerfile" AVAHI=0 TAG_SUFFIX="no-avahi-arm64v8" ALT_SUFFIX="no-avahi-aarch64"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile.debian" AVAHI=1 TAG_SUFFIX="debian-arm64v8"
+  - S6_ARCH=aarch64 DOCKERFILE="Dockerfile.debian" AVAHI=0 TAG_SUFFIX="debian-no-avahi-arm64v8"
 
 script:
   # setup multi-arch build support
@@ -81,13 +83,15 @@ jobs:
         # debian
         - export MANIFEST_SUFFIX=$(if [ "$TRAVIS_BRANCH" = "master" ]; then echo "debian"; else echo "$TRAVIS_BRANCH-debian"; fi)
         - export TAG_PREFIX=$(if [ "$TRAVIS_BRANCH" = "master" ]; then echo "debian"; else echo "$TRAVIS_BRANCH-debian"; fi)
-        - docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7
+        - docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
         - docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        - docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm --variant=v8
         - docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
 
         # debian-no-avahi
         - export MANIFEST_SUFFIX=$(if [ "$TRAVIS_BRANCH" = "master" ]; then echo "debian-no-avahi"; else echo "$TRAVIS_BRANCH-debian-no-avahi"; fi)
         - export TAG_PREFIX=$(if [ "$TRAVIS_BRANCH" = "master" ]; then echo "debian-no-avahi"; else echo "$TRAVIS_BRANCH-debian-no-avahi"; fi)
-        - docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7
+        - docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
         - docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        - docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm --variant=v8
         - docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX

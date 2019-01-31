@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/oznu/docker-homebridge.svg)](https://github.com/oznu/docker-homebridge/releases) [![Docker Build Status](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=amd64%20build)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=arm%20build)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
+[![Donate](https://img.shields.io/badge/donate-paypal-yellowgreen.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZEW8TFQCU2MSJ&source=url) [![Docker Build Status](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=amd64%20build)](https://hub.docker.com/r/oznu/homebridge/) [![Travis](https://img.shields.io/travis/oznu/docker-homebridge/master.svg?label=arm%20build)](https://travis-ci.org/oznu/docker-homebridge) [![Docker Pulls](https://img.shields.io/docker/pulls/oznu/homebridge.svg)](https://hub.docker.com/r/oznu/homebridge/)
 
 # Docker Homebridge
 
