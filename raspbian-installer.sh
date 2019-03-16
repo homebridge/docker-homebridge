@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# This script is meant for a quick and easy setup of oznu/homebridge on Rasbian
+# This script is meant for a quick and easy setup of oznu/homebridge on Raspbian
 # It should be executed on a fresh install of Raspbian Stretch Lite only!
 #
 
