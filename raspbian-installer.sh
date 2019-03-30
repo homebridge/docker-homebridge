@@ -28,7 +28,9 @@ echo "$LP Docker Installed"
 
 echo "$LP Installing Docker Compose..."
 
-sudo apt-get -y install python-setuptools && sudo easy_install pip && sudo pip install docker-compose
+sudo apt-get -y install python-setuptools
+sudo easy_install pip
+sudo pip install docker-compose~=1.23.0
 
 echo "$LP Docker Compose Installed"
 
