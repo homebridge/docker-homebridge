@@ -3,7 +3,9 @@ FROM oznu/s6-node:10.15.3-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
   && chmod 4755 /bin/ping \
-  && mkdir /homebridge
+  && mkdir /homebridge \
+  && npm set global-style=true \
+  && npm set package-lock=false
 
 ENV HOMEBRIDGE_VERSION=0.4.49
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}

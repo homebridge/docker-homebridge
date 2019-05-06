@@ -6,7 +6,9 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && chmod 4755 /bin/ping \
-  && mkdir /homebridge
+  && mkdir /homebridge \
+  && npm set global-style=true \
+  && npm set package-lock=false
 
 ENV HOMEBRIDGE_VERSION=0.4.49
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}

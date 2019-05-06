@@ -1,5 +1,12 @@
 #!/usr/bin/with-contenv sh
 
+# check to see if plugins were installed using the non-"global-style"
+if [ -e /homebridge/package-lock.json ]; then
+  echo "Converting /homebridge/node_modules to global style..."
+  rm -rf /homebridge/node_modules
+  rm -rf /homebridge/package-lock.json
+fi
+
 # install plugins defined in the package.json file, prune others.
 echo "Homebridge: Installing plugins..."
 npm prune
