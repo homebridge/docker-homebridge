@@ -2,6 +2,7 @@ ARG S6_ARCH
 FROM oznu/s6-node:10.15.3-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
+    iputils sudo nano \
   && chmod 4755 /bin/ping \
   && mkdir /homebridge \
   && npm set global-style=true \
