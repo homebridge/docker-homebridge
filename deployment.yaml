@@ -38,7 +38,7 @@ spec:
       - env:
         - name: tz
           value: Europe/Berlin
-        image: oznu/homebridge
+        image: marvinmarvin/docker-k8s-homebridge
         imagePullPolicy: Always
         name: homebridge
         ports:
