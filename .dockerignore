@@ -3,3 +3,4 @@ raspberry-pi
 .gitignore
 Dockerfile
 README.md
+.github
