@@ -65,64 +65,9 @@ spec:
       dnsPolicy: ClusterFirst
       hostNetwork: true
       nodeSelector:
-        kubernetes.io/arch: amd64
-        nodetype: nuc
+        location: lan
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
 status: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    metallb.universe.tf/address-pool: lan-loadbalancer
-    metallb.universe.tf/allow-shared-ip: lan-loadbalancer
-  labels:
-    k8s-app: homebridge
-  name: homebridge-100
-  namespace: lan
-spec:
-  externalTrafficPolicy: Cluster
-  loadBalancerIP: 192.168.1.100
-  ports:
-  - name: homebridge
-    port: 51827
-    protocol: TCP
-    targetPort: 51827
-  - name: homebridge-2
-    port: 5353
-    protocol: TCP
-    targetPort: 5353
-  selector:
-    k8s-app: homebridge
-  sessionAffinity: None
-  type: LoadBalancer
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    metallb.universe.tf/address-pool: lan-loadbalancer
-    metallb.universe.tf/allow-shared-ip: lan-loadbalancer
-  labels:
-    k8s-app: homebridge 
-  name: homebridge-250
-  namespace: lan
-spec:
-  externalTrafficPolicy: Cluster
-  loadBalancerIP: 192.168.1.250
-  ports:
-  - name: homebridge
-    port: 51827
-    protocol: TCP
-    targetPort: 51827
-  - name: homebridge-2
-    port: 5353
-    protocol: TCP
-    targetPort: 5353
-  selector:
-    k8s-app: homebridge 
-  sessionAffinity: None
-  type: LoadBalancer
