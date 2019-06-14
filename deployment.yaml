@@ -38,6 +38,10 @@ spec:
       - env:
         - name: tz
           value: Europe/Berlin
+        - name: PUID
+          value: "0"
+        - name: PGID
+          value: "0"
         image: marvinmarvin/docker-k8s-homebridge
         imagePullPolicy: Always
         name: homebridge
