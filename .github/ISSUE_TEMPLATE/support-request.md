@@ -38,7 +38,8 @@ Show your homebridge config.json here
 
 **Environment:**
 
-* **Operating System**: Raspbian / Ubuntu / Debian / Windows / macOS
+* **Host Operating System**: <!-- Raspbian / Ubuntu / Debian / Windows / macOS etc. -->
 * **Docker Version**: <!-- docker -->
+* **Image Tag / Type**: <!-- latest, debian, no-avahi etc. -->
 
-<!-- Click the "Preview" tab before you submitting ensure the formatting is correct. -->
+<!-- Click the "Preview" tab before you submit to ensure the formatting is correct. -->
