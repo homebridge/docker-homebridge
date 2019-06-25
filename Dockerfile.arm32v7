@@ -4,7 +4,7 @@
 #RUN curl -L https://github.com/balena-io/qemu/releases/download/v3.0.0%2Bresin/qemu-3.0.0+resin-arm.tar.gz | tar zxvf - -C . && mv qemu-3.0.0+resin-arm/qemu-arm-static .
 
 ARG S6_ARCH
-FROM oznu/s6-node:10.15.3-debian-arm32v7}
+FROM oznu/s6-node:10.15.3-debian-${S6_ARCH:-arm32v6}
 #COPY --from=builder /builder/working/directory/qemu-arm-static /usr/bin
 ADD qemu-arm-static /usr/bin
 
