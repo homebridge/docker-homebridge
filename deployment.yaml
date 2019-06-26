@@ -91,11 +91,11 @@ spec:
   loadBalancerIP: 192.168.1.100
   ports:
   - name: homebridge
-    port: 51828
+    port: 51827
     protocol: TCP
     targetPort: homebridge
   - name: homebridge-2
-    port: 5354
+    port: 5353
     protocol: TCP
     targetPort: homebridge-2
   selector:
@@ -118,11 +118,11 @@ spec:
   loadBalancerIP: 192.168.1.250
   ports:
   - name: homebridge
-    port: 51828
+    port: 51827
     protocol: TCP
     targetPort: homebridge
   - name: homebridge-2
-    port: 5354
+    port: 5353
     protocol: TCP
     targetPort: homebridge-2
   selector:
