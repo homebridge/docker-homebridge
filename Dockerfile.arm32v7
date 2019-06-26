@@ -4,7 +4,7 @@
 #RUN curl -L https://github.com/balena-io/qemu/releases/download/v3.0.0%2Bresin/qemu-3.0.0+resin-arm.tar.gz | tar zxvf - -C . && mv qemu-3.0.0+resin-arm/qemu-arm-static .
 
 ARG S6_ARCH
-FROM oznu/s6-node:10.15.3-${S6_ARCH:-armhf}
+FROM oznu/s6-node:10.16.0-${S6_ARCH:-armhf}
 #COPY --from=builder /builder/working/directory/qemu-arm-static /usr/bin
 ADD qemu-arm-static /usr/bin
 
@@ -25,10 +25,10 @@ RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus
 #  && npm set global-style=true \
 #  && npm set package-lock=false
 
-ENV HOMEBRIDGE_VERSION=0.4.49
+ENV HOMEBRIDGE_VERSION=0.4.50
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=4.4.2
+ENV CONFIG_UI_VERSION=4.5.1
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge

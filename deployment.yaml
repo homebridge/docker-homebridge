@@ -13,7 +13,7 @@ metadata:
   selfLink: /apis/extensions/v1beta1/namespaces/lan/deployments/homebridge
 spec:
   progressDeadlineSeconds: 600
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -47,10 +47,10 @@ spec:
         name: homebridge
         ports:
         - containerPort: 51827
-#          hostPort: 51827
+          name: homebridge
           protocol: TCP
         - containerPort: 5353
-#          hostPort: 5353
+          name: homebridge-2
           protocol: TCP
         volumeMounts:
         - mountPath: /homebridge
@@ -70,8 +70,6 @@ spec:
       hostNetwork: true
       nodeSelector:
         location: lan
-#        kubernetes.io/arch: amd64
-#        nodetype: nuc
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -93,13 +91,13 @@ spec:
   loadBalancerIP: 192.168.1.100
   ports:
   - name: homebridge
-    port: 51827
+    port: 51828
     protocol: TCP
-    targetPort: 51827
+    targetPort: homebridge
   - name: homebridge-2
-    port: 5353
+    port: 5354
     protocol: TCP
-    targetPort: 5353
+    targetPort: homebridge-2
   selector:
     k8s-app: homebridge
   sessionAffinity: None
@@ -120,13 +118,13 @@ spec:
   loadBalancerIP: 192.168.1.250
   ports:
   - name: homebridge
-    port: 51827
+    port: 51828
     protocol: TCP
-    targetPort: 51827
+    targetPort: homebridge
   - name: homebridge-2
-    port: 5353
+    port: 5354
     protocol: TCP
-    targetPort: 5353
+    targetPort: homebridge-2
   selector:
     k8s-app: homebridge 
   sessionAffinity: None
