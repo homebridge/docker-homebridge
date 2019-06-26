@@ -13,7 +13,7 @@ metadata:
   selfLink: /apis/extensions/v1beta1/namespaces/lan/deployments/homebridge
 spec:
   progressDeadlineSeconds: 600
-  replicas: 1
+  replicas: 10
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -47,10 +47,10 @@ spec:
         name: homebridge
         ports:
         - containerPort: 51827
-          hostPort: 51827
+#          hostPort: 51827
           protocol: TCP
         - containerPort: 5353
-          hostPort: 5353
+#          hostPort: 5353
           protocol: TCP
         volumeMounts:
         - mountPath: /homebridge
@@ -68,9 +68,9 @@ spec:
           type: Directory
       dnsPolicy: ClusterFirst
       hostNetwork: true
-      nodeSelector:
-        kubernetes.io/arch: amd64
-        nodetype: nuc
+#      nodeSelector:
+#        kubernetes.io/arch: amd64
+#        nodetype: nuc
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
