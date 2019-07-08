@@ -55,7 +55,7 @@ spec:
         volumeMounts:
         - mountPath: /homebridge
           name: k8s-cfg-homebridge
-          readOnly: true
+          readOnly: false
         resources: {}
         securityContext:
           privileged: true
