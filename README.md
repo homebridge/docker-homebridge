@@ -4,6 +4,15 @@
 
 This Alpine/Debian Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
 
+  * [Guides](#guides)
+  * [Compatibility](#compatibility)
+  * [Usage](#usage)
+  * [Parameters](#parameters)
+  * [Homebridge Config](#homebridge-config)
+  * [Installing Plugins](#homebridge-plugins)
+  * [Docker Compose](#docker-compose)
+  * [Troubleshooting](#troubleshooting)
+
 ## Guides
 
 - [Running Homebridge on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi)
@@ -13,6 +22,7 @@ This Alpine/Debian Linux based Docker image allows you to run [Nfarina's](https:
 
 Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
 Currently this image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543).
+
 
 ## Usage
 
@@ -210,3 +220,11 @@ See the wiki for a list of image variants: https://github.com/oznu/docker-homebr
 [![Slack Status](https://slackin-znyruquwmv.now.sh/badge.svg)](https://slackin-znyruquwmv.now.sh)
 
 Join the [Homebridge Slack](https://slackin-znyruquwmv.now.sh/) chat and ask in the [#docker](https://homebridgeteam.slack.com/messages/C961HJHCP) channel.
+
+## License
+
+Copyright (C) 2019 oznu
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the [GNU General Public License](./LICENSE) for more details.
