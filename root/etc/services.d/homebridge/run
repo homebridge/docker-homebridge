@@ -9,6 +9,9 @@ sleep 2
 # prevent npm update checks
 export NO_UPDATE_NOTIFIER=1
 
+# prevent the ui from running in the homebridge process
+export HOMEBRIDGE_CONFIG_UI=1
+
 # Homebridge Startup Flags
 _HOMEBRIDGE_OPTS='-U /homebridge -P /homebridge/node_modules -C'
 

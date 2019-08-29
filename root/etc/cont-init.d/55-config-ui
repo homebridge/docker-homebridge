@@ -1,15 +1,13 @@
 #!/usr/bin/with-contenv sh
 
-if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ]; then
+if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ] || homebridge-ui-configured; then
   echo "Enabling homebridge-config-ui-x..."
   # enable homebridge-config-ui-x service
   [ -e /etc/services.d/homebridge-config-ui-x ] || mv /etc/services.d/.homebridge-config-ui-x /etc/services.d/homebridge-config-ui-x
+
+  # check homebridge-config-ui-x is not installed in /homebridge/node_modules
+  [ -e /homebridge/node_modules/homebridge-config-ui-x ] && npm uninstall --save homebridge-config-ui-x
 else
   # disable homebridge-config-ui-x service
   [ -e /etc/services.d/homebridge-config-ui-x ] && mv /etc/services.d/homebridge-config-ui-x /etc/services.d/.homebridge-config-ui-x
-fi
-
-# check homebridge-config-ui-x is not installed in /homebridge/node_modules when enabled with the HOMEBRIDGE_CONFIG_UI flag
-if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ]; then
-  [ -e /homebridge/node_modules/homebridge-config-ui-x ] && npm uninstall --save homebridge-config-ui-x
 fi

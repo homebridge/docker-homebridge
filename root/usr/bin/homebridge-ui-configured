@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+
+const config = require('/homebridge/config.json');
+
+if (config.platforms && config.platforms.length) {
+  if (config.platforms.find(x => x.platform === 'config')) {
+    process.exit (0);
+  }
+}
+
+process.exit(1);

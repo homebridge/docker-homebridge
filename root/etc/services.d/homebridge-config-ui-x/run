@@ -4,7 +4,10 @@ if [ ! -z $HOMEBRIDGE_CONFIG_UI_NPM_PKG ] && [ -d /usr/local/lib/node_modules/$H
   _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/$HOMEBRIDGE_CONFIG_UI_NPM_PKG
 else
   _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/homebridge
-fi 
+fi
+
+# ensure the ui knows it's running in docker
+export HOMEBRIDGE_CONFIG_UI=1
 
 s6-setuidgid root homebridge-config-ui-x \
   -U /homebridge \
