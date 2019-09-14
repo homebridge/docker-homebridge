@@ -27,12 +27,16 @@ function selectPort() {
   return Math.floor(Math.random() * (54000 - 51000 + 1) + 51000);
 }
 
+const username = generateUsername();
+const port = selectPort();
+const name = 'Homebridge ' + username.substr(username.length - 5).replace(/:/g, '');
+
 // Base Config
 const config = {
   "bridge": {
-    "name": "Homebridge",
-    "username": generateUsername(),
-    "port": selectPort(),
+    "name": name,
+    "username": username,
+    "port": port,
     "pin": "031-45-154"
   },
   "accessories": [
