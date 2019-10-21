@@ -11,7 +11,7 @@ if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ] || homebridge-ui-configured; then
   # check to see if an offline update to the @latest was requested
   if [ -e /homebridge/.uix-upgrade-on-restart ]; then
     echo "Updating Homebridge Config UI X to latest version; this might take a few minutes..."
-    npm install -g homebridge-config-ui-x@latest && rm -rf /homebridge/.uix-upgrade-on-restart
+    npm install -g --unsafe-perm homebridge-config-ui-x@latest && rm -rf /homebridge/.uix-upgrade-on-restart
   fi
 else
   # disable homebridge-config-ui-x service
