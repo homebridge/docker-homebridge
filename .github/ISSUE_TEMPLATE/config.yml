@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Homebridge Slack Community
+    url: https://slackin-znyruquwmv.now.sh/
+    about: Ask your questions in the docker channel
