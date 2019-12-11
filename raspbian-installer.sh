@@ -16,17 +16,6 @@ LP="[oznu/homebridge installer]"
 
 # Check OS
 
-if [ "$VERSION_ID" = "10" ] && [ "$ARCH" = "armv6l" ]; then
-  MODEL=$(tr -d '\0' </proc/device-tree/model)
-  echo
-  echo "This installed script does not work on a $MODEL when"
-  echo "running Raspbian Buster. Please re-image using Raspbian Stretch instead."
-  echo
-  echo "See https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi"
-  echo
-  exit 0
-fi
-
 if [ "$VERSION_ID" = "10" ]; then
   echo "$LP Installing on $PRETTY_NAME..."
 elif [ "$VERSION_ID" = "9" ]; then
@@ -42,12 +31,7 @@ echo "$LP Installing Docker..."
 
 curl -fssl https://get.docker.com -o get-docker.sh
 chmod u+x get-docker.sh
-
-if [ "$VERSION_ID" = "9" ]; then
-  sudo VERSION=18.06 ./get-docker.sh
-else
-  sudo ./get-docker.sh
-fi
+sudo ./get-docker.sh
 
 sudo usermod -aG docker $USER
 rm -rf get-docker.sh
@@ -58,13 +42,7 @@ echo "$LP Docker Installed"
 
 echo "$LP Installing Docker Compose..."
 
-if [ "$VERSION_ID" = "9" ]; then
-  sudo apt-get -y install python-setuptools
-  sudo easy_install pip
-  sudo pip install docker-compose~=1.23.0
-else
-  sudo apt-get -y install docker-compose
-fi
+sudo apt-get -y install docker-compose
 
 echo "$LP Docker Compose Installed"
 
