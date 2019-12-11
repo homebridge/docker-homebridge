@@ -76,7 +76,7 @@ echo "$LP Created $INSTALL_DIR/docker-compose.yml"
 
 # Step 4: Pull Docker Image
 
-echo "$LP Pulling Homebridge Docker image (this may take a few minutes)..."
+echo "$LP Pulling Homebridge Docker image (this may take up to 20 minutes)..."
 
 sudo docker-compose pull
 
