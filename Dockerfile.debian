@@ -3,7 +3,7 @@ FROM oznu/s6-node:12.14.1-debian-${S6_ARCH:-amd64}
 
 RUN apt-get update \
   && apt-get install -y git python make g++ libnss-mdns avahi-discover libavahi-compat-libdnssd-dev \
-    inetutils-ping net-tools iproute2 sudo nano \
+    net-tools iproute2 sudo nano \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && chmod 4755 /bin/ping \
