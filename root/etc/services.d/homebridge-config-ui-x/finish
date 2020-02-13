@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv sh
+
+/usr/bin/container-credits-banner | tee -a /homebridge/logs/homebridge.log
