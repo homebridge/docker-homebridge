@@ -8,6 +8,8 @@ RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus
   && npm set global-style=true \
   && npm set package-lock=false
 
+RUN set -x && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.1/ffmpeg-alpine-$(uname -m).tar.gz | tar xzf - -C / --no-same-owner
+
 ENV HOMEBRIDGE_VERSION=0.4.50
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 

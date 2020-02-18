@@ -10,8 +10,7 @@ BYELLOW='\033[1;33m'
 CYAN='\033[4;36m'
 NC='\033[0m'
 
-echo "
-
+printf "
 
     ${BWHITE}Thank you for using the ${CYAN}oznu/homebridge${NC} ${BWHITE}docker image!${NC}
 
