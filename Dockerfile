@@ -8,7 +8,15 @@ RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus
   && npm set global-style=true \
   && npm set package-lock=false
 
-RUN set -x && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.1/ffmpeg-alpine-$(uname -m).tar.gz | tar xzf - -C / --no-same-owner
+RUN case "$(uname -m)" in \
+    x86_64) FFMPEG_ARCH='x86_64';; \
+    armv6l) FFMPEG_ARCH='armv6l';; \
+    armv7l) FFMPEG_ARCH='armv6l';; \
+    aarch64) FFMPEG_ARCH='aarch64';; \
+    *) echo "unsupported architecture"; exit 1 ;; \
+    esac \
+    && set -x \
+    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.1/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 ENV HOMEBRIDGE_VERSION=0.4.50
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}

@@ -62,7 +62,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 ##### *Optional Settings:*
 
-* `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=ffmpeg,openssh`
+* `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=openssh`
 * `-e TERMINATE_ON_ERROR=1` - If `TERMINATE_ON_ERROR` is set to `1` then the container will exit when the Homebridge process ends, otherwise it will be restarted.
 * `-e HOMEBRIDGE_INSECURE=1` - Start homebridge in insecure mode using the `-I` flag.
 * `-e HOMEBRIDGE_DEBUG=1` - Enable debug level logging using the `-D` flag.
@@ -173,11 +173,7 @@ You may need to provide the server name of your Synology NAS using the `DSM_HOST
 
 #### 3. Need ffmpeg?
 
-You can enable `ffmpeg` by adding this environment variable to your run command or docker-compose.yml:
-
-```
-PACKAGES=ffmpeg
-```
+ffmpeg, with `libfdk-aac` audio support is included in this image.
 
 #### 4. Try the debian tag
 
