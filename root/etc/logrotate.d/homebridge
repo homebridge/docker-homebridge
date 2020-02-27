@@ -1,4 +1,4 @@
-/homebridge/logs/homebridge.log {
+/homebridge/homebridge.log {
   size 10M
   copytruncate
   missingok

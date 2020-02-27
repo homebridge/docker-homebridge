@@ -1,16 +1,21 @@
 #!/usr/bin/with-localenv sh
 
-if [ ! -z $HOMEBRIDGE_CONFIG_UI_NPM_PKG ] && [ -d /usr/local/lib/node_modules/$HOMEBRIDGE_CONFIG_UI_NPM_PKG ]; then
-  _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/$HOMEBRIDGE_CONFIG_UI_NPM_PKG
-else
-  _HOMEBRIDGE_PATH=/usr/local/lib/node_modules/homebridge
-fi
+# fix permissions
+chown -R abc:abc /homebridge
+
+# wait for services to come up
+sleep 2
 
 # ensure the ui knows it's running in docker
 export HOMEBRIDGE_CONFIG_UI=1
 
-s6-setuidgid root homebridge-config-ui-x \
+touch /homebridge/homebridge.log
+
+s6-setuidgid root hb-service run \
+  --allow-root \
+  --docker \
+  --uid=$(id abc -u) \
+  --gid=$(id abc -g) \
+  -I \
   -U /homebridge \
-  -P /homebridge/node_modules \
-  -H $_HOMEBRIDGE_PATH \
-  2>&1 | tee -a /homebridge/logs/homebridge.log
+  -P /homebridge/node_modules

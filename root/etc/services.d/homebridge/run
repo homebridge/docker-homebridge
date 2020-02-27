@@ -27,4 +27,4 @@ fi
 
 echo $_HOMEBRIDGE_OPTS
 
-s6-setuidgid abc homebridge $_HOMEBRIDGE_OPTS 2>&1 | tee -a /homebridge/logs/homebridge.log
+s6-setuidgid abc homebridge $_HOMEBRIDGE_OPTS 2>&1 | tee -a /homebridge/homebridge.log

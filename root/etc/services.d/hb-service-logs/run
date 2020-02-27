@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv sh
+
+[ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
+
+chown -R abc:abc /homebridge/homebridge.log
+
+exec s6-setuidgid abc tail -f --follow=name /homebridge/homebridge.log

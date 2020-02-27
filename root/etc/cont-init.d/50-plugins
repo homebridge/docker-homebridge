@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv sh
 
-/usr/bin/container-credits-banner | tee -a /homebridge/logs/homebridge.log
+/usr/bin/container-credits-banner
 
 # check to see if plugins were installed using the non-"global-style"
 if [ -e /homebridge/package-lock.json ]; then
