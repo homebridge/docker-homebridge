@@ -1,3 +1,5 @@
 #!/usr/bin/with-contenv sh
 
+/usr/bin/container-credits-banner 
+
 [ "$TERMINATE_ON_ERROR" = "1" ] && s6-svscanctl -t /var/run/s6/services

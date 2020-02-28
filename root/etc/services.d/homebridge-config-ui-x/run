@@ -1,5 +1,8 @@
 #!/usr/bin/with-localenv sh
 
+# ensure log file exists
+touch /homebridge/homebridge.log
+
 # fix permissions
 chown -R abc:abc /homebridge
 
@@ -8,8 +11,6 @@ sleep 2
 
 # ensure the ui knows it's running in docker
 export HOMEBRIDGE_CONFIG_UI=1
-
-touch /homebridge/homebridge.log
 
 s6-setuidgid root hb-service run \
   --allow-root \
