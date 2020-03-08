@@ -2,6 +2,9 @@
 
 . /etc/os-release
 
+# fix /etc/sudo.conf permissions
+chmod 440 /etc/sudo.conf
+
 # parse extra packages list
 if [ ! -z "$PACKAGES" ]; then
 
