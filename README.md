@@ -207,11 +207,9 @@ docker run oznu/homebridge:debian-no-avahi-arm32v7
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
 
-#### 6. Ask on Slack
+#### 6. Ask on Discord
 
-[![Slack Status](https://slackin-znyruquwmv.now.sh/badge.svg)](https://slackin-znyruquwmv.now.sh)
-
-Join the [Homebridge Slack](https://slackin-znyruquwmv.now.sh/) chat and ask in the [#docker](https://homebridgeteam.slack.com/messages/C961HJHCP) channel.
+Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
 ## License
 
