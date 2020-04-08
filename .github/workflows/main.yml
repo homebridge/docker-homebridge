@@ -9,19 +9,19 @@ jobs:
     strategy:
       matrix:
         name: [
-          amd64,
-          no-avahi-amd64,
-          debian-amd64,
-          debian-aarch64,
-          debian-no-avahi-amd64,
-          arm32v6,
-          no-avahi-arm32v6,
-          debian-arm32v7,
-          debian-no-avahi-arm32v7,
-          arm64v8,
-          no-avahi-arm64v8,
-          debian-arm64v8,
-          debian-no-avahi-arm64v8
+          amd64
+          # no-avahi-amd64,
+          # debian-amd64,
+          # debian-aarch64,
+          # debian-no-avahi-amd64,
+          # arm32v6,
+          # no-avahi-arm32v6,
+          # debian-arm32v7,
+          # debian-no-avahi-arm32v7,
+          # arm64v8,
+          # no-avahi-arm64v8,
+          # debian-arm64v8,
+          # debian-no-avahi-arm64v8
         ]
 
         include:
