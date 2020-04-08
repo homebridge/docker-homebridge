@@ -1,0 +1,251 @@
+name: "Build"
+
+on:
+  push
+
+jobs:
+  # build all the image variants
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # amd64 builds (Alpine)
+          - name: amd64
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: amd64
+          - name: no-avahi-amd64
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-amd64
+
+          # amd64 builds (Debian)
+          - name: debian-amd64
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-amd64
+          - name: debian-no-avahi-amd64
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-amd64
+
+          # arm32v6 builds (Alpine)
+          - name: arm32v6
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: arm32v6
+            ALT_SUFFIX: raspberry-pi
+          - name: no-avahi-arm32v6
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-arm32v6
+            ALT_SUFFIX: no-avahi-raspberry-pi
+
+          # arm32v7 builds (Debian)
+          - name: debian-arm32v7
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-arm32v7
+            ALT_SUFFIX: debian-raspberry-pi
+          - name: debian-no-avahi-arm32v7
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-arm32v7
+            ALT_SUFFIX: debian-no-avahi-raspberry-pi
+
+          # arm64v8 builds (Alpine)
+          - name: arm64v8
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: arm64v8
+            ALT_SUFFIX: aarch64
+          - name: no-avahi-arm64v8
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-arm64v8
+            ALT_SUFFIX: no-avahi-aarch64
+
+          # arm64v8 builds (Debian)
+          - name: debian-arm64v8
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-arm64v8
+          - name: debian-no-avahi-arm64v8
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-arm64v8
+
+    steps:
+    # checkout repo
+    - uses: actions/checkout@v2
+
+    # setup multi-arch build support
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
+        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+    # get branch / tag name
+    - name: Get Branch / Tag Name
+      id: get_branch
+      run: |
+        export RELEASE_NAME=$(if [[ ${GITHUB_REF} =~ "refs/tags/" ]]; then echo ${GITHUB_REF/refs\/tags\//}; else echo ${GITHUB_REF/refs\/heads\//}; fi)
+        echo $RELEASE_NAME
+        echo ::set-output name=NAME::${RELEASE_NAME}
+
+    # generate the image tag
+    - name: Get Image Tag
+      id: get_tag
+      run: |
+        export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "latest"; else echo "${{ matrix.TAG_SUFFIX }}"; fi; else if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.TAG_SUFFIX }}"; fi; fi)
+        echo $TARGET_IMAGE_TAG
+        echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
+
+    # pull the existing image from the registry, if it exists, to use as a build cache
+    - name: Pull Image Cache
+      id: get_image_cache
+      run: |
+        docker pull ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} && export IMAGE_CACHE="--cache-from ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}" || export IMAGE_CACHE=""
+        echo $IMAGE_CACHE
+        echo ::set-output name=IMAGE_CACHE::${IMAGE_CACHE}
+
+    # build the image
+    - name: Build Image
+      run: |
+        docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
+
+    # push the image to docker hub
+    - name: Push Image
+      if: github.repository == 'oznu/docker-homebridge'
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
+
+    # push alternate tags
+    - name: Push Alternate Tags
+      if: github.repository == 'oznu/docker-homebridge'
+      run: |
+        if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
+          echo "No alternate tags set for this build.";
+        else
+          echo "Tagging with alternate tag '${{ matrix.ALT_SUFFIX }}'";
+          export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "error"; else echo "${{ matrix.ALT_SUFFIX }}"; fi; else if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.ALT_SUFFIX }}"; fi; fi);
+          docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+          docker push ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+        fi
+
+  # generate and publish the docker manifest
+  manifest: 
+    if: github.repository == 'oznu/docker-homebridge'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    # checkout repo
+    - uses: actions/checkout@v2
+
+    # get branch / tag name
+    - name: Get Branch / Tag Name
+      id: get_branch
+      run: |
+        export RELEASE_NAME=$(if [[ ${GITHUB_REF} =~ "refs/tags/" ]]; then echo ${GITHUB_REF/refs\/tags\//}; else echo ${GITHUB_REF/refs\/heads\//}; fi)
+        echo $RELEASE_NAME
+        echo ::set-output name=NAME::${RELEASE_NAME}
+
+    # enable experimental cli features
+    - name: Enable Docker Experimental CLI Features
+      run: |-
+        mkdir -p $HOME/.docker
+        echo '{"experimental": "enabled"}' | tee $HOME/.docker/config.json
+        echo '{"experimental": true,"storage-driver": "overlay2","max-concurrent-downloads": 50,"max-concurrent-uploads": 50}' | sudo tee /etc/docker/daemon.json
+        sudo service docker restart
+
+    # login to docker hub
+    - name: Login
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    # latest / main
+    - name: latest
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo ""; else echo "${{ steps.get_branch.outputs.NAME }}-"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}amd64 $TARGET_IMAGE:${TAG_PREFIX}arm32v6 $TARGET_IMAGE:${TAG_PREFIX}arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm32v6 --os=linux --arch=arm --variant=v6
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+    
+    # no-avahi
+    - name: no-avahi
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v6 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v6 --os=linux --arch=arm --variant=v6
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+
+    # debian
+    - name: debian
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+
+    # debian-no-avahi
+    - name: debian-no-avahi
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
