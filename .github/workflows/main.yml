@@ -124,7 +124,7 @@ jobs:
         sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
         docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
-    # get branch name
+    # get branch names
     - name: Get the version (git tag)
       id: get_version
       run: |
