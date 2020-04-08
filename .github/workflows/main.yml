@@ -135,7 +135,7 @@ jobs:
         echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
 
     # pull the existing image from the registry, if it exists, to use as a build cache
-    - name: Get Image Cache
+    - name: Pull Image Cache
       id: get_image_cache
       run: |
         docker pull ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} && export IMAGE_CACHE="--cache-from ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}" || export IMAGE_CACHE=""
@@ -147,6 +147,22 @@ jobs:
       run: |
         docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
+    # push the image to docker hub
+    - name: Push Image
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
+
+        # push alternate tags
+
+        if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
+          echo "No alternate tags set for this build.";
+        else
+          echo "Tagging with alternate tag '${{ matrix.ALT_SUFFIX }}'";
+          export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "error"; else echo "${{ matrix.ALT_SUFFIX }}"; fi; else if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.ALT_SUFFIX }}"; fi; fi);
+          docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+          docker push ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+        fi
 
 
 
