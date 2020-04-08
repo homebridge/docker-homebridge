@@ -144,7 +144,8 @@ jobs:
 
     # build the image
     - name: Build Image
-      docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
+      run: |
+        docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
 
 
