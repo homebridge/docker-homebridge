@@ -185,9 +185,7 @@ jobs:
     # enable experimental cli features
     - name: Enable Docker Experimental CLI Features
       run: |-
-        sudo apt update -y
-        sudo apt install --only-upgrade docker-ce -y
-        mkdir $HOME/.docker
+        mkdir -p $HOME/.docker
         echo '{"experimental": "enabled"}' | tee $HOME/.docker/config.json
         echo '{"experimental": true,"storage-driver": "overlay2","max-concurrent-downloads": 50,"max-concurrent-uploads": 50}' | sudo tee /etc/docker/daemon.json
         sudo service docker restart
