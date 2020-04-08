@@ -108,7 +108,7 @@ jobs:
 
     # get branch names
     - name: Get Branch Name
-      if: contains(github.ref, "heads")
+      # if: contains(github.ref, "heads")
       id: get_branch
       run: |
         echo ${GITHUB_REF/refs\/heads\//}
@@ -116,7 +116,7 @@ jobs:
 
     # get tag name
     - name: Get Tag Name
-      if: contains(github.ref, "tags")
+      # if: contains(github.ref, "tags")
       id: get_branch
       run: |
         echo ${GITHUB_REF/refs\/tags\//}
