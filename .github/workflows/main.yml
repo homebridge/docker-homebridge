@@ -108,10 +108,19 @@ jobs:
 
     # get branch names
     - name: Get Branch Name
+      if: contains(github.ref, "heads")
       id: get_branch
       run: |
         echo ${GITHUB_REF/refs\/heads\//}
         echo ::set-output name=NAME::${GITHUB_REF/refs\/heads\//}
+
+    # get tag name
+    - name: Get Tag Name
+      if: contains(github.ref, "tags")
+      id: get_branch
+      run: |
+        echo ${GITHUB_REF/refs\/tags\//}
+        echo ::set-output name=NAME::${GITHUB_REF/refs\/tags\//}
 
     # generate the image tag
     - name: Get Image Tag
@@ -120,6 +129,11 @@ jobs:
         export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "latest"; else echo "${{ matrix.TAG_SUFFIX }}"; fi; else if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.TAG_SUFFIX }}"; fi; fi)
         echo $TARGET_IMAGE_TAG
         echo ::set-output name=TAG::$TARGET_IMAGE_TAG
+
+    # pull the existing image from the registry, if it exists, to use as a build cache
+    - name: Get Image Cache
+
+
 
 
     
