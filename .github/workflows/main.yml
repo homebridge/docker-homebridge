@@ -1,0 +1,133 @@
+name: "Build"
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        name: [
+          amd64,
+          no-avahi-amd64,
+          debian-amd64,
+          debian-aarch64,
+          debian-no-avahi-amd64,
+
+          arm32v6,
+          no-avahi-arm32v6,
+          debian-arm32v7,
+          debian-no-avahi-arm32v7,
+
+          arm64v8,
+          no-avahi-arm64v8,
+          debian-arm64v8,
+          debian-no-avahi-arm64v8,
+        ]
+
+        include:
+          # amd64 builds (Alpine + Debian)
+          - name: amd64
+            os: ubuntu-latest
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: amd64
+          - name: amd64
+            os: ubuntu-latest
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-amd64
+          - name: debian-amd64
+            os: ubuntu-latest
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-amd64
+          - name: debian-no-avahi-amd64
+            os: ubuntu-latest
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-amd64
+
+          # arm32v6 builds (Alpine)
+          - name: arm32v6
+            os: ubuntu-latest
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: arm32v6
+            ALT_SUFFIX: raspberry-pi
+          - name: no-avahi-arm32v6
+            os: ubuntu-latest
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-arm32v6
+            ALT_SUFFIX: no-avahi-raspberry-pi
+
+          # arm32v7 builds (Debian)
+          - name: debian-arm32v7
+            os: ubuntu-latest
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-arm32v7
+            ALT_SUFFIX: debian-raspberry-pi
+          - name: debian-no-avahi-arm32v7
+            os: ubuntu-latest
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-arm32v7
+            ALT_SUFFIX: debian-no-avahi-raspberry-pi
+
+          # arm64v8 builds (Alpine + Debian)
+          - name: arm64v8
+            os: ubuntu-latest
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile
+            AVAHI: "1"
+            TAG_SUFFIX: arm64v8
+            ALT_SUFFIX: aarch64
+          - name: no-avahi-arm64v8
+            os: ubuntu-latest
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile
+            AVAHI: "0"
+            TAG_SUFFIX: no-avahi-arm64v8
+            ALT_SUFFIX: no-avahi-aarch64
+          - name: debian-arm64v8
+            os: ubuntu-latest
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "1"
+            TAG_SUFFIX: debian-arm64v8
+          - name: debian-no-avahi-arm64v8
+            os: ubuntu-latest
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile.debian
+            AVAHI: "0"
+            TAG_SUFFIX: debian-no-avahi-arm64v8
+
+    steps:
+    # checkout repo
+    - uses: actions/checkout@v2
+
+    # setup multi-arch build support
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
+        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+    # get branch name
+    - name: Get the version (git tag)
+      id: get_version
+      run: |
+        echo ${GITHUB_REF/refs\/tags\//}
+        echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    
