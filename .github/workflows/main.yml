@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # amd64 builds (Alpine + Debian)
+          # amd64 builds (Alpine)
           - name: amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
@@ -25,6 +25,8 @@ jobs:
             DOCKERFILE: Dockerfile
             AVAHI: "0"
             TAG_SUFFIX: no-avahi-amd64
+
+          # amd64 builds (Debian)
           - name: debian-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
@@ -76,7 +78,7 @@ jobs:
             TAG_SUFFIX: debian-no-avahi-arm32v7
             ALT_SUFFIX: debian-no-avahi-raspberry-pi
 
-          # arm64v8 builds (Alpine + Debian)
+          # arm64v8 builds (Alpine)
           - name: arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
@@ -93,6 +95,8 @@ jobs:
             AVAHI: "0"
             TAG_SUFFIX: no-avahi-arm64v8
             ALT_SUFFIX: no-avahi-aarch64
+
+          # arm64v8 builds (Debian)
           - name: debian-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
@@ -150,12 +154,14 @@ jobs:
 
     # push the image to docker hub
     - name: Push Image
+      if: github.repository == 'oznu/docker-homebridge'
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
         docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
 
     # push alternate tags
     - name: Push Alternate Tags
+      if: github.repository == 'oznu/docker-homebridge'
       run: |
         if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
           echo "No alternate tags set for this build.";
@@ -168,6 +174,7 @@ jobs:
 
   # generate and publish the docker manifest
   manifest: 
+    if: github.repository == 'oznu/docker-homebridge'
     needs: build
     runs-on: ubuntu-latest
     steps:
