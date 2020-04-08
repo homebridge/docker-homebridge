@@ -110,6 +110,6 @@ jobs:
     - name: Get the version (git tag)
       id: get_version
       run: |
-        echo ${GITHUB_REF/refs\/tags\//}
-        echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        echo ${GITHUB_REF/refs\/heads\//}
+        echo ::set-output name=VERSION::${GITHUB_REF/refs\/heads\//}
     
