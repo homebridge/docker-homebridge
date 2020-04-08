@@ -122,8 +122,8 @@ jobs:
         echo $TARGET_IMAGE_TAG
         echo ::set-output name=TAG::${TARGET_IMAGE_TAG}
 
-    # pull the existing image from the registry, if it exists, to use as a build cache
-    - name: Get Image Cache
+    # # pull the existing image from the registry, if it exists, to use as a build cache
+    # - name: Get Image Cache
 
 
 
