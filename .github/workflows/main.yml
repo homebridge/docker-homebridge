@@ -12,24 +12,28 @@ jobs:
           # amd64 builds (Alpine + Debian)
           - name: amd64
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile
             AVAHI: "1"
             TAG_SUFFIX: amd64
           - name: no-avahi-amd64
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
             TAG_SUFFIX: no-avahi-amd64
           - name: debian-amd64
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.debian
             AVAHI: "1"
             TAG_SUFFIX: debian-amd64
           - name: debian-no-avahi-amd64
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.debian
             AVAHI: "0"
@@ -38,6 +42,7 @@ jobs:
           # arm32v6 builds (Alpine)
           - name: arm32v6
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile
             AVAHI: "1"
@@ -45,6 +50,7 @@ jobs:
             ALT_SUFFIX: raspberry-pi
           - name: no-avahi-arm32v6
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -54,6 +60,7 @@ jobs:
           # arm32v7 builds (Debian)
           - name: debian-arm32v7
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.debian
             AVAHI: "1"
@@ -61,6 +68,7 @@ jobs:
             ALT_SUFFIX: debian-raspberry-pi
           - name: debian-no-avahi-arm32v7
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.debian
             AVAHI: "0"
@@ -70,6 +78,7 @@ jobs:
           # arm64v8 builds (Alpine + Debian)
           - name: arm64v8
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile
             AVAHI: "1"
@@ -77,6 +86,7 @@ jobs:
             ALT_SUFFIX: aarch64
           - name: no-avahi-arm64v8
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -84,12 +94,14 @@ jobs:
             ALT_SUFFIX: no-avahi-aarch64
           - name: debian-arm64v8
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.debian
             AVAHI: "1"
             TAG_SUFFIX: debian-arm64v8
           - name: debian-no-avahi-arm64v8
             os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.debian
             AVAHI: "0"
@@ -116,14 +128,19 @@ jobs:
 
     # generate the image tag
     - name: Get Image Tag
-      id: image
+      id: get_tag
       run: |
         export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "latest"; else echo "${{ matrix.TAG_SUFFIX }}"; fi; else if [ "${{ matrix.TAG_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.TAG_SUFFIX }}"; fi; fi)
         echo $TARGET_IMAGE_TAG
-        echo ::set-output name=TAG::${TARGET_IMAGE_TAG}
+        echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
 
-    # # pull the existing image from the registry, if it exists, to use as a build cache
-    # - name: Get Image Cache
+    # pull the existing image from the registry, if it exists, to use as a build cache
+    - name: Get Image Cache
+      id: get_image_cache
+      run: |
+        docker pull ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} && export IMAGE_CACHE="--cache-from ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}" || export IMAGE_CACHE=""
+        echo IMAGE_CACHE
+        echo ::set-output name=NAME::${IMAGE_CACHE}
 
 
 
