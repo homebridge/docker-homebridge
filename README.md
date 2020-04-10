@@ -143,6 +143,13 @@ npm install homebridge-dummy
 
 This container does **NOT** require you to install plugins globally (using `npm install -g` or `yarn global add`) and doing so is **NOT** recommended or supported.
 
+### To add plugins without NPM
+Put your code in `</path/to/config>/node_modules/homebridge-<your-plugin-name>`, then edit `dependencies` in `</path/to/config>/package.json` to add something like:
+```
+"homebridge-<your-plugin-name>": "*"
+```
+Then restart the container.
+
 ## Docker Compose
 
 If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
