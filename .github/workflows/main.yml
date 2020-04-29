@@ -26,8 +26,8 @@ jobs:
             AVAHI: "0"
             TAG_SUFFIX: no-avahi-amd64
 
-          # amd64 builds (Debian)
-          - name: debian-amd64
+          # amd64 builds (ubuntu)
+          - name: ubuntu-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
@@ -35,7 +35,7 @@ jobs:
             AVAHI: "1"
             TAG_SUFFIX: ubuntu-amd64
             ALT_SUFFIX: debian-amd64
-          - name: debian-no-avahi-amd64
+          - name: ubuntu-no-avahi-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
@@ -62,8 +62,8 @@ jobs:
             TAG_SUFFIX: no-avahi-arm32v6
             ALT_SUFFIX: no-avahi-raspberry-pi
 
-          # arm32v7 builds (Debian)
-          - name: debian-arm32v7
+          # arm32v7 builds (ubuntu)
+          - name: ubuntu-arm32v7
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
@@ -71,7 +71,7 @@ jobs:
             AVAHI: "1"
             TAG_SUFFIX: ubuntu-arm32v7
             ALT_SUFFIX: debian-arm32v7,debian-raspberry-pi
-          - name: debian-no-avahi-arm32v7
+          - name: ubuntu-no-avahi-arm32v7
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
@@ -98,8 +98,8 @@ jobs:
             TAG_SUFFIX: no-avahi-arm64v8
             ALT_SUFFIX: no-avahi-aarch64
 
-          # arm64v8 builds (Debian)
-          - name: debian-arm64v8
+          # arm64v8 builds (ubuntu)
+          - name: ubuntu-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
@@ -107,7 +107,7 @@ jobs:
             AVAHI: "1"
             TAG_SUFFIX: ubuntu-arm64v8
             ALT_SUFFIX: debian-arm64v8
-          - name: debian-no-avahi-arm64v8
+          - name: ubuntu-no-avahi-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
