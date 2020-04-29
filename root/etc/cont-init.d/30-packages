@@ -16,7 +16,7 @@ if [ ! -z "$PACKAGES" ]; then
 
   if [ "$ID" = "alpine" ]; then
     apk add $EXTRA_PACKAGES
-  elif [ "$ID" = "debian" ]; then
+  elif [ "$ID" = "ubuntu" ]; then
     apt-get update && apt-get install -y $EXTRA_PACKAGES
   fi
 

@@ -5,4 +5,4 @@
 echo "Starting cron"
 
 [ "$ID" = "alpine" ] && exec /usr/sbin/crond -f -S -l 5 -c /etc/crontabs
-[ "$ID" = "debian" ] && exec /usr/sbin/cron -f -l 5
+[ "$ID" = "ubuntu" ] && exec /usr/sbin/cron -f -l 5

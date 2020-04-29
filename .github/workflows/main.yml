@@ -31,16 +31,18 @@ jobs:
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
-            TAG_SUFFIX: debian-amd64
+            TAG_SUFFIX: ubuntu-amd64
+            ALT_SUFFIX: debian-amd64
           - name: debian-no-avahi-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
-            TAG_SUFFIX: debian-no-avahi-amd64
+            TAG_SUFFIX: ubuntu-no-avahi-amd64
+            ALT_SUFFIX: debian-no-avahi-amd64
 
           # arm32v6 builds (Alpine)
           - name: arm32v6
@@ -65,18 +67,18 @@ jobs:
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
-            TAG_SUFFIX: debian-arm32v7
-            ALT_SUFFIX: debian-raspberry-pi
+            TAG_SUFFIX: ubuntu-arm32v7
+            ALT_SUFFIX: debian-arm32v7,debian-raspberry-pi
           - name: debian-no-avahi-arm32v7
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
-            TAG_SUFFIX: debian-no-avahi-arm32v7
-            ALT_SUFFIX: debian-no-avahi-raspberry-pi
+            TAG_SUFFIX: ubuntu-no-avahi-arm32v7
+            ALT_SUFFIX: debian-no-avahi-arm32v7,debian-no-avahi-raspberry-pi
 
           # arm64v8 builds (Alpine)
           - name: arm64v8
@@ -101,16 +103,18 @@ jobs:
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
-            TAG_SUFFIX: debian-arm64v8
+            TAG_SUFFIX: ubuntu-arm64v8
+            ALT_SUFFIX: debian-arm64v8
           - name: debian-no-avahi-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
-            DOCKERFILE: Dockerfile.debian
+            DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
-            TAG_SUFFIX: debian-no-avahi-arm64v8
+            TAG_SUFFIX: ubuntu-no-avahi-arm64v8
+            ALT_SUFFIX: debian-no-avahi-arm64v8
 
     steps:
     # checkout repo
@@ -166,10 +170,12 @@ jobs:
         if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
           echo "No alternate tags set for this build.";
         else
-          echo "Tagging with alternate tag '${{ matrix.ALT_SUFFIX }}'";
-          export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "error"; else echo "${{ matrix.ALT_SUFFIX }}"; fi; else if [ "${{ matrix.ALT_SUFFIX }}" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-${{ matrix.ALT_SUFFIX }}"; fi; fi);
-          docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
-          docker push ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+          for ALT_SUFFIX_ENTRY in $(echo "${{ matrix.ALT_SUFFIX }}" | sed "s/,/ /g"); do
+            echo "Tagging with alternate tag '$ALT_SUFFIX_ENTRY'";
+            export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "$ALT_SUFFIX_ENTRY" = "" ]; then echo "error"; else echo "$ALT_SUFFIX_ENTRY"; fi; else if [ "$ALT_SUFFIX_ENTRY" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-$ALT_SUFFIX_ENTRY"; fi; fi);
+            docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+            docker push ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
+          done
         fi
 
   # generate and publish the docker manifest
@@ -226,7 +232,31 @@ jobs:
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
 
-    # debian
+    # ubuntu
+    - name: ubuntu
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+
+    # ubuntu-no-avahi
+    - name: ubuntu-no-avahi
+      env:
+        TARGET_IMAGE: oznu/homebridge
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+
+    # debian (now actually ubuntu)
     - name: debian
       env:
         TARGET_IMAGE: oznu/homebridge
@@ -238,7 +268,7 @@ jobs:
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
 
-    # debian-no-avahi
+    # debian-no-avahi (now actually ubuntu)
     - name: debian-no-avahi
       env:
         TARGET_IMAGE: oznu/homebridge

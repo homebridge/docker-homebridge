@@ -5,7 +5,7 @@
 
 # Docker Homebridge
 
-This Alpine/Debian Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
+This Alpine/Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
 
 This is a multi-arch image and will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices.
 
@@ -178,13 +178,12 @@ You may need to provide the server name of your Synology NAS using the `DSM_HOST
 
 ffmpeg, with `libfdk-aac` audio support is included in this image.
 
-#### 4. Try the debian tag
+#### 4. Try the ubuntu tag
 
-Some plugins don't like Alpine Linux so this project also provides a Debian based version of the image.
+Some plugins don't like Alpine Linux so this project also provides a Ubuntu based version of the image.
 
 ```
-docker run oznu/homebridge:debian
-docker run oznu/homebridge:debian-arm32v7
+docker run oznu/homebridge:ubuntu
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
@@ -196,12 +195,9 @@ You may need to use a `no-avahi` version of this image to prevent conflicts with
 ```shell
 # Alpine
 docker run oznu/homebridge:no-avahi
-docker run oznu/homebridge:no-avahi-arm32v6
-docker run oznu/homebridge:no-avahi-arm64v8
 
-# Debian
-docker run oznu/homebridge:debian-no-avahi
-docker run oznu/homebridge:debian-no-avahi-arm32v7
+# Ubuntu
+docker run oznu/homebridge:ubuntu-no-avahi
 ```
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
