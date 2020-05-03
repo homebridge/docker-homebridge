@@ -16,6 +16,7 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile
+            AVAHI: "0"
             TAG_SUFFIX: amd64
             ALT_SUFFIX: no-avahi-amd64
 
@@ -25,8 +26,17 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "1"
             TAG_SUFFIX: ubuntu-amd64
-            ALT_SUFFIX: debian-amd64,ubuntu-no-avahi-amd64,debian-no-avahi-amd64
+            ALT_SUFFIX: debian-amd64
+          - name: ubuntu-no-avahi-amd64
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: amd64
+            DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "0"
+            TAG_SUFFIX: ubuntu-no-avahi-amd64
+            ALT_SUFFIX: debian-no-avahi-amd64
 
           # arm32v6 builds (Alpine)
           - name: arm32v6
@@ -34,6 +44,7 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile
+            AVAHI: "0"
             TAG_SUFFIX: arm32v6
             ALT_SUFFIX: raspberry-pi,no-avahi-arm32v6,no-avahi-raspberry-pi
 
@@ -43,8 +54,17 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "1"
             TAG_SUFFIX: ubuntu-arm32v7
-            ALT_SUFFIX: debian-arm32v7,debian-raspberry-pi,ubuntu-no-avahi-arm32v7,debian-no-avahi-raspberry-pi
+            ALT_SUFFIX: debian-arm32v7,debian-raspberry-pi
+          - name: ubuntu-no-avahi-arm32v7
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: armhf
+            DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "0"
+            TAG_SUFFIX: ubuntu-no-avahi-arm32v7
+            ALT_SUFFIX: debian-no-avahi-arm32v7,debian-no-avahi-raspberry-pi
 
           # arm64v8 builds (Alpine)
           - name: arm64v8
@@ -52,6 +72,7 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile
+            AVAHI: "0"
             TAG_SUFFIX: arm64v8
             ALT_SUFFIX: aarch64,no-avahi-arm64v8,no-avahi-aarch64
 
@@ -61,8 +82,17 @@ jobs:
             TARGET_IMAGE: oznu/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "1"
             TAG_SUFFIX: ubuntu-arm64v8
-            ALT_SUFFIX: debian-arm64v8,ubuntu-no-avahi-arm64v8,debian-no-avahi-arm64v8
+            ALT_SUFFIX: debian-arm64v8
+          - name: ubuntu-no-avahi-arm64v8
+            os: ubuntu-latest
+            TARGET_IMAGE: oznu/homebridge
+            S6_ARCH: aarch64
+            DOCKERFILE: Dockerfile.ubuntu
+            AVAHI: "0"
+            TAG_SUFFIX: ubuntu-no-avahi-arm64v8
+            ALT_SUFFIX: debian-no-avahi-arm64v8
 
     steps:
     # checkout repo
@@ -102,7 +132,7 @@ jobs:
     # build the image
     - name: Build Image
       run: |
-        docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
+        docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
     # push the image to docker hub
     - name: Push Image

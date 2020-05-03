@@ -188,21 +188,7 @@ docker run oznu/homebridge:ubuntu
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
 
-#### 5. Logs showing `Service name conflict` or `Host name conflict`
-
-You may need to use a `no-avahi` version of this image to prevent conflicts with the Avahi service running on the host:
-
-```shell
-# Alpine
-docker run oznu/homebridge:no-avahi
-
-# Ubuntu
-docker run oznu/homebridge:ubuntu-no-avahi
-```
-
-See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
-
-#### 6. Ask on Discord
+#### 5. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
