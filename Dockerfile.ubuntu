@@ -18,7 +18,7 @@ RUN case "$(uname -m)" in \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
     && set -x \
-    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.1/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.5/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 ENV HOMEBRIDGE_VERSION=1.1.0
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
