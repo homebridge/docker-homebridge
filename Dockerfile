@@ -1,7 +1,7 @@
 ARG S6_ARCH
-FROM oznu/s6-node:12.18.0-${S6_ARCH:-amd64}
+FROM oznu/s6-node:12.18.1-${S6_ARCH:-amd64}
 
-RUN apk add --no-cache git python make g++ avahi-compat-libdns_sd avahi-dev dbus \
+RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi-dev dbus \
     iputils sudo nano \
   && chmod 4755 /bin/ping \
   && mkdir /homebridge \
@@ -16,12 +16,12 @@ RUN case "$(uname -m)" in \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
     && set -x \
-    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.5/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.6/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_VERSION=1.1.0
+ENV HOMEBRIDGE_VERSION=1.1.1
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=4.22.0 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
+ENV CONFIG_UI_VERSION=4.23.0 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge
