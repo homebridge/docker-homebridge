@@ -11,6 +11,7 @@ sleep 2
 
 # ensure the ui knows it's running in docker
 export HOMEBRIDGE_CONFIG_UI=1
+export HOMEBRIDGE_INSECURE=1
 
 s6-setuidgid root hb-service run \
   --allow-root \
