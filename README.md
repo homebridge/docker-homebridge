@@ -36,7 +36,6 @@ docker run \
   --net=host \
   --name=homebridge \
   -e PUID=<UID> -e PGID=<GID> \
-  -e TZ=<timezone> \
   -e HOMEBRIDGE_CONFIG_UI=1 \
   -e HOMEBRIDGE_CONFIG_UI_PORT=8080 \
   -v </path/to/config>:/homebridge \
@@ -59,12 +58,12 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `--net=host` - Shares host networking with container, **required**
 * `-v /homebridge` - The Homebridge config and plugin location
-* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Europe/London`
 * `-e PGID` - for GroupID - see below for explanation
 * `-e PUID` - for UserID - see below for explanation
 
 ##### *Optional Settings:*
 
+* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Europe/London`
 * `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=openssh`
 * `-e TERMINATE_ON_ERROR=1` - If `TERMINATE_ON_ERROR` is set to `1` then the container will exit when the Homebridge process ends, otherwise it will be restarted.
 * `-e HOMEBRIDGE_INSECURE=1` - Start homebridge in insecure mode using the `-I` flag.
@@ -155,7 +154,6 @@ services:
     restart: always
     network_mode: host
     environment:
-      - TZ=Australia/Sydney
       - PGID=1000
       - PUID=1000
       - HOMEBRIDGE_CONFIG_UI=1
