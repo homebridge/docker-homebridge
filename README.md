@@ -48,6 +48,7 @@ This docker image has been tested on the following Raspberry Pi models:
 
 * Raspberry Pi 1 Model B
 * Raspberry Pi 3 Model B
+* Raspberry Pi 4 Model B
 * Raspberry Pi Zero W
 
 [See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
@@ -86,6 +87,14 @@ In this instance `PUID=1001` and `PGID=1001`. To find yours use `id user` as bel
   $ id <dockeruser>
     uid=1001(dockeruser) gid=1001(dockergroup) groups=1001(dockergroup)
 ```
+
+## Homebridge UI
+
+Enabling [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest way to manage all aspects of Homebridge.
+
+<p align="center">
+  <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
+</p>
 
 ## Homebridge Config
 
@@ -140,7 +149,7 @@ To add plugins using the `startup.sh` script just use the `npm install` command:
 npm install homebridge-dummy
 ```
 
-This container does **NOT** require you to install plugins globally (using `npm install -g` or `yarn global add`) and doing so is **NOT** recommended or supported.
+This container does **NOT** require you to install plugins globally (using `npm install -g`) and doing so is **NOT** recommended or supported.
 
 ## Docker Compose
 
