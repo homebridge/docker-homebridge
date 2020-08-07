@@ -9,4 +9,4 @@
 
 # run user defined custom startup script
 chmod +x /homebridge/startup.sh
-exec /homebridge/startup.sh
+sh /homebridge/startup.sh
