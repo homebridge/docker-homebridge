@@ -18,9 +18,9 @@ RUN case "$(uname -m)" in \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
     && set -x \
-    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.6/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.9/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_VERSION=1.1.2
+ENV HOMEBRIDGE_VERSION=1.1.3
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
 ENV CONFIG_UI_VERSION=4.27.1 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
