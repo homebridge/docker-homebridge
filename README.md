@@ -20,8 +20,12 @@ This is a multi-arch image and will also run on a Raspberry Pi or other Docker-e
 
 ## Guides
 
-- [Running Homebridge on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi)
-- [Running Homebridge on a Synology NAS](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Synology)
+* [How to setup Homebridge & Docker on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi)
+* [How to setup Homebridge & Docker on a Synology NAS](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Synology)
+* [How to setup Homebridge on a Synology NAS using DSM Package Center](https://github.com/oznu/homebridge-syno-spk#how-to-install)
+* [How to setup Homebridge on LibreELEC](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-LibreELEC)
+* [How to setup Homebridge on Unraid Server](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Unraid)
+* [How to setup Homebridge on Firewalla Gold Router](https://github.com/oznu/docker-homebridge/wiki/Running-Homebridge-on-Firewalla-Gold)
 
 ## Compatibility
 
