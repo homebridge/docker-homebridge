@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:12.18.3-${S6_ARCH:-amd64}
+FROM oznu/s6-node:12.18.4-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi-dev dbus \
     iputils sudo nano \
@@ -20,7 +20,7 @@ RUN case "$(uname -m)" in \
     && set -x \
     && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.9/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_VERSION=1.1.3
+ENV HOMEBRIDGE_VERSION=1.1.6
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
 ENV CONFIG_UI_VERSION=4.27.1 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
