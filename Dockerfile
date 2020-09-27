@@ -20,6 +20,8 @@ RUN case "$(uname -m)" in \
     && set -x \
     && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.9/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
+ENV PATH="${PATH}:/homebridge/node_modules/.bin"
+
 ENV HOMEBRIDGE_VERSION=1.2.3
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
