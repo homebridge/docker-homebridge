@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:12.18.4-${S6_ARCH:-amd64}
+FROM oznu/s6-node:12.19.0-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi-dev dbus \
     iputils sudo nano \
@@ -25,7 +25,7 @@ ENV PATH="${PATH}:/homebridge/node_modules/.bin"
 ENV HOMEBRIDGE_VERSION=1.2.3
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=4.27.2 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
+ENV CONFIG_UI_VERSION=4.28.1 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge
