@@ -5,11 +5,11 @@
   <Category>HomeAutomation Tools</Category>
   <Name>homebridge</Name>
   <Description>
-    [b][u][span style='color: #3d1a63;']Description[/span][/u][/b][br]
+    [b][span style='color: #3d1a63;']Description[/span][/b][br]
     Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.[br][br]
-    [b][u][span style='color: #3d1a63;']Configuration[/span][/u][/b][br]
+    [b][span style='color: #3d1a63;']Configuration[/span][/b][br]
     [b]/homebridge[/b] This is where Homebridge will store it's configuration files, plugins and logs.[br]
-    [b][u][span style='color: #3d1a63;']Documentation[/span][/u][/b][br]
+    [b][span style='color: #3d1a63;']Documentation[/span][/b][br]
     https://github.com/homebridge/homebridge/wiki[br]
   </Description>
   <Overview>
