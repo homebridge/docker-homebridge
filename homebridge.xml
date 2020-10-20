@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Containers>
+  <TemplateURL>https://raw.githubusercontent.com/oznu/test/master/oznu/homebridge.xml</TemplateURL>
+  <Beta>False</Beta>
+  <Category>HomeAutomation Tools</Category>
+  <Name>homebridge</Name>
+  <Description>
+    [b][u][span style='color: #E80000;']Description[/span][/u][/b][br]
+    Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.[br][br][br]
+    [b][u][span style='color: #E80000;']Configuration[/span][/u][/b][br]
+    [b]/homebridge[/b] This is where Homebridge will store it's configuration files, plugins and logs.[br][br]
+    [b][u][span style='color: #E80000;']Documentation[/span][/u][/b][br]
+    https://github.com/homebridge/homebridge/wiki[br][br]
+  </Description>
+  <Overview>
+    Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.
+  </Overview>
+  <Support>http://lime-technology.com/forum/index.php?topic=45844.0</Support>
+  <Registry>https://registry.hub.docker.com/r/oznu/homebridge/</Registry>
+  <GitHub>https://github.com/oznu/docker-homebridge</GitHub>
+  <Repository>oznu/homebridge:ubuntu</Repository>
+  <Project>https://homebridge.io</Project>
+  <BindTime>true</BindTime>
+  <Privileged>false</Privileged>
+  <Networking>
+    <Mode>host</Mode>
+  </Networking>
+  <Environment>
+    <Variable>
+      <Name>HOMEBRIDGE_CONFIG_UI</Name>
+      <Value>1</Value>
+    </Variable>
+    <Variable>
+      <Name>HOMEBRIDGE_CONFIG_UI_PORT</Name>
+      <Value>8581</Value>
+    </Variable>
+    <Variable>
+      <Name>PUID</Name>
+      <Value>99</Value>
+    </Variable>
+    <Variable>
+      <Name>PGID</Name>
+      <Value>100</Value>
+    </Variable>
+  </Environment>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/homebridge</HostDir>
+      <ContainerDir>/homebridge</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <WebUI>http://[IP]:[PORT:8581]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png</Icon>
+  <DonateText>If you find this project useful please STAR it on GitHub.</DonateText>
+  <DonateLink>https://github.com/oznu/docker-homebridge</DonateLink>
+  <DonateImg>https://user-images.githubusercontent.com/3979615/96548396-85731300-12f9-11eb-9322-951083d43db1.png</DonateImg>
+  <ExtraParams></ExtraParams>
+</Containers>
