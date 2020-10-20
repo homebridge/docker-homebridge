@@ -15,7 +15,7 @@
   <Overview>
     Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.
   </Overview>
-  <Support>http://lime-technology.com/forum/index.php?topic=45844.0</Support>
+  <Support>https://discord.gg/Cmq8a44</Support>
   <Registry>https://registry.hub.docker.com/r/oznu/homebridge/</Registry>
   <GitHub>https://github.com/oznu/docker-homebridge</GitHub>
   <Repository>oznu/homebridge:ubuntu</Repository>
