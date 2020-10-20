@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Containers>
-  <TemplateURL>https://raw.githubusercontent.com/oznu/test/master/oznu/homebridge.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/oznu/docker-homebridge/master/homebridge.xml</TemplateURL>
   <Beta>False</Beta>
   <Category>HomeAutomation Tools</Category>
   <Name>homebridge</Name>
   <Description>
-    [b][u][span style='color: #E80000;']Description[/span][/u][/b][br]
-    Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.[br][br][br]
-    [b][u][span style='color: #E80000;']Configuration[/span][/u][/b][br]
-    [b]/homebridge[/b] This is where Homebridge will store it's configuration files, plugins and logs.[br][br]
-    [b][u][span style='color: #E80000;']Documentation[/span][/u][/b][br]
-    https://github.com/homebridge/homebridge/wiki[br][br]
+    [b][u][span style='color: #3d1a63;']Description[/span][/u][/b][br]
+    Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.[br][br]
+    [b][u][span style='color: #3d1a63;']Configuration[/span][/u][/b][br]
+    [b]/homebridge[/b] This is where Homebridge will store it's configuration files, plugins and logs.[br]
+    [b][u][span style='color: #3d1a63;']Documentation[/span][/u][/b][br]
+    https://github.com/homebridge/homebridge/wiki[br]
   </Description>
   <Overview>
     Homebridge allows you to integrate with smart home devices that do not natively support HomeKit. There are over 2,000 Homebridge plugins supporting thousands of different smart accessories.
