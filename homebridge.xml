@@ -50,6 +50,7 @@
       <Mode>rw</Mode>
     </Volume>
   </Data>
+  <Shell>bash</Shell>
   <WebUI>http://[IP]:[PORT:8581]/</WebUI>
   <Icon>https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png</Icon>
   <DonateText>If you find this project useful please STAR it on GitHub.</DonateText>
