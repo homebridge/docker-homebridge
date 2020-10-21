@@ -6,7 +6,6 @@ RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi
   && chmod 4755 /bin/ping \
   && mkdir /homebridge \
   && npm set global-style=true \
-  && npm set package-lock=false \
   && npm set audit=false \ 
   && npm set fund=false
 
@@ -25,7 +24,7 @@ ENV PATH="${PATH}:/homebridge/node_modules/.bin"
 ENV HOMEBRIDGE_VERSION=1.2.3
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
-ENV CONFIG_UI_VERSION=4.28.1 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
+ENV CONFIG_UI_VERSION=4.30.0 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
 WORKDIR /homebridge
