@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:14.15.0-ubuntu-${S6_ARCH:-amd64}
+FROM oznu/s6-node:14.15.1-ubuntu-${S6_ARCH:-amd64}
 
 RUN apt-get update \
   && apt-get install -y git python make g++ libnss-mdns avahi-discover libavahi-compat-libdnssd-dev \
