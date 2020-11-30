@@ -2,6 +2,9 @@
 
 /usr/bin/container-credits-banner
 
+# remove synology @eaDir from node_modules
+[ -e /homebridge/node_modules/@eaDir ] && rm -rf /homebridge/node_modules/@eaDir
+
 # install plugins defined in the package.json file, prune others.
 echo "Homebridge: Installing plugins..."
 npm prune
