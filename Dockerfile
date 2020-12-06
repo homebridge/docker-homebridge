@@ -21,7 +21,7 @@ RUN case "$(uname -m)" in \
 
 ENV PATH="${PATH}:/homebridge/node_modules/.bin"
 
-ENV HOMEBRIDGE_VERSION=1.2.3
+ENV HOMEBRIDGE_VERSION=1.2.4
 RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 
 ENV CONFIG_UI_VERSION=4.35.0 HOMEBRIDGE_CONFIG_UI=0 HOMEBRIDGE_CONFIG_UI_PORT=8080
