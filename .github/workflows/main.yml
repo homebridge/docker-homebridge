@@ -146,7 +146,7 @@ jobs:
     # Login to DockerHub
     - name: Login to GitHub
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+        echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
     # push the image to github
     - name: Push Image to GitHub
@@ -238,7 +238,7 @@ jobs:
 
     - name: Login to github
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+        echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
     # latest / main
     - name: latest
