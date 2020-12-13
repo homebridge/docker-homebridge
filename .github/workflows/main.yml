@@ -14,7 +14,7 @@ jobs:
           - name: amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -25,7 +25,7 @@ jobs:
           - name: ubuntu-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -34,7 +34,7 @@ jobs:
           - name: ubuntu-no-avahi-amd64
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge           
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}       
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -45,7 +45,7 @@ jobs:
           - name: arm32v6
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -56,7 +56,7 @@ jobs:
           - name: ubuntu-arm32v7
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -65,7 +65,7 @@ jobs:
           - name: ubuntu-no-avahi-arm32v7
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge            
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}         
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -76,7 +76,7 @@ jobs:
           - name: arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge            
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}           
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -87,7 +87,7 @@ jobs:
           - name: ubuntu-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -96,7 +96,7 @@ jobs:
           - name: ubuntu-no-avahi-arm64v8
             os: ubuntu-latest
             TARGET_IMAGE: oznu/homebridge
-            GITHUB_TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            GITHUB_TARGET_IMAGE: ghcr.io/${{github.repository}}
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -146,7 +146,7 @@ jobs:
     # Login to DockerHub
     - name: Login to GitHub
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
 
     # push the image to github
     - name: Push Image to GitHub
@@ -206,7 +206,7 @@ jobs:
 
           # GitHub
           - name: github
-            TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            TARGET_IMAGE: ghcr.io/${{github.repository}}
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -238,7 +238,7 @@ jobs:
 
     - name: Login to github
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
 
     # latest / main
     - name: latest
