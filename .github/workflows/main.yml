@@ -209,6 +209,7 @@ jobs:
             TARGET_IMAGE: ghcr.io/${{github.repository}}
     needs: build
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
 
     # checkout repo
@@ -239,6 +240,12 @@ jobs:
     - name: Login to github
       run: |
         echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+    # Stop if dockerhub and not the main repo
+    - name: Login to dockerhub
+      if: github.repository != 'oznu/docker-homebridge' && matrix.name == 'dockerhub'
+      run: exit 1
+        
 
     # latest / main
     - name: latest
