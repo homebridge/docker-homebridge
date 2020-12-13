@@ -197,10 +197,22 @@ jobs:
 
   # generate and publish the docker manifest
   manifest: 
-    if: github.repository == 'oznu/docker-homebridge'
+    strategy:
+      matrix:
+        include:
+          # DockerHub
+          - name: dockerhub
+            TARGET_IMAGE: oznu/homebridge
+            LOGIN: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+          # GitHub
+          - name: github
+            TARGET_IMAGE: docker.pkg.github.com/${{github.repository}}/homebridge
+            LOGIN: echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
     needs: build
     runs-on: ubuntu-latest
     steps:
+
     # checkout repo
     - uses: actions/checkout@v2
 
@@ -220,22 +232,20 @@ jobs:
         echo '{"experimental": true,"storage-driver": "overlay2","max-concurrent-downloads": 50,"max-concurrent-uploads": 50}' | sudo tee /etc/docker/daemon.json
         sudo service docker restart
 
-    # login to docker hub
+    # login to registry
     - name: Login
       run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        eval ${{ matrix.LOGIN }}
 
     # latest / main
     - name: latest
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo ""; else echo "${{ steps.get_branch.outputs.NAME }}-"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}amd64 $TARGET_IMAGE:${TAG_PREFIX}arm32v6 $TARGET_IMAGE:${TAG_PREFIX}arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm32v6 --os=linux --arch=arm --variant=v6
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}arm32v6 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}arm32v6 --os=linux --arch=arm --variant=v6
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
     
     # no-avahi
     - name: no-avahi
@@ -244,10 +254,10 @@ jobs:
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v6 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v6 --os=linux --arch=arm --variant=v6
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v6 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v6 --os=linux --arch=arm --variant=v6
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
 
     # ubuntu
     - name: ubuntu
@@ -256,10 +266,10 @@ jobs:
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
 
     # ubuntu-no-avahi
     - name: ubuntu-no-avahi
@@ -268,10 +278,10 @@ jobs:
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
 
     # debian (now actually ubuntu)
     - name: debian
@@ -280,10 +290,10 @@ jobs:
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
 
     # debian-no-avahi (now actually ubuntu)
     - name: debian-no-avahi
@@ -292,7 +302,7 @@ jobs:
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+        docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
