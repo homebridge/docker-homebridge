@@ -135,14 +135,14 @@ jobs:
         docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
     # push the image to docker hub
-    - name: Push Image
+    - name: Push Image To GitHub
       if: github.repository == 'oznu/docker-homebridge'
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
         docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
-
-    # push alternate tags
-    - name: Push Alternate Tags
+        
+    # push alternate tags to dockerhub
+    - name: Push Alternate Tags To DockerHub
       if: github.repository == 'oznu/docker-homebridge'
       run: |
         if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
@@ -155,6 +155,29 @@ jobs:
             docker push ${{ matrix.TARGET_IMAGE }}:$ALT_IMAGE_TAG;
           done
         fi
+
+    # push the image to github
+    - name: Push Image to GitHub
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+        docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{github.repository}}:${{ steps.get_tag.outputs.NAME }}
+        docker push 
+
+    # push alternate tags to github
+    - name: Push Alternate Tags To GitHub
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+        if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
+          echo "No alternate tags set for this build.";
+        else
+          for ALT_SUFFIX_ENTRY in $(echo "${{ matrix.ALT_SUFFIX }}" | sed "s/,/ /g"); do
+            echo "Tagging with alternate tag '$ALT_SUFFIX_ENTRY'";
+            export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then if [ "$ALT_SUFFIX_ENTRY" = "" ]; then echo "error"; else echo "$ALT_SUFFIX_ENTRY"; fi; else if [ "$ALT_SUFFIX_ENTRY" = "" ]; then echo "${{ steps.get_branch.outputs.NAME }}"; else echo "${{ steps.get_branch.outputs.NAME }}-$ALT_SUFFIX_ENTRY"; fi; fi);
+            docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ${{github.repository}}:$ALT_IMAGE_TAG;
+            docker push ${{github.repository}}:$ALT_IMAGE_TAG;
+          done
+        fi
+     
 
   # generate and publish the docker manifest
   manifest: 
