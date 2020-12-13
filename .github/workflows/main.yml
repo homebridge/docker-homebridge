@@ -273,7 +273,7 @@ jobs:
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
         docker manifest create ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-amd64 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8
-        docker manifest annotate ${{ matrix.TARGET_IMAGE }}$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
+        docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
         docker manifest annotate ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX ${{ matrix.TARGET_IMAGE }}:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push ${{ matrix.TARGET_IMAGE }}:$MANIFEST_SUFFIX
 
