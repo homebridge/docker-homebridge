@@ -69,7 +69,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 ##### *Homebridge UI Options*:
 
 * `-e HOMEBRIDGE_CONFIG_UI=1` - Set to `0` to disable the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x).
-* `-e HOMEBRIDGE_CONFIG_UI_PORT=8581` - The port to run [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8581.
+* `-e HOMEBRIDGE_CONFIG_UI_PORT=8581` - The port to run the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8581.
 
 ### User / Group Identifiers
 
