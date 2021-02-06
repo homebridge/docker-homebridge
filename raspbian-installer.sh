@@ -69,7 +69,7 @@ services:
       - PGID=$PGID
       - PUID=$PUID
       - HOMEBRIDGE_CONFIG_UI=1
-      - HOMEBRIDGE_CONFIG_UI_PORT=8080
+      - HOMEBRIDGE_CONFIG_UI_PORT=8581
 EOL
 
 echo "$LP Created $INSTALL_DIR/docker-compose.yml"
@@ -90,7 +90,7 @@ sudo docker-compose up -d
 
 echo "$LP Waiting for Homebridge to start..."
 
-until $(curl --output /dev/null --silent --head --fail http://localhost:8080); do
+until $(curl --output /dev/null --silent --head --fail http://localhost:8581); do
   printf '.'
   sleep 5
 done
@@ -108,9 +108,9 @@ echo "$LP"
 
 for ip in $IP; do
   if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "$LP http://$ip:8080"
+    echo "$LP http://$ip:8581"
   else
-    echo "$LP http://[$ip]:8080"
+    echo "$LP http://[$ip]:8581"
   fi
 done
 

@@ -9,50 +9,49 @@ This Alpine/Ubuntu Linux based Docker image allows you to run [Nfarina's](https:
 
 This is a multi-arch image and will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices.
 
-  * [Guides](#guides)
-  * [Compatibility](#compatibility)
-  * [Usage](#usage)
-  * [Parameters](#parameters)
-  * [Homebridge Config](#homebridge-config)
-  * [Installing Plugins](#homebridge-plugins)
-  * [Docker Compose](#docker-compose)
-  * [Troubleshooting](#troubleshooting)
+| Image Tag             | Architectures           | Image OS           | 
+| :-------------------- | :-----------------------| :----------------- | 
+| latest                | amd64, arm32v6, arm64v8 | Alpine Linux 3.11  |
+| ubuntu                | amd64, arm32v7, arm64v8 | Ubuntu 18.04       | 
+| ubuntu-no-avahi       | amd64, arm32v7, arm64v8 | Ubuntu 18.04       | 
 
-## Guides
+## Step-By-Step Guides
 
-- [Running Homebridge on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi)
+- [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)
 - [Running Homebridge on a Synology NAS](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Synology)
 - [Running Homebridge on Unraid](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Unraid)
 
 ## Compatibility
 
-Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
-Currently this image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543).
+Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag. **This image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543)**.
 
 
 ## Usage
 
-```shell
-docker run \
-  --net=host \
-  --name=homebridge \
-  -e PUID=<UID> -e PGID=<GID> \
-  -e HOMEBRIDGE_CONFIG_UI=1 \
-  -e HOMEBRIDGE_CONFIG_UI_PORT=8080 \
-  -v </path/to/config>:/homebridge \
-  oznu/homebridge
+Command Line:
+
+```bash
+docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge oznu/homebridge:ubuntu
 ```
 
-## Raspberry Pi
+Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
 
-This docker image has been tested on the following Raspberry Pi models:
-
-* Raspberry Pi 1 Model B
-* Raspberry Pi 3 Model B
-* Raspberry Pi 4 Model B
-* Raspberry Pi Zero W
-
-[See the wiki for a guide on getting Homebridge up and running on a Raspberry Pi](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Raspberry-Pi).
+```yml
+version: '2'
+services:
+  homebridge:
+    image: oznu/homebridge:ubuntu
+    restart: always
+    network_mode: host
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - HOMEBRIDGE_CONFIG_UI=1
+      - HOMEBRIDGE_CONFIG_UI_PORT=8581
+      - TZ=Canberra/Australia
+    volumes:
+      - ./volumes/homebridge:/homebridge
+```
 
 ## Parameters
 
@@ -60,23 +59,17 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `--net=host` - Shares host networking with container, **required**
 * `-v /homebridge` - The Homebridge config and plugin location
-* `-e PGID` - for GroupID - see below for explanation
-* `-e PUID` - for UserID - see below for explanation
 
 ##### *Optional Settings:*
 
-* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Europe/London`
-* `-e PACKAGES` - Additional [packages](https://pkgs.alpinelinux.org/packages) to install (comma separated, no spaces) e.g. `-e PACKAGES=openssh`
-* `-e TERMINATE_ON_ERROR=1` - If `TERMINATE_ON_ERROR` is set to `1` then the container will exit when the Homebridge process ends, otherwise it will be restarted.
-* `-e HOMEBRIDGE_INSECURE=1` - Start homebridge in insecure mode using the `-I` flag.
-* `-e HOMEBRIDGE_DEBUG=1` - Enable debug level logging using the `-D` flag.
+* `-e PGID` - for group id - see below for explanation
+* `-e PUID` - for user id - see below for explanation
+* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Canberra/Australia`
 
 ##### *Homebridge UI Options*:
 
-This is the only supported method of running [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) on oznu/homebridge.
-
-* `-e HOMEBRIDGE_CONFIG_UI=1` - Enable and configure [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) which allows you to manage and configure Homebridge from your web browser.
-* `-e HOMEBRIDGE_CONFIG_UI_PORT=8080` - The port to run [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8080.
+* `-e HOMEBRIDGE_CONFIG_UI=1` - Set to `0` to disable the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x).
+* `-e HOMEBRIDGE_CONFIG_UI_PORT=8581` - The port to run [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8581.
 
 ### User / Group Identifiers
 
@@ -91,102 +84,19 @@ In this instance `PUID=1001` and `PGID=1001`. To find yours use `id user` as bel
 
 ## Homebridge UI
 
-Enabling [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest way to manage all aspects of Homebridge.
+This image comes with the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) pre-installed and is the easiest way to manage all aspects of Homebridge.
 
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
 
-## Homebridge Config
-
-The Homebridge config file is located at ```</path/to/config>/config.json```
-This file will be created the first time you run the container if it does not already exist.
-
-## Homebridge Plugins
-
-Plugins should be defined in the ```</path/to/config>/package.json``` file in the standard NPM format.
-This file will be created the first time you run the container if it does not already exist.
-
-Any plugins added to the `package.json` will be installed each time the container is restarted.
-Plugins can be uninstalled by removing the entry from the `package.json` and restarting the container.
-
-You can also install plugins using `npm` which will automatically update the package.json file as you add and remove modules.
-
-**You must restart the container after installing or removing plugins for the changes to take effect.**
-
-### To add plugins using npm:
-
-```
-docker exec <container name or id> npm install <module name>
-```
-
-Example:
-
-```
-docker exec homebridge npm install homebridge-dummy
-```
-
-### To remove plugins using npm:
-
-```
-docker exec <container name or id> npm remove <module name>
-```
-
-Example:
-
-```
-docker exec homebridge npm remove homebridge-dummy
-```
-
-### To add plugins using `startup.sh` script:
-
-The first time you run the container a script named [`startup.sh`](/root/defaults/startup.sh) will be created in your mounted `/homebridge` volume. This script is executed everytime the container is started, before Homebridge loads, and can be used to install plugins if you don't want to edit the `package.json` file manually.
-
-To add plugins using the `startup.sh` script just use the `npm install` command:
-
-```shell
-#!/bin/sh
-
-npm install homebridge-dummy
-```
-
-This container does **NOT** require you to install plugins globally (using `npm install -g`) and doing so is **NOT** recommended or supported.
-
-## Docker Compose
-
-If you prefer to use [Docker Compose](https://docs.docker.com/compose/):
-
-```yml
-version: '2'
-services:
-  homebridge:
-    image: oznu/homebridge:latest
-    restart: always
-    network_mode: host
-    environment:
-      - PGID=1000
-      - PUID=1000
-      - HOMEBRIDGE_CONFIG_UI=1
-      - HOMEBRIDGE_CONFIG_UI_PORT=8080
-    volumes:
-      - ./volumes/homebridge:/homebridge
-```
-
 ## Troubleshooting
 
-#### 1. Verify your config.json and package.json syntax
-
-Many issues appear because of invalid JSON. A good way to verify your config is to use the [jsonlint.com](http://jsonlint.com/) validator.
-
-#### 2. When running on Synology DSM set the `DSM_HOSTNAME` environment variable
-
-You may need to provide the server name of your Synology NAS using the `DSM_HOSTNAME` environment variable to prevent [hostname conflict errors](https://github.com/oznu/docker-homebridge/issues/35). The value of the `DSM_HOSTNAME` environment should exactly match the server name as shown under `Synology DSM Control Panel` -> `Info Centre` -> `Server name`, it should contain no spaces or special characters.
-
-#### 3. Need ffmpeg?
+#### 1. Need ffmpeg?
 
 ffmpeg, with `libfdk-aac` audio support is included in this image.
 
-#### 4. Try the ubuntu tag
+#### 2. Try the ubuntu tag
 
 Some plugins don't like Alpine Linux so this project also provides a Ubuntu based version of the image.
 
@@ -202,7 +112,7 @@ Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and
 
 ## License
 
-Copyright (C) 2017-2020 oznu
+Copyright (C) 2017-2021 oznu
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
