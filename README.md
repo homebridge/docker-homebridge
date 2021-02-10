@@ -110,7 +110,7 @@ docker run oznu/homebridge:ubuntu
 
 See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
 
-#### 5. Ask on Discord
+#### 3. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
