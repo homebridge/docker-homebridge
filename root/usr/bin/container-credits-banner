@@ -18,5 +18,9 @@ printf "
 
          ${UWHITE}https://github.com/oznu/docker-homebridge${NC}
 
+                Or donate to the project:
+
+            ${UWHITE}https://github.com/sponsors/oznu${NC}
+                  ${UWHITE}https://paypal.me/oznu${NC}
 
 "
