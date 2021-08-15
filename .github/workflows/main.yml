@@ -235,8 +235,9 @@ jobs:
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
     
-    # no-avahi
+    # no-avahi (deprecated - now actually latest)
     - name: no-avahi
+      if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
       env:
         TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
       run: |
@@ -271,7 +272,7 @@ jobs:
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
 
-    # debian (now actually ubuntu)
+    # debian (deprecated - now actually ubuntu)
     - name: debian
       if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
       env:
@@ -284,7 +285,7 @@ jobs:
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
 
-    # debian-no-avahi (now actually ubuntu)
+    # debian-no-avahi (deprecated - now actually ubuntu)
     - name: debian-no-avahi
       if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
       env:
