@@ -222,18 +222,6 @@ jobs:
     - name: Login to Docker Hub
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    # latest / main
-    - name: latest
-      env:
-        TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
-      run: |
-        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
-        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo ""; else echo "${{ steps.get_branch.outputs.NAME }}-"; fi)
-        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}amd64 $TARGET_IMAGE:${TAG_PREFIX}arm32v6 $TARGET_IMAGE:${TAG_PREFIX}arm64v8
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm32v6 --os=linux --arch=arm --variant=v6
-        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
-        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
     
     # no-avahi (deprecated - now actually latest)
     - name: no-avahi
@@ -296,4 +284,16 @@ jobs:
         docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-amd64 $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 $TARGET_IMAGE:${TAG_PREFIX}-arm64v8
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm32v7 --os=linux --arch=arm --variant=v7
         docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}-arm64v8 --os=linux --arch=arm64 --variant=v8
+        docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
+
+    # latest / main (write this last so it appears a the top of the list)
+    - name: latest
+      env:
+        TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
+      run: |
+        export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
+        export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo ""; else echo "${{ steps.get_branch.outputs.NAME }}-"; fi)
+        docker manifest create $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}amd64 $TARGET_IMAGE:${TAG_PREFIX}arm32v6 $TARGET_IMAGE:${TAG_PREFIX}arm64v8
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm32v6 --os=linux --arch=arm --variant=v6
+        docker manifest annotate $TARGET_IMAGE:$MANIFEST_SUFFIX $TARGET_IMAGE:${TAG_PREFIX}arm64v8 --os=linux --arch=arm64 --variant=v8
         docker manifest push $TARGET_IMAGE:$MANIFEST_SUFFIX
