@@ -185,6 +185,15 @@ jobs:
     - name: Login
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+    # login to github container registry
+    - name: Login to Packages Container registry
+        uses: docker/login-action@v1 
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
     # latest / main
     - name: latest
