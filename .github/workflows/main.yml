@@ -182,6 +182,15 @@ jobs:
     if: github.repository == 'oznu/docker-homebridge'
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Docker Hub Manifest
+            env:
+              TARGET_IMAGE: oznu/homebridge
+          - name: Github Container Registry Manifest
+            env:
+              TARGET_IMAGE: ghcr.io/oznu/homebridge
     steps:
     # checkout repo
     - uses: actions/checkout@v2
@@ -217,8 +226,6 @@ jobs:
 
     # latest / main
     - name: latest
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo ""; else echo "${{ steps.get_branch.outputs.NAME }}-"; fi)
@@ -229,8 +236,6 @@ jobs:
     
     # no-avahi
     - name: no-avahi
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-no-avahi"; fi)
@@ -241,8 +246,6 @@ jobs:
 
     # ubuntu
     - name: ubuntu
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
@@ -253,8 +256,6 @@ jobs:
 
     # ubuntu-no-avahi
     - name: ubuntu-no-avahi
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu-no-avahi"; fi)
@@ -265,8 +266,6 @@ jobs:
 
     # debian (now actually ubuntu)
     - name: debian
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian"; else echo "${{ steps.get_branch.outputs.NAME }}-debian"; fi)
@@ -277,8 +276,6 @@ jobs:
 
     # debian-no-avahi (now actually ubuntu)
     - name: debian-no-avahi
-      env:
-        TARGET_IMAGE: oznu/homebridge
       run: |
         export MANIFEST_SUFFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
         export TAG_PREFIX=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "debian-no-avahi"; else echo "${{ steps.get_branch.outputs.NAME }}-debian-no-avahi"; fi)
