@@ -134,11 +134,23 @@ jobs:
       run: |
         docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
+    # login to github container registry
+    - name: Login to Packages Container registry
+      uses: docker/login-action@v1 
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      
+    # login to docker hub
+    - name: Login to Docker Hub
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
     # push the image to docker hub
     - name: Push Image
       if: github.repository == 'oznu/docker-homebridge'
       run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
         docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
 
     # push alternate tags
@@ -181,18 +193,18 @@ jobs:
         echo '{"experimental": true,"storage-driver": "overlay2","max-concurrent-downloads": 50,"max-concurrent-uploads": 50}' | sudo tee /etc/docker/daemon.json
         sudo service docker restart
 
-    # login to docker hub
-    - name: Login
-      run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    # login to github container registry
+      # login to github container registry
     - name: Login to Packages Container registry
       uses: docker/login-action@v1 
       with:
-        registry: ${{ env.REGISTRY }}
+        registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    # login to docker hub
+    - name: Login to Docker Hub
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     # latest / main
     - name: latest
