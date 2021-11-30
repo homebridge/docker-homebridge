@@ -48,7 +48,6 @@ services:
       - PUID=1000
       - HOMEBRIDGE_CONFIG_UI=1
       - HOMEBRIDGE_CONFIG_UI_PORT=8581
-      # - HOMEBRIDGE_DEBUG=1
       - TZ=Australia/Canberra
     volumes:
       - ./volumes/homebridge:/homebridge
@@ -66,6 +65,8 @@ The parameters are split into two halves, separated by a colon, the left hand si
 * `-e PGID` - for group id - see below for explanation
 * `-e PUID` - for user id - see below for explanation
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
+* `-e HOMEBRIDGE_DEBUG=1` - Enable debug level logging using the `-D` flag.
+* `-e HOMEBRIDGE_INSECURE=1` - Start Homebridge in insecure mode using the `-I` flag.
 
 ##### *Homebridge UI Options*:
 
