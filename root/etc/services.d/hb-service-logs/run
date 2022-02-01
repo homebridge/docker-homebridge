@@ -1,7 +1,8 @@
 #!/usr/bin/with-contenv sh
 
-[ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
+[ -e /homebridge/logs ] || mkdir -p /homebridge/logs
+[ -e /homebridge/logs/homebridge.log ] || touch /homebridge/logs/homebridge.log
 
-chown -R abc:abc /homebridge/homebridge.log
+chown -R abc:abc /homebridge/logs/homebridge.log
 
-exec s6-setuidgid abc tail -f --follow=name /homebridge/homebridge.log
+exec s6-setuidgid abc tail -f --follow=name /homebridge/logs/homebridge.log

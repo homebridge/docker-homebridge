@@ -1,7 +1,8 @@
 #!/usr/bin/with-localenv sh
 
 # ensure log file exists
-touch /homebridge/homebridge.log
+[ -e /homebridge/logs ] || mkdir -p /homebridge/logs
+touch /homebridge/logs/homebridge.log
 
 # fix permissions
 chown -R abc:abc /homebridge
