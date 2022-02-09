@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:16.13.2-${S6_ARCH:-amd64}
+FROM oznu/s6-node:16.14.0-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi-dev dbus \
     iputils sudo nano \
