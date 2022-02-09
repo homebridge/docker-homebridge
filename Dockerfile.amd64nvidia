@@ -4,7 +4,7 @@ ARG NODE_VERSION=14.18.1
 FROM huyqt/docker-homebridge-ffmpeg:${FFMPEG_VERSION}-${ARCH} as ffmpeg
 
 ARG S6_ARCH
-FROM oznu/s6-node:16.13.2-ubuntu-${S6_ARCH:-amd64}
+FROM oznu/s6-node:16.14.0-ubuntu-${S6_ARCH:-amd64}
 
 COPY --from=ffmpeg /usr/local /usr/local/
 
