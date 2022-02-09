@@ -48,6 +48,7 @@ services:
       - PUID=1000
       - HOMEBRIDGE_CONFIG_UI=1
       - HOMEBRIDGE_CONFIG_UI_PORT=8581
+      - ENABLE_AVAHI=0
       - TZ=Australia/Canberra
     volumes:
       - ./volumes/homebridge:/homebridge
@@ -70,6 +71,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `-e HOMEBRIDGE_CONFIG_UI=1` - Set to `0` to disable the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x).
 * `-e HOMEBRIDGE_CONFIG_UI_PORT=8581` - The port to run the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8581.
+* `-e ENABLE_AVAHI=0`- Set to `1` to start the Avahi daemon which is precondition to enable Avahi as mDNS Advertiser in [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x).
 
 ### User / Group Identifiers
 
