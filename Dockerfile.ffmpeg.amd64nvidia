@@ -52,7 +52,7 @@ ENV     FFMPEG_VERSION=4.3.2 \
         OGG_VERSION=1.3.2 \
         OPENCOREAMR_VERSION=0.1.5 \
         OPUS_VERSION=1.2 \
-        SPEEX_VERSION=1.2rc1 \
+        SPEEX_VERSION=1.2.0 \
         OPENJPEG_VERSION=2.1.2 \
         THEORA_VERSION=1.1.1 \
         VORBIS_VERSION=1.3.5 \
@@ -185,8 +185,8 @@ RUN \
         DIR=/tmp/speex && \
         mkdir -p ${DIR} && \
         cd ${DIR} && \
-        curl -sLO http://downloads.us.xiph.org/releases/speex/speex-1.2.0.tar.gz && \
-        tar -zx --strip-components=1 -f speex-1.2.0.tar.gz && \
+        curl -sLO http://downloads.us.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz && \
+        tar -zx --strip-components=1 -f speex-${SPEEX_VERSION}.tar.gz && \
         ./configure --prefix="${PREFIX}" --enable-shared --disable-static --datadir="${DIR}" && \
         make && \
         make install && \
