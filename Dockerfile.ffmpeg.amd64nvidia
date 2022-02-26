@@ -52,6 +52,7 @@ ENV     FFMPEG_VERSION=4.3.2 \
         OGG_VERSION=1.3.2 \
         OPENCOREAMR_VERSION=0.1.5 \
         OPUS_VERSION=1.2 \
+        SPEEX_VERSION=1.2rc1 \
         OPENJPEG_VERSION=2.1.2 \
         THEORA_VERSION=1.1.1 \
         VORBIS_VERSION=1.3.5 \
@@ -178,6 +179,18 @@ RUN \
         ./configure --prefix="${PREFIX}" --enable-shared && \
         make && \
         make install && \
+        rm -rf ${DIR}
+## libspeex http://speex.org/
+RUN \
+        dir=/tmp/speex && \
+        mkdir -p ${DIR} && \
+        cd ${DIR} && \
+        curl -s http://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz | \
+        tar -zx - -C . && \
+        ./configure --prefix="${SRC}" --disable-shared --datadir="${DIR}" --disable-dependency-tracking && \
+        make && \
+        make install && \
+        make distclean && \
         rm -rf ${DIR}
 ### libvorbis https://xiph.org/vorbis/
 RUN \
@@ -481,6 +494,7 @@ RUN \
         --enable-libvidstab \
         --enable-libmp3lame \
         --enable-libopus \
+        --enable-libspeex \
         --enable-libtheora \
         --enable-libvorbis \
         --enable-libvpx \
@@ -548,3 +562,4 @@ COPY --from=build /usr/local/include /usr/local/include/
 
 # Let's make sure the app built correctly
 # Convenient to verify on https://hub.docker.com/r/jrottenberg/ffmpeg/builds/ console output
+
