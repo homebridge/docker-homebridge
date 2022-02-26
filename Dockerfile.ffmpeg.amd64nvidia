@@ -182,12 +182,12 @@ RUN \
         rm -rf ${DIR}
 ## libspeex http://speex.org/
 RUN \
-        dir=/tmp/speex && \
+        DIR=/tmp/speex && \
         mkdir -p ${DIR} && \
         cd ${DIR} && \
-        curl -s http://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz | \
-        tar -zx - -C . && \
-        ./configure --prefix="${SRC}" --disable-shared --datadir="${DIR}" --disable-dependency-tracking && \
+        curl -sLO http://downloads.us.xiph.org/releases/speex/speex-1.2.0.tar.gz && \
+        tar -zx --strip-components=1 -f speex-1.2.0.tar.gz && \
+        ./configure --prefix="${PREFIX}" --enable-shared --disable-static --datadir="${DIR}" && \
         make && \
         make install && \
         make distclean && \
