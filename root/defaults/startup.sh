@@ -19,3 +19,4 @@
 # If you're running a debian based version of this container please use apt-get to install packages.
 #
 
+setcap cap_net_raw+eip $(eval readlink -f `which node`)

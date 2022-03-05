@@ -27,8 +27,6 @@ RUN npm install -g --unsafe-perm homebridge@${HOMEBRIDGE_VERSION}
 ENV CONFIG_UI_VERSION=4.42.0 HOMEBRIDGE_CONFIG_UI=1 HOMEBRIDGE_CONFIG_UI_PORT=8581
 RUN npm install -g --unsafe-perm homebridge-config-ui-x@${CONFIG_UI_VERSION}
 
-RUN setcap cap_net_raw+eip $(eval readlink -f `which node`)
-
 WORKDIR /homebridge
 VOLUME /homebridge
 
