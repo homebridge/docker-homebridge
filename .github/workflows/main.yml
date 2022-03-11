@@ -13,7 +13,7 @@ jobs:
           # amd64 builds (Alpine)
           - name: amd64
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -23,7 +23,7 @@ jobs:
           # amd64 builds (ubuntu)
           - name: ubuntu-amd64
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -31,7 +31,7 @@ jobs:
             ALT_SUFFIX: debian-amd64
           - name: ubuntu-no-avahi-amd64
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: amd64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -41,7 +41,7 @@ jobs:
           # arm32v6 builds (Alpine)
           - name: arm32v6
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -51,7 +51,7 @@ jobs:
           # arm32v7 builds (ubuntu)
           - name: ubuntu-arm32v7
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -59,7 +59,7 @@ jobs:
             ALT_SUFFIX: debian-arm32v7,debian-raspberry-pi
           - name: ubuntu-no-avahi-arm32v7
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: armhf
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -69,7 +69,7 @@ jobs:
           # arm64v8 builds (Alpine)
           - name: arm64v8
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile
             AVAHI: "0"
@@ -79,7 +79,7 @@ jobs:
           # arm64v8 builds (ubuntu)
           - name: ubuntu-arm64v8
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "1"
@@ -87,7 +87,7 @@ jobs:
             ALT_SUFFIX: debian-arm64v8
           - name: ubuntu-no-avahi-arm64v8
             os: ubuntu-latest
-            TARGET_IMAGE: oznu/homebridge
+            TARGET_IMAGE: lkshrk/homebridge
             S6_ARCH: aarch64
             DOCKERFILE: Dockerfile.ubuntu
             AVAHI: "0"
@@ -137,34 +137,22 @@ jobs:
     # login to github container registry
     - name: Login to Packages Container registry
       uses: docker/login-action@v1 
-      if: github.repository == 'oznu/docker-homebridge'
+      if: github.repository == 'lkshrk/docker-homebridge'
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      
-    # login to docker hub
-    - name: Login to Docker Hub
-      if: github.repository == 'oznu/docker-homebridge'
-      run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    # push the image to docker hub
-    - name: Push Image to Docker Hub
-      if: github.repository == 'oznu/docker-homebridge'
-      run: |
-        docker push ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
 
     # push the image to github container registry
     - name: Push Image to GitHub Container Registry
-      if: github.repository == 'oznu/docker-homebridge'
+      if: github.repository == 'lkshrk/docker-homebridge'
       run: |
         docker tag ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} ghcr.io/${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
         docker push ghcr.io/${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}
 
     # push alternate tags
     - name: Push Alternate Tags
-      if: github.repository == 'oznu/docker-homebridge'
+      if: github.repository == 'lkshrk/docker-homebridge'
       run: |
         if [ -z "${{ matrix.ALT_SUFFIX }}" ]; then
           echo "No alternate tags set for this build.";
@@ -179,16 +167,14 @@ jobs:
 
   # generate and publish the docker manifest
   manifest: 
-    if: github.repository == 'oznu/docker-homebridge'
+    if: github.repository == 'lkshrk/docker-homebridge'
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - name: Docker Hub Manifest
-            TARGET_IMAGE: oznu/homebridge
           - name: Github Container Registry Manifest
-            TARGET_IMAGE: ghcr.io/oznu/homebridge
+            TARGET_IMAGE: ghcr.io/lkshrk/homebridge
 
     steps:
     # checkout repo
@@ -217,15 +203,10 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-
-    # login to docker hub
-    - name: Login to Docker Hub
-      run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
     
     # no-avahi (deprecated - now actually latest)
     - name: no-avahi
-      if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
+      if: ${{ matrix.TARGET_IMAGE == 'lkshrk/homebridge' }}
       env:
         TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
       run: |
@@ -262,7 +243,7 @@ jobs:
 
     # debian (deprecated - now actually ubuntu)
     - name: debian
-      if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
+      if: ${{ matrix.TARGET_IMAGE == 'lkshrk/homebridge' }}
       env:
         TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
       run: |
@@ -275,7 +256,7 @@ jobs:
 
     # debian-no-avahi (deprecated - now actually ubuntu)
     - name: debian-no-avahi
-      if: ${{ matrix.TARGET_IMAGE == 'oznu/homebridge' }}
+      if: ${{ matrix.TARGET_IMAGE == 'lkshrk/homebridge' }}
       env:
         TARGET_IMAGE: ${{ matrix.TARGET_IMAGE }}
       run: |
