@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:16.14.0-ubuntu-${S6_ARCH:-amd64}
+FROM oznu/s6-node:16.14.2-ubuntu-${S6_ARCH:-amd64}
 
 RUN apt-get update \
   && apt-get install -y git python make g++ libnss-mdns avahi-discover libavahi-compat-libdnssd-dev \
@@ -19,7 +19,7 @@ RUN case "$(uname -m)" in \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
     && set -x \
-    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.9/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+    && curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.10.0/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 ENV PATH="${PATH}:/homebridge/node_modules/.bin"
 
