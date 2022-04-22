@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
 
 # create default files
 [ -e /homebridge/config.json ] || /usr/bin/homebridge-generate-config

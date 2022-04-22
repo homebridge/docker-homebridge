@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv sh
+#!/command/with-contenv sh
 
 if [ "$HOMEBRIDGE_CONFIG_UI" = "1" ] || homebridge-ui-configured; then
   echo "Enabling homebridge-config-ui-x..."

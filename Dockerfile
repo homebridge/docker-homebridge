@@ -1,5 +1,5 @@
 ARG S6_ARCH
-FROM oznu/s6-node:16.14.2-${S6_ARCH:-amd64}
+FROM oznu/s6-node:16.14.1-${S6_ARCH:-amd64}
 
 RUN apk add --no-cache git python2 python3 make g++ avahi-compat-libdns_sd avahi-dev dbus \
     iputils sudo nano \
@@ -34,3 +34,4 @@ COPY root /
 
 ARG AVAHI
 ENV ENABLE_AVAHI="${AVAHI:-0}"
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0
