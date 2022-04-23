@@ -122,17 +122,17 @@ jobs:
         echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
 
     # pull the existing image from the registry, if it exists, to use as a build cache
-    - name: Pull Image Cache
-      id: get_image_cache
-      run: |
-        docker pull ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} && export IMAGE_CACHE="--cache-from ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}" || export IMAGE_CACHE=""
-        echo $IMAGE_CACHE
-        echo ::set-output name=IMAGE_CACHE::${IMAGE_CACHE}
+    # - name: Pull Image Cache
+    #   id: get_image_cache
+    #   run: |
+    #     docker pull ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} && export IMAGE_CACHE="--cache-from ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }}" || export IMAGE_CACHE=""
+    #     echo $IMAGE_CACHE
+    #     echo ::set-output name=IMAGE_CACHE::${IMAGE_CACHE}
 
     # build the image
     - name: Build Image
       run: |
-        docker build -f ${{ matrix.DOCKERFILE }} ${{ steps.get_image_cache.outputs.IMAGE_CACHE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
+        docker build -f ${{ matrix.DOCKERFILE }} --build-arg S6_ARCH=${{ matrix.S6_ARCH }} --build-arg AVAHI=${{ matrix.AVAHI }} -t ${{ matrix.TARGET_IMAGE }}:${{ steps.get_tag.outputs.NAME }} .
 
     # login to github container registry
     - name: Login to Packages Container registry
