@@ -11,9 +11,9 @@ This is a multi-arch image and will also run on a Raspberry Pi or other Docker-e
 
 | Image Tag             | Architectures           | Image OS           | 
 | :-------------------- | :-----------------------| :----------------- | 
-| latest                | amd64, arm32v6, arm64v8 | Alpine Linux 3.11  |
-| ubuntu                | amd64, arm32v7, arm64v8 | Ubuntu 18.04       | 
-| ubuntu-no-avahi       | amd64, arm32v7, arm64v8 | Ubuntu 18.04       | 
+| latest                | amd64, arm32v6, arm64v8 | Alpine Linux 3.15  |
+| ubuntu                | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
+| ubuntu-no-avahi       | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
 
 ## Step-By-Step Guides
 
