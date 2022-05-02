@@ -1,4 +1,4 @@
-#!/command/with-contenv sh
+#!/usr/bin/with-contenv sh
 
 [ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
 

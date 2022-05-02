@@ -1,4 +1,4 @@
-#!/command/with-contenv sh
+#!/usr/bin/with-contenv sh
 
 echo "Starting dbus-daemon"
 exec dbus-daemon --system --nofork
