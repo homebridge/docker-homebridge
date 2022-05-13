@@ -115,8 +115,5 @@ for ip in $IP; do
 done
 
 echo "$LP"
-echo "$LP Username: admin"
-echo "$LP Password: admin"
-echo "$LP"
 echo "$LP Installed to: $INSTALL_DIR"
 echo "$LP Thanks for installing oznu/homebridge!"
