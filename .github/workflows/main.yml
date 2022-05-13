@@ -50,6 +50,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # login to github container registry
+    - name: Create docker buildx builder
+      run: |
+        docker buildx create --name multibuilder
+        docker buildx use multibuilder
+
     # build the image for Docker Hub
     - name: Build Image For Docker Hub
       run: |
