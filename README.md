@@ -5,15 +5,13 @@
 
 # Docker Homebridge
 
-This Alpine/Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
+This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
 
-This is a multi-arch image and will also run on a Raspberry Pi or other Docker-enabled ARMv6/7/8 devices.
+This is a multi-arch image and will also run on a Raspberry Pi or other Docker-enabled ARMv/7/8 devices.
 
 | Image Tag             | Architectures           | Image OS           | 
 | :-------------------- | :-----------------------| :----------------- | 
-| latest                | amd64, arm32v6, arm64v8 | Alpine Linux 3.15  |
 | ubuntu                | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
-| ubuntu-no-avahi       | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
 
 ## Step-By-Step Guides
 
@@ -31,7 +29,7 @@ Homebridge requires full access to your local network to function correctly whic
 Command Line:
 
 ```bash
-docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge oznu/homebridge:ubuntu
+docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge oznu/homebridge:latest
 ```
 
 Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
@@ -40,15 +38,9 @@ Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge:ubuntu
+    image: oznu/homebridge:latest
     restart: always
     network_mode: host
-    environment:
-      - PGID=1000
-      - PUID=1000
-      - HOMEBRIDGE_CONFIG_UI=1
-      - HOMEBRIDGE_CONFIG_UI_PORT=8581
-      - TZ=Australia/Canberra
     volumes:
       - ./volumes/homebridge:/homebridge
 ```
@@ -65,11 +57,6 @@ The parameters are split into two halves, separated by a colon, the left hand si
 * `-e PGID` - for group id - see below for explanation
 * `-e PUID` - for user id - see below for explanation
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
-
-##### *Homebridge UI Options*:
-
-* `-e HOMEBRIDGE_CONFIG_UI=1` - Set to `0` to disable the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x).
-* `-e HOMEBRIDGE_CONFIG_UI_PORT=8581` - The port to run the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) on. Defaults to port 8581.
 
 ### User / Group Identifiers
 
@@ -98,17 +85,7 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
 
 ffmpeg, with `libfdk-aac` audio support is included in this image.
 
-#### 2. Try the ubuntu tag
-
-Some plugins don't like Alpine Linux so this project also provides a Ubuntu based version of the image.
-
-```
-docker run oznu/homebridge:ubuntu
-```
-
-See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
-
-#### 3. Ask on Discord
+#### 2. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 

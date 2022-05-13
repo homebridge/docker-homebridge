@@ -1,8 +1,0 @@
-#!/usr/bin/with-contenv sh
-
-. /etc/os-release
-
-echo "Starting cron"
-
-[ "$ID" = "alpine" ] && exec /usr/sbin/crond -f -S -l 5 -c /etc/crontabs
-[ "$ID" = "ubuntu" ] && exec /usr/sbin/cron -f -l 5

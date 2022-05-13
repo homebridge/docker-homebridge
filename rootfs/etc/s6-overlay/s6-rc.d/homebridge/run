@@ -1,0 +1,14 @@
+#!/command/with-contenv sh
+
+export HOME=/home/homebridge
+export USER=homebridge
+export HOMEBRIDGE_CONFIG_UI=1
+export CONFIG_UI_VERSION=4.0.0 # needs to be > 3.5.5 and < 4.6.2 for now
+
+# fix permissions
+chown -R homebridge: /homebridge /opt/homebridge
+
+# change pwd
+cd /homebridge
+
+exec s6-setuidgid homebridge /opt/homebridge/start.sh 

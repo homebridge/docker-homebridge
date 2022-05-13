@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "homebridge-dummy": "^0.6.0"
+  }
+}
