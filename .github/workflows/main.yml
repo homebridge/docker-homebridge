@@ -17,7 +17,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
-        docker run --rm --privileged multiarch/qemu-user-static:register --reset
+        # docker run -it --rm --privileged tonistiigi/binfmt --install all
 
     # get branch / tag name
     - name: Get Branch / Tag Name
