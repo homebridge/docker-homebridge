@@ -88,8 +88,6 @@ This image comes with the [Homebridge UI](https://github.com/oznu/homebridge-con
 
 To manage Homebridge go to `http://<ip of server>:8581` in your browser. For example, `http://192.168.1.20:8581`. From here you can install, remove and update plugins, modify the Homebridge config.json and restart Homebridge.
 
-The default username is **`admin`** and the default password is **`admin`**.
-
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
