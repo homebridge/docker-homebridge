@@ -1,7 +1,5 @@
 #!/command/with-contenv sh
 
-echo "Running setup script..."
-
 # make folders
 mkdir -p /var/run/dbus
 mkdir -p /var/run/avahi-daemon

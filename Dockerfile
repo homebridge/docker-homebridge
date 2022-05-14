@@ -1,5 +1,11 @@
 FROM ubuntu:20.04
 
+LABEL org.opencontainers.image.title="Homebridge in Docker"
+LABEL org.opencontainers.image.description="Official Homebridge Docker Image"
+LABEL org.opencontainers.image.authors="oznu"
+LABEL org.opencontainers.image.url="https://github.com/oznu/docker-homebridge"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
+
 ENV S6_OVERLAY_VERSION=3.1.0.1 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
  PUID=911 \
@@ -33,9 +39,9 @@ RUN case "$(uname -m)" in \
     esac \
   && cd /tmp \
   && set -x \
-  && curl -SLO https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz \
+  && curl -SLOf https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz \
   && tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz \
-  && curl -SLO  https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
+  && curl -SLOf  https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
   && tar -C / -Jxpf /tmp/s6-overlay-${S6_ARCH}.tar.xz
 
 RUN case "$(uname -m)" in \
@@ -58,7 +64,7 @@ RUN case "$(uname -m)" in \
   && set -x \
   && curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | tee /usr/share/keyrings/homebridge.gpg  > /dev/null \
   && echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null \
-  && curl -SL -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb
+  && curl -sSLf -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb
 
 COPY rootfs /
 
