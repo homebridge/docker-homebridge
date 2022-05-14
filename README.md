@@ -44,7 +44,7 @@ services:
     restart: always
     network_mode: host
     volumes:
-          - ./volumes/homebridge:/homebridge
+      - ./volumes/homebridge:/homebridge
     logging:
       driver: json-file
       options:
