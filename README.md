@@ -44,7 +44,12 @@ services:
     restart: always
     network_mode: host
     volumes:
-      - ./volumes/homebridge:/homebridge
+          - ./volumes/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10mb"
+        max-file: "1"
 ```
 
 ## Parameters
