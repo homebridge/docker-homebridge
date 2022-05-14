@@ -34,6 +34,14 @@ jobs:
         echo $TARGET_IMAGE_TAG
         echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
 
+    # generate the alternative image tag
+    - name: Get Alternate Tag
+      id: get_alt_tag
+      run: |
+        export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
+        echo $ALT_IMAGE_TAG
+        echo ::set-output name=NAME::${ALT_IMAGE_TAG}
+
     # login to docker hub
     - name: Login to Docker Hub
       if: github.repository == 'oznu/docker-homebridge'
@@ -59,8 +67,10 @@ jobs:
     - name: Build Image For Docker Hub
       run: |
         docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t oznu/homebridge:${{ steps.get_tag.outputs.NAME }} .
+        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t oznu/homebridge:${{ steps.get_alt_tag.outputs.NAME }} .
 
     # build the image for Github Container Registry (will use the cached build from the previous step)
     - name: Build Image For Docker Hub
       run: |
         docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/oznu/homebridge:${{ steps.get_tag.outputs.NAME }} .
+        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/oznu/homebridge:${{ steps.get_alt_tag.outputs.NAME }} .
