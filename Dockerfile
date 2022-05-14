@@ -1,11 +1,10 @@
-FROM ${BASE_IMAGE:-library/ubuntu}:20.04
-
-LABEL org.opencontainers.image.description="Homebridge Docker Image - https://homebridge.io"
+FROM ubuntu:20.04
 
 ENV S6_OVERLAY_VERSION=3.1.0.1 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
  PUID=911 \
  PGID=911 \
+ ENABLE_AVAHI=1 \
  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
  npm_config_store_dir=/var/lib/homebridge/node_modules/.pnpm-store \
  npm_config_prefix=/opt/homebridge \

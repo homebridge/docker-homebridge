@@ -1,8 +1,13 @@
 #!/command/with-contenv sh
 
-until [ -e /var/run/dbus/system_bus_socket ]; do
-  sleep 1s
-done
+if [ "$ENABLE_AVAHI" = "1" ]; then
+  until [ -e /var/run/dbus/system_bus_socket ]; do
+    sleep 1s
+  done
+  echo "Starting Avahi daemon"
+  exec avahi-daemon --no-chroot -f /etc/avahi/avahi-daemon.conf
+else
+  echo "Avahi disabled, not starting avahi-daemon"
+  exec sleep infinity
+fi
 
-echo "Starting Avahi daemon"
-exec avahi-daemon --no-chroot -f /etc/avahi/avahi-daemon.conf
