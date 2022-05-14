@@ -7,11 +7,11 @@
 
 This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
 
-This is a multi-arch image and will also run on a Raspberry Pi or other Docker-enabled ARMv/7/8 devices.
+This is a multi-arch image and will run on x86_64, Raspberry Pi 3, 4, Zero 2 W, or other Docker-enabled ARMv7/8 devices. Docker will automatically pull the correct image for your system.
 
-| Image Tag             | Architectures           | Image OS           | 
+| Image Tag             | Architectures           | Base Image         | 
 | :-------------------- | :-----------------------| :----------------- | 
-| ubuntu                | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
+| latest                | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
 
 ## Step-By-Step Guides
 
@@ -21,7 +21,9 @@ This is a multi-arch image and will also run on a Raspberry Pi or other Docker-e
 
 ## Compatibility
 
-Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag. **This image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543)**.
+Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
+
+**This image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/docker/for-mac/issues/68) and [this](https://github.com/docker/for-win/issues/543)**.
 
 
 ## Usage
@@ -50,13 +52,14 @@ services:
 The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
 
 * `--net=host` - Shares host networking with container, **required**
-* `-v /homebridge` - The Homebridge config and plugin location
+* `-v /homebridge` - The Homebridge config and plugin location, **required**
 
 ##### *Optional Settings:*
 
 * `-e PGID` - for group id - see below for explanation
 * `-e PUID` - for user id - see below for explanation
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
+* `-e ENABLE_AVAHI` - default is `1`; set to `0` to prevent the Avahi mDNS service running in the container
 
 ### User / Group Identifiers
 
