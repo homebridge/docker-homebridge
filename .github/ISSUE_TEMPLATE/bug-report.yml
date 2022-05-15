@@ -65,3 +65,16 @@ body:
         **Please note that macOS and Windows are not supported as host operating systems. [See this for more info](https://github.com/oznu/docker-homebridge#compatibility).**
     validations:
       required: true
+  - type: dropdown
+    id: host-architecture
+    attributes:
+      label: Host Architecture
+      options:
+        - armv6l
+        - armv7l
+        - aarch64 / arm64
+        - x86_64 / amd64
+      description: |
+        Please provide the architecture of your host. You can get this by running `uname -m` in a terminal.
+    validations:
+      required: true

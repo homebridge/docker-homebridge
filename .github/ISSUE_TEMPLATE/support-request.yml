@@ -65,7 +65,7 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: operating-system
+    id: host-architecture
     attributes:
       label: Host Architecture
       options:
