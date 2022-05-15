@@ -27,6 +27,15 @@ body:
     validations:
       required: true
   - type: textarea
+    id: docker-config
+    attributes:
+      label: Docker Config
+      render: yml
+      description: |
+        Please include your `docker run ...` command or `docker-compose.yml` file.
+    validations:
+      required: true
+  - type: textarea
     id: logs
     attributes:
       label: Logs
@@ -38,15 +47,6 @@ body:
         * Show the logs from the service being restarted until the error is occurs.
     validations:
       required: false
-  - type: textarea
-    id: docker-config
-    attributes:
-      label: Docker Config
-      render: yml
-      description: |
-        Please include your `docker run ...` command or `docker-compose.yml` file.
-    validations:
-      required: true
   - type: dropdown
     id: operating-system
     attributes:
