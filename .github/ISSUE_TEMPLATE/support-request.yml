@@ -45,7 +45,7 @@ body:
       description: |
         Please include your `docker run ...` command or `docker-compose.yml` file.
     validations:
-      required: false
+      required: true
   - type: dropdown
     id: operating-system
     attributes:
