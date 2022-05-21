@@ -102,15 +102,12 @@ ffmpeg, with `libfdk-aac` audio support is included in this image.
 
 If you're seeing errors like the following, your host operating system needs to be updated.
 
+See #434 and #441 for potential solutions.
+
 ```
 Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
 Aborted (core dumped)
 ```
-
-See these issues for potential solutions:
-
-* https://github.com/oznu/docker-homebridge/issues/434
-* https://github.com/oznu/docker-homebridge/issues/441
 
 #### 3. Ask on Discord
 
