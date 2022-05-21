@@ -109,6 +109,12 @@ Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): As
 Aborted (core dumped)
 ```
 
+```
+homebridge_1  | s6-svscan: warning: unable to iopause: Operation not permitted
+homebridge_1  | s6-svscan: warning: executing into .s6-svscan/crash
+homebridge_1  | s6-svscan crashed. Killing everything and exiting.
+```
+
 #### 3. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
