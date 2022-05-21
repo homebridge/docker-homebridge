@@ -98,15 +98,19 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
 
 ffmpeg, with `libfdk-aac` audio support is included in this image.
 
-#### 2. Try the ubuntu tag
+#### 2. Container will not start on older versions of Raspbian
 
-Some plugins don't like Alpine Linux so this project also provides a Ubuntu based version of the image.
+If you're seeing errors like the following, your host operating system needs to be updated.
 
 ```
-docker run oznu/homebridge:ubuntu
+Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
+Aborted (core dumped)
 ```
 
-See the wiki for a list of image variants: https://github.com/oznu/docker-homebridge/wiki
+See these issues for potential solutions:
+
+* https://github.com/oznu/docker-homebridge/issues/434
+* https://github.com/oznu/docker-homebridge/issues/441
 
 #### 3. Ask on Discord
 
