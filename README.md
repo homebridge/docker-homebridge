@@ -93,7 +93,24 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
 
 ffmpeg, with `libfdk-aac` audio support is included in this image.
 
-#### 2. Ask on Discord
+#### 2. Container will not start on older versions of Raspbian
+
+If you're seeing errors like the following, your host operating system needs to be updated.
+
+See [#434](https://github.com/oznu/docker-homebridge/issues/434) and [#441](https://github.com/oznu/docker-homebridge/issues/441) for potential solutions.
+
+```
+Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
+Aborted (core dumped)
+```
+
+```
+homebridge_1  | s6-svscan: warning: unable to iopause: Operation not permitted
+homebridge_1  | s6-svscan: warning: executing into .s6-svscan/crash
+homebridge_1  | s6-svscan crashed. Killing everything and exiting.
+```
+
+#### 3. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
