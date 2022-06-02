@@ -87,6 +87,10 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
 
+## Automated Updates
+
+Automated updates of the Homebridge Docker Image using tools such as Watchtower or similar are strongly discouraged and are done so at your own risk. You can update Homebridge, the Homebridge UI and the Node.js runtime from inside the container.
+
 ## Troubleshooting
 
 #### 1. Need ffmpeg?
