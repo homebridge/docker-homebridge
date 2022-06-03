@@ -51,7 +51,10 @@ body:
     attributes:
       label: Host Operating System
       options:
-        - Raspberry Pi OS / Raspbian
+        - Raspberry Pi OS - Latest
+        - Raspberry Pi OS 11 - Bullseye
+        - Raspberry Pi OS 10 - Buster
+        - Raspberry Pi OS 9 - Stretch
         - Ubuntu / Debian (or a variant)
         - Fedora / CentOS / RedHat (or a variant)
         - Synology DSM
