@@ -20,6 +20,6 @@ if [ "$?" != "0" ]; then
   echo "Failed to set permissions on /homebridge to $PUID:$PGID; the Homebridge service will run as root."
   exec /opt/homebridge/start.sh --allow-root
 else
-  # standard operation, run as homebridge user
-  exec s6-setuidgid homebridge /opt/homebridge/start.sh 
+  # standard operation, run as homebridge user (this could still be "root" if PUID and PGID are set to 0)
+  exec s6-setuidgid homebridge /opt/homebridge/start.sh --allow-root
 fi

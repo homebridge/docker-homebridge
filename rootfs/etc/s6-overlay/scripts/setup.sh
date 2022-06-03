@@ -46,8 +46,8 @@ if [ "$?" != "0" ]; then
 fi
 
 # set homebridge UID and GID
-PUID=${PUID:-911}
-PGID=${PGID:-911}
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
 
 # create homebridge group
 groupadd -g ${PGID} homebridge -f
