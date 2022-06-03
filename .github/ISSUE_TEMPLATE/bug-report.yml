@@ -71,10 +71,10 @@ body:
     attributes:
       label: Host Architecture
       options:
-        - armv6l
-        - armv7l
-        - aarch64 / arm64
         - x86_64 / amd64
+        - aarch64 / arm64
+        - armv7l
+        - armv6l (no longer supported)
       description: |
         Please provide the architecture of your host. You can get this by running `uname -m` in a terminal.
     validations:

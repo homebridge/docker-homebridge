@@ -4,20 +4,35 @@ export HOME=/home/homebridge
 export USER=homebridge
 export HOMEBRIDGE_CONFIG_UI=1
 
-# this is not necessarily the ui version, it's used as a feature compatibility indicator 
+# this is not necessarily the ui version, it's now used as a feature compatibility indicator 
 export CONFIG_UI_VERSION=4.44.2
 
-# change cwd
-cd /homebridge
+# fix permissions
+fix_permissions() {
+  chown -R homebridge: /opt/homebridge
+  chown -R homebridge: /homebridge 
+  if [ "$?" != "0" ]; then
+    echo "Failed to set permissions on /homebridge to $PUID:$PGID; the Homebridge service will run as root."
+    return 1
+  fi
+}
 
-# fix permissions on /opt/homebridge
-chown -R homebridge: /opt/homebridge
+# check if the UI is running on a privileged port
+ui_port_check() {
+  if [ -f /var/lib/homebridge/config.json ]; then
+    ui_port=$(cat /var/lib/homebridge/config.json | jq -rM '.platforms[] | select(.platform == "config") | .port' 2> /dev/null)
+    if [ "$?" = "0" ] && [ "$ui_port" -le 1024 ]; then
+      echo "The Homebridge UI has been configured to run on a privileged port ($ui_port); the Homebridge service will run as root."
+      return 1
+    fi
+  fi
+}
 
-# fix permissions on /homebridge
-chown -R homebridge: /homebridge 
-if [ "$?" != "0" ]; then
-  # if we can't set permissions on /homebridge, run Homebridge as root, it's not ideal, but it's better than nothing
-  echo "Failed to set permissions on /homebridge to $PUID:$PGID; the Homebridge service will run as root."
+if ! fix_permissions; then
+  # if we can't set permissions on /homebridge, run Homebridge as "root", it's not ideal, but it's better than nothing
+  exec /opt/homebridge/start.sh --allow-root
+elif ! ui_port_check; then
+  # the UI is running on a privileged port, run Homebridge as "root"
   exec /opt/homebridge/start.sh --allow-root
 else
   # standard operation, run as homebridge user (this could still be "root" if PUID and PGID are set to 0)
