@@ -114,6 +114,11 @@ homebridge_1  | s6-svscan: warning: executing into .s6-svscan/crash
 homebridge_1  | s6-svscan crashed. Killing everything and exiting.
 ```
 
+```
+homebridge    | # Fatal error in , line 0
+homebridge    | # unreachable code
+```
+
 #### 3. Ask on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
