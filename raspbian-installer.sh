@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #
-# This script is meant for a quick and easy setup of oznu/homebridge on Raspbian
-# It should be executed on a fresh install of Raspbian Stretch Lite only!
+# This script is meant for a quick and easy setup of oznu/homebridge on Raspberry Pi OS
+# It should be executed on a fresh install of Raspberry Pi OS 11 Lite only!
 #
 
 set -e
