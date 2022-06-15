@@ -16,9 +16,7 @@ LP="[oznu/homebridge installer]"
 
 # Check OS
 
-if [ "$VERSION_ID" = "10" ]; then
-  echo "$LP Installing on $PRETTY_NAME..."
-elif [ "$VERSION_ID" = "9" ]; then
+if [ "$VERSION_ID" = "11" ]; then
   echo "$LP Installing on $PRETTY_NAME..."
 else
   echo "$LP ERROR: $PRETTY_NAME is not supported"
@@ -29,22 +27,11 @@ echo "$LP Installing Docker..."
 
 # Step 1: Install Docker
 
-curl -fssl https://get.docker.com -o get-docker.sh
-chmod u+x get-docker.sh
-sudo ./get-docker.sh
-
+sudo apt-get update
+sudo apt-get -y install docker.io docker-compose
 sudo usermod -aG docker $USER
-rm -rf get-docker.sh
 
 echo "$LP Docker Installed"
-
-# Step 2: Install Docker Compose
-
-echo "$LP Installing Docker Compose..."
-
-sudo apt-get -y install docker-compose
-
-echo "$LP Docker Compose Installed"
 
 # Step 3: Create Docker Compose Manifest
 
@@ -64,12 +51,15 @@ services:
     restart: always
     network_mode: host
     volumes:
-      - ./config:/homebridge
+      - ./volumes/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10mb"
+        max-file: "1"
     environment:
       - PGID=$PGID
       - PUID=$PUID
-      - HOMEBRIDGE_CONFIG_UI=1
-      - HOMEBRIDGE_CONFIG_UI_PORT=8581
 EOL
 
 echo "$LP Created $INSTALL_DIR/docker-compose.yml"
