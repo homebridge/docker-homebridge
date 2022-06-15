@@ -69,6 +69,7 @@ RUN case "$(uname -m)" in \
 
 COPY rootfs /
 
+EXPOSE 8581/tcp
 VOLUME /homebridge
 WORKDIR /homebridge
 
