@@ -7,3 +7,4 @@ else
     tzupdate 2> /dev/null
 fi
 
+exit 0
