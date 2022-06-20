@@ -8,8 +8,6 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 ENV S6_OVERLAY_VERSION=3.1.0.1 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
- PUID=1000 \
- PGID=1000 \
  ENABLE_AVAHI=1 \
  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
  npm_config_store_dir=/var/lib/homebridge/node_modules/.pnpm-store \
@@ -33,6 +31,13 @@ RUN set -x \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
+
+RUN adduser --system homebridge --uid 1000 \
+  && groupadd -g 1000 homebridge -f \
+  && groupmod -o -g "1000" homebridge \
+  && usermod -o -u "1000" homebridge \
+  && usermod -g homebridge homebridge \
+  && usermod -a -G sudo homebridge
   
 RUN case "$(uname -m)" in \
     x86_64) S6_ARCH='x86_64';; \
@@ -56,7 +61,7 @@ RUN case "$(uname -m)" in \
   && set -x \
   && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/v0.1.0/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_PKG_VERSION=1.0.24
+ENV HOMEBRIDGE_PKG_VERSION=1.0.25
 
 RUN case "$(uname -m)" in \
     x86_64) DEB_ARCH='amd64';; \
@@ -65,7 +70,11 @@ RUN case "$(uname -m)" in \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
   && set -x \
-  && curl -sSLf -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb
+  && curl -sSLf -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb \
+  && dpkg -i /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
+  && rm -rf /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
+  && rm -rf /var/lib/homebridge \
+  && chown 1000:1000 -R /opt/homebridge
 
 COPY rootfs /
 

@@ -58,7 +58,8 @@ body:
         - Raspberry Pi OS 9 - Stretch
         - Ubuntu / Debian (or a variant)
         - Fedora / CentOS / RedHat (or a variant)
-        - Synology DSM
+        - Synology DSM 6
+        - Synology DSM 7
         - QNAP
         - Unraid
         - Other (specify in description)

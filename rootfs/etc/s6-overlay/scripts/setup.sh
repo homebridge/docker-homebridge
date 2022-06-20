@@ -32,34 +32,17 @@ fi
 mkdir -p /homebridge
 ln -sf /homebridge /var/lib/homebridge
 
-dpkg -l homebridge > /dev/null
-if [ "$?" != "0" ]; then
-  # this will trigger a re-install user plugins if they exist
-  if [ -e /homebridge/package.json ]; then
-    mkdir -p /tmp/homebridge-tmp
-    cp /homebridge/package.json /tmp/homebridge-tmp/package.json
-    rm -rf /homebridge/node_modules /var/lib/homebridge/pnpm-lock.yaml /var/lib/homebridge/package.json /var/lib/homebridge/package-lock.json
-  fi
-
-  echo "Installing Homebridge..."
-  dpkg -i /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb
+if [ ! -e /homebridge/pnpm-lock.yaml ]; then
+  rm -rf /homebridge/node_modules
+  rm -rf /homebridge/package-lock.json
 fi
 
-# set homebridge UID and GID
-PUID=${PUID:-1000}
-PGID=${PGID:-1000}
+if [ ! -e /homebridge/package.json ]; then
+  HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
+  echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
+fi
 
-# create homebridge group
-groupadd -g ${PGID} homebridge -f
+# install plugins
+pnpm -C /var/lib/homebridge install
 
-# set the gid of homebridge group
-groupmod -o -g "$PGID" homebridge
-
-# set the uid of homebridge user
-usermod -o -u "$PUID" homebridge
-
-# set the homebridge group as the homebridge users primary group
-usermod -g homebridge homebridge
-
-# add homebridge user to sudo group
-usermod -a -G sudo homebridge 2> /dev/null
+exit 0

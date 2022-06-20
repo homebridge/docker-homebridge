@@ -9,10 +9,9 @@ export CONFIG_UI_VERSION=4.44.2
 
 # fix permissions
 fix_permissions() {
-  chown -R homebridge: /opt/homebridge
   chown -R homebridge: /homebridge 
   if [ "$?" != "0" ]; then
-    echo "Failed to set permissions on /homebridge to $PUID:$PGID; the Homebridge service will run as root."
+    echo "Failed to set permissions on /homebridge; the Homebridge service will run as root."
     return 1
   fi
 }
@@ -33,6 +32,9 @@ if ! fix_permissions; then
   exec /opt/homebridge/start.sh --allow-root
 elif ! ui_port_check; then
   # the UI is running on a privileged port, run Homebridge as "root"
+  exec /opt/homebridge/start.sh --allow-root
+elif [ "$PUID" = "0" ] || [ "$PGID" = "0" ]; then
+  # the user wants homebridge to run as root
   exec /opt/homebridge/start.sh --allow-root
 else
   # standard operation, run as homebridge user (this could still be "root" if PUID and PGID are set to 0)
