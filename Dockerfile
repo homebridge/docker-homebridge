@@ -10,13 +10,12 @@ ENV S6_OVERLAY_VERSION=3.1.0.1 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
  ENABLE_AVAHI=1 \
  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
- npm_config_store_dir=/var/lib/homebridge/node_modules/.pnpm-store \
  npm_config_prefix=/opt/homebridge \
- npm_config_global_pnpmfile=/opt/homebridge/global_pnpmfile.cjs \
  npm_config_global_style=true \
  npm_config_audit=false \
  npm_config_fund=false \
- npm_config_update_notifier=false 
+ npm_config_update_notifier=false \
+ npm_config_loglevel=error
 
 RUN set -x \
   && apt-get update \
@@ -61,7 +60,7 @@ RUN case "$(uname -m)" in \
   && set -x \
   && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/v0.1.0/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_PKG_VERSION=1.0.26
+ENV HOMEBRIDGE_PKG_VERSION=1.0.28
 
 RUN case "$(uname -m)" in \
     x86_64) DEB_ARCH='amd64';; \

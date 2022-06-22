@@ -32,9 +32,16 @@ fi
 mkdir -p /homebridge
 ln -sf /homebridge /var/lib/homebridge
 
-if [ ! -e /homebridge/pnpm-lock.yaml ]; then
+cd /homebridge
+
+if [ ! -e /homebridge/package-lock.json ]; then
   rm -rf /homebridge/node_modules
-  rm -rf /homebridge/package-lock.json
+  rm -rf /homebridge/pnpm-lock.yaml
+fi
+
+if [ -e /homebridge/pnpm-lock.yaml ]; then
+  rm -rf /homebridge/node_modules
+  rm -rf /homebridge/pnpm-lock.yaml
 fi
 
 if [ ! -e /homebridge/package.json ]; then
@@ -43,6 +50,7 @@ if [ ! -e /homebridge/package.json ]; then
 fi
 
 # install plugins
-pnpm -C /var/lib/homebridge install
+echo "Installing plugins, please wait..."
+npm --prefix /homebridge install
 
 exit 0
