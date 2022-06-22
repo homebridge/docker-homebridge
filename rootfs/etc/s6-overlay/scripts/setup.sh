@@ -44,6 +44,7 @@ fi
 if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/node_modules
   rm -rf /homebridge/pnpm-lock.yaml
+  rm -rf /homebridge/package-lock.json
 fi
 
 # setup initial package.json with homebridge
