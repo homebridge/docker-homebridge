@@ -34,16 +34,19 @@ ln -sf /homebridge /var/lib/homebridge
 
 cd /homebridge
 
+# if the package-lock.json is missing, delete plugins so they are freshly installed
 if [ ! -e /homebridge/package-lock.json ]; then
   rm -rf /homebridge/node_modules
   rm -rf /homebridge/pnpm-lock.yaml
 fi
 
+# if coming from an old pnpm based install, delete plugins so they are freshly installed
 if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/node_modules
   rm -rf /homebridge/pnpm-lock.yaml
 fi
 
+# setup initial package.json with homebridge
 if [ ! -e /homebridge/package.json ]; then
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
@@ -55,6 +58,7 @@ if [ -e /homebridge/package.json ]; then
     packageJson="$(cat /homebridge/package.json | jq -rM 'del(."dependencies"."homebridge-config-ui-x")')"
     if [ "$?" = "0" ]; then
       printf "$packageJson" > /homebridge/package.json
+      echo "Removed homebridge-config-ui-x from package.json"
     fi
   fi
 fi
