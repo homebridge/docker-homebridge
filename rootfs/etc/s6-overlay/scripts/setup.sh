@@ -49,6 +49,16 @@ if [ ! -e /homebridge/package.json ]; then
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
 fi
 
+# remove homebridge-config-ui-x from the package.json
+if [ -e /homebridge/package.json ]; then
+  if [ "$(cat /homebridge/package.json | jq -r '.dependencies."homebridge-config-ui-x"')" != "null" ]; then
+    packageJson="$(cat /homebridge/package.json | jq -rM 'del(."dependencies"."homebridge-config-ui-x")')"
+    if [ "$?" = "0" ]; then
+      printf "$packageJson" > /homebridge/package.json
+    fi
+  fi
+fi
+
 # install plugins
 echo "Installing plugins, please wait..."
 npm --prefix /homebridge install
