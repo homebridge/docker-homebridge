@@ -64,8 +64,13 @@ if [ -e /homebridge/package.json ]; then
   fi
 fi
 
+# source the setup script
+if [ -f /opt/homebridge/source.sh ]; then
+  . "/opt/homebridge/source.sh"
+fi
+
 # install plugins
-echo "Installing plugins, please wait..."
+echo "Installing Homebridge and user plugins, please wait..."
 npm --prefix /homebridge install
 
 exit 0

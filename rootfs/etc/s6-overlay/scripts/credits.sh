@@ -23,3 +23,5 @@ printf "
                   ${UWHITE}https://paypal.me/oznu${NC}
 
 "
+
+exit 0

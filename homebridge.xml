@@ -27,20 +27,8 @@
   </Networking>
   <Environment>
     <Variable>
-      <Name>HOMEBRIDGE_CONFIG_UI</Name>
-      <Value>1</Value>
-    </Variable>
-    <Variable>
       <Name>HOMEBRIDGE_CONFIG_UI_PORT</Name>
       <Value>8581</Value>
-    </Variable>
-    <Variable>
-      <Name>PUID</Name>
-      <Value>99</Value>
-    </Variable>
-    <Variable>
-      <Name>PGID</Name>
-      <Value>100</Value>
     </Variable>
   </Environment>
   <Data>
