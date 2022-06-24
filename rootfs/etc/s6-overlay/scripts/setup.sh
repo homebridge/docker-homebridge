@@ -30,7 +30,15 @@ fi
 
 # setup homebridge
 mkdir -p /homebridge
-ln -sf /homebridge /var/lib/homebridge
+if [ "$(realpath /var/lib/homebridge)" != "/homebridge" ]; then
+  rm -rf /var/lib/homebridge
+  ln -sf /homebridge /var/lib/homebridge
+fi
+
+# fix a mistake where we were creating a symlink loop
+if [ -h "/homebridge/homebridge" ] && [ "$(realpath /homebridge/homebridge)" = "/homebridge" ]; then
+  rm /homebridge/homebridge
+fi
 
 cd /homebridge
 
