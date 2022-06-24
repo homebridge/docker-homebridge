@@ -35,8 +35,6 @@ RUN set -x \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
-
-RUN usermod -a -G sudo root
   
 RUN case "$(uname -m)" in \
     x86_64) S6_ARCH='x86_64';; \
