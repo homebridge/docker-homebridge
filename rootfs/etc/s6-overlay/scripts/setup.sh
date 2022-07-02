@@ -28,6 +28,9 @@ fi
 # user defaults
 [ -e /homebridge/startup.sh ] || cp /defaults/startup.sh /homebridge/startup.sh
 
+# set the .npmrc file
+cp /defaults/.npmrc /homebridge/.npmrc
+
 # setup homebridge
 mkdir -p /homebridge
 if [ "$(realpath /var/lib/homebridge)" != "/homebridge" ]; then
