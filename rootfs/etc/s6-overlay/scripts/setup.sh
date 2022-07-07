@@ -28,9 +28,6 @@ fi
 # user defaults
 [ -e /homebridge/startup.sh ] || cp /defaults/startup.sh /homebridge/startup.sh
 
-# set the .npmrc file
-cp /defaults/.npmrc /homebridge/.npmrc
-
 # setup homebridge
 mkdir -p /homebridge
 if [ "$(realpath /var/lib/homebridge)" != "/homebridge" ]; then
@@ -45,10 +42,12 @@ fi
 
 cd /homebridge
 
-# if the package-lock.json is missing, delete plugins so they are freshly installed
-if [ ! -e /homebridge/package-lock.json ]; then
-  rm -rf /homebridge/node_modules
-  rm -rf /homebridge/pnpm-lock.yaml
+# set the .npmrc file
+cp /defaults/.npmrc /homebridge/.npmrc
+
+# remove the package-lock.json
+if [ -e /homebridge/package-lock.json ]; then
+  rm -rf /homebridge/package-lock.json
 fi
 
 # if coming from an old pnpm based install, delete plugins so they are freshly installed

@@ -53,7 +53,7 @@ RUN case "$(uname -m)" in \
   && set -x \
   && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/v0.1.0/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_PKG_VERSION=1.0.26
+ENV HOMEBRIDGE_PKG_VERSION=1.0.27
 
 RUN case "$(uname -m)" in \
     x86_64) DEB_ARCH='amd64';; \
@@ -65,6 +65,7 @@ RUN case "$(uname -m)" in \
   && curl -sSLf -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb \
   && dpkg -i /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
   && rm -rf /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
+  && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge
 
 COPY rootfs /
