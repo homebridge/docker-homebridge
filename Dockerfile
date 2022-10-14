@@ -53,7 +53,7 @@ RUN case "$(uname -m)" in \
   && set -x \
   && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/v0.1.0/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
-ENV HOMEBRIDGE_PKG_VERSION=1.0.29
+ENV HOMEBRIDGE_PKG_VERSION=1.0.30
 
 RUN case "$(uname -m)" in \
     x86_64) DEB_ARCH='amd64';; \
