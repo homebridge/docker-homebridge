@@ -25,12 +25,6 @@
   <Networking>
     <Mode>host</Mode>
   </Networking>
-  <Environment>
-    <Variable>
-      <Name>HOMEBRIDGE_CONFIG_UI_PORT</Name>
-      <Value>8581</Value>
-    </Variable>
-  </Environment>
   <Data>
     <Volume>
       <HostDir>/mnt/user/appdata/homebridge</HostDir>
