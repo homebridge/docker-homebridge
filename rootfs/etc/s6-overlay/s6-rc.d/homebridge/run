@@ -2,6 +2,7 @@
 
 export HOME=/home/homebridge
 export USER=root
+export HOMEBRIDGE_CONFIG_UI=1
 
 # this is not necessarily the ui version, it's now used as a feature compatibility indicator 
 export CONFIG_UI_VERSION=4.44.2
