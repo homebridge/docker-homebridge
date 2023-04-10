@@ -40,5 +40,5 @@ export CONFIG_UI_VERSION=4.44.2
    exec /opt/homebridge/start.sh --allow-root
  else
    # standard operation, run as homebridge user (this could still be "root" if PUID and PGID are set to 0)
-   exec s6-setuidgid $PUID:$PGID /opt/homebridge/start.sh --allow-root
+   exec s6-setuidgid $PUID:$PGID /opt/homebridge/start.sh
  fi
