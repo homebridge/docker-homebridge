@@ -10,7 +10,6 @@ ENV S6_OVERLAY_VERSION=3.1.1.2 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
  S6_KEEP_ENV=1 \
  ENABLE_AVAHI=1 \
- USER=root \
  HOMEBRIDGE_APT_PACKAGE=1 \
  UIX_CUSTOM_PLUGIN_PATH="/var/lib/homebridge/node_modules" \
  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
@@ -65,7 +64,7 @@ RUN case "$(uname -m)" in \
   && curl -sSLf -o /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_PKG_VERSION}/homebridge_${HOMEBRIDGE_PKG_VERSION}_${DEB_ARCH}.deb \
   && dpkg -i /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
   && rm -rf /homebridge_${HOMEBRIDGE_PKG_VERSION}.deb \
-  && chown -R root:root /opt/homebridge \
+  && chown -R $PUID:$PGID /opt/homebridge \
   && rm -rf /var/lib/homebridge
 
 COPY rootfs /

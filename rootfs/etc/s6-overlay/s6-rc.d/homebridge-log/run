@@ -2,4 +2,6 @@
 
 [ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
 
-exec tail -f --follow=name /homebridge/homebridge.log
+chown $PUID:$PGID /homebridge/homebridge.log
+
+exec s6-setuidgid $PUID:$PGID tail -f --follow=name /homebridge/homebridge.log

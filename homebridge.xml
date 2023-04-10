@@ -25,6 +25,16 @@
   <Networking>
     <Mode>host</Mode>
   </Networking>
+  <Environment>
+    <Variable>
+      <Name>PUID</Name>
+      <Value>1000</Value>
+    </Variable>
+    <Variable>
+      <Name>PGID</Name>
+      <Value>100</Value>
+    </Variable>
+  </Environment>
   <Data>
     <Volume>
       <HostDir>/mnt/user/appdata/homebridge</HostDir>
