@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# This script is meant for a quick and easy setup of oznu/homebridge on Raspberry Pi OS
+# This script is meant for a quick and easy setup of homebridge/homebridge on Raspberry Pi OS
 # It should be executed on a fresh install of Raspberry Pi OS 11 Lite only!
 #
 
@@ -12,7 +12,7 @@ ARCH=$(uname -m)
 
 . /etc/os-release
 
-LP="[oznu/homebridge installer]"
+LP="[homebridge/homebridge installer]"
 
 # Check OS
 
@@ -47,7 +47,7 @@ cat >$INSTALL_DIR/docker-compose.yml <<EOL
 version: '2'
 services:
   homebridge:
-    image: oznu/homebridge:latest
+    image: homebridge/homebridge:latest
     restart: always
     network_mode: host
     volumes:
@@ -93,7 +93,7 @@ IP=$(hostname -I)
 
 echo "$LP"
 echo "$LP Homebridge Installation Complete!"
-echo "$LP You can access the Homebridge UI (oznu/homebridge-config-ui-x) via:"
+echo "$LP You can access the Homebridge UI (homebridge/homebridge-config-ui-x) via:"
 echo "$LP"
 
 for ip in $IP; do
@@ -106,4 +106,4 @@ done
 
 echo "$LP"
 echo "$LP Installed to: $INSTALL_DIR"
-echo "$LP Thanks for installing oznu/homebridge!"
+echo "$LP Thanks for installing homebridge/homebridge!"

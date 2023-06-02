@@ -5,7 +5,7 @@
 
 # Homebridge Docker Image
 
-This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/nfarina/homebridge) on your home network which emulates the iOS HomeKit API.
+This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/homebridge/homebridge) on your home network which emulates the iOS HomeKit API.
 
 This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 W, or other Docker-enabled ARMv7/8 devices. Docker will automatically pull the correct image for your system.
 
@@ -16,8 +16,8 @@ This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 
 ## Step-By-Step Guides
 
 - [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)
-- [Running Homebridge on a Synology NAS](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Synology)
-- [Running Homebridge on Unraid](https://github.com/oznu/docker-homebridge/wiki/Homebridge-on-Unraid)
+- [Running Homebridge on a Synology NAS](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)
+- [Running Homebridge on Unraid](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Unraid)
 
 ## Compatibility
 
@@ -66,7 +66,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 ## Homebridge UI
 
-This image comes with the [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) pre-installed and is the easiest way to manage all aspects of Homebridge.
+This image comes with the [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) pre-installed and is the easiest way to manage all aspects of Homebridge.
 
 To manage Homebridge go to `http://<ip of server>:8581` in your browser. For example, `http://192.168.1.20:8581`. From here you can install, remove and update plugins, modify the Homebridge config.json and restart Homebridge.
 
@@ -88,7 +88,7 @@ ffmpeg, with `libfdk-aac` audio support is included in this image.
 
 If you're seeing errors like the following, your host operating system needs to be updated.
 
-See [#434](https://github.com/oznu/docker-homebridge/issues/434) and [#441](https://github.com/oznu/docker-homebridge/issues/441) for potential solutions.
+See [#434](https://github.com/homebridge/docker-homebridge/issues/434) and [#441](https://github.com/homebridge/docker-homebridge/issues/441) for potential solutions.
 
 ```
 Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
@@ -112,7 +112,7 @@ Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and
 
 ## License
 
-Copyright (C) 2017-2022 oznu
+Copyright (C) 2017-2023 homebridge
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
