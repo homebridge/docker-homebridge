@@ -64,7 +64,7 @@ body:
         - Unraid
         - Other (specify in description)
       description: |
-        If your operating system is not listed, please provide it in the bug description.</br>**Please note that macOS and Windows are not supported as host operating systems. [See this for more info](https://github.com/oznu/docker-homebridge#compatibility).**
+        If your operating system is not listed, please provide it in the bug description.</br>**Please note that macOS and Windows are not supported as host operating systems. [See this for more info](https://github.com/homebridge/docker-homebridge#compatibility).**
     validations:
       required: true
   - type: dropdown
