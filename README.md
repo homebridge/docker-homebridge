@@ -11,7 +11,7 @@ This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 
 
 | Image Tag             | Architectures           | Base Image         | 
 | :-------------------- | :-----------------------| :----------------- | 
-| latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 20.04       | 
+| latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 22.04       | 
 
 ## Step-By-Step Guides
 
