@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Docker Homebridge Custom Startup Script - oznu/homebridge
+# Docker Homebridge Custom Startup Script - homebridge/homebridge
 #
 # This script can be used to customise the environment and will be executed as
 # the root user each time the container starts.
