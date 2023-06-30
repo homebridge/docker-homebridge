@@ -3,6 +3,10 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/homebridge/homebridge.svg)](https://hub.docker.com/r/homebridge/homebridge/)
 [![Discord](https://img.shields.io/discord/432663330281226270?color=728ED5&logo=discord&label=discord)](https://discord.gg/Cmq8a44)
 
+<H1>Important Update</H1>
+
+We have moved the hosting of the offical homebridge docker image from **oznu/homebridge** to **homebridge/homebridge**.  Please update your environments as needed to pickup the latest image.
+
 # Homebridge Docker Image
 
 This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/homebridge/homebridge) on your home network which emulates the iOS HomeKit API.
