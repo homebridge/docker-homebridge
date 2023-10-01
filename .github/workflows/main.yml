@@ -30,7 +30,7 @@ jobs:
     - name: Get Image Tag
       id: get_tag
       run: |
-        export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
+        export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.NAME }}"; fi)
         echo $TARGET_IMAGE_TAG
         echo ::set-output name=NAME::${TARGET_IMAGE_TAG}
 
@@ -38,7 +38,7 @@ jobs:
     - name: Get Alternate Tag
       id: get_alt_tag
       run: |
-        export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "master" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
+        export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.NAME }}-ubuntu"; fi)
         echo $ALT_IMAGE_TAG
         echo ::set-output name=NAME::${ALT_IMAGE_TAG}
 
@@ -50,7 +50,7 @@ jobs:
 
     # login to github container registry
     - name: Login to Packages Container registry
-      uses: docker/login-action@v1 
+      uses: docker/login-action@v1
       if: github.repository == 'homebridge/docker-homebridge'
       with:
         registry: ghcr.io

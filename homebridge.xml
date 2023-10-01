@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Containers>
-  <TemplateURL>https://raw.githubusercontent.com/homebridge/docker-homebridge/master/homebridge.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/homebridge/docker-homebridge/latest/homebridge.xml</TemplateURL>
   <Beta>False</Beta>
   <Category>HomeAutomation Tools</Category>
   <Name>homebridge</Name>
@@ -34,7 +34,7 @@
   </Data>
   <Shell>bash</Shell>
   <WebUI>http://[IP]:[PORT:8581]/</WebUI>
-  <Icon>https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png</Icon>
+  <Icon>https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png</Icon>
   <DonateText>If you find this project useful please STAR it on GitHub.</DonateText>
   <DonateLink>https://github.com/homebridge/docker-homebridge</DonateLink>
   <DonateImg>https://user-images.githubusercontent.com/3979615/96548396-85731300-12f9-11eb-9322-951083d43db1.png</DonateImg>
