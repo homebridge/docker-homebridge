@@ -8,8 +8,8 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # update to latest releases prior to release
 
-ENV HOMEBRIDGE_PKG_VERSION=1.0.34 \
-  FFMPEG_VERSION=v0.1.0
+ENV HOMEBRIDGE_PKG_VERSION=1.1.3 \
+  FFMPEG_VERSION=v2.1.1
 
 ENV S6_OVERLAY_VERSION=3.1.1.2 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
@@ -51,12 +51,12 @@ RUN case "$(uname -m)" in \
 
 RUN case "$(uname -m)" in \
     x86_64) FFMPEG_ARCH='x86_64';; \
-    armv7l) FFMPEG_ARCH='armv7l';; \
+    armv7l) FFMPEG_ARCH='arm32v7';; \
     aarch64) FFMPEG_ARCH='aarch64';; \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
   && set -x \
-  && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_VERSION}/ffmpeg-debian-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+  && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 RUN case "$(uname -m)" in \
     x86_64) DEB_ARCH='amd64';; \
