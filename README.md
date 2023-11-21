@@ -32,13 +32,9 @@ Homebridge requires full access to your local network to function correctly whic
 
 ## Usage
 
-Command Line:
+### Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
 
-```bash
-docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
-```
-
-Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
+1. Create the file `docker-compose.yml`
 
 ```yml
 version: '2'
@@ -52,8 +48,26 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "10mb"
-        max-file: "1"
+        max-size: '10m'
+        max-file: '1'
+    healthcheck:
+      test: curl --fail localhost:8581 || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 300s
+      timeout: 2s
+```
+
+2. Start docker with
+
+```bash
+docker compose up
+```
+
+### Or Command Line:
+
+```bash
+docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
 ```
 
 ## Parameters
