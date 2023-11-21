@@ -24,7 +24,7 @@ jobs:
       run: |
         export BRANCH_NAME=$(if [[ ${GITHUB_REF} =~ "refs/tags/" ]]; then echo ${GITHUB_REF/refs\/tags\//}; else echo ${GITHUB_REF/refs\/heads\//}; fi)
         echo $BRANCH_NAME
-        echo "{BRANCH_NAME}=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+        echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_OUTPUT
 
     # generate the image tag
     - name: Get Image Tag
@@ -32,7 +32,7 @@ jobs:
       run: |
         export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}"; fi)
         echo $TARGET_IMAGE_TAG
-        echo "{TARGET_IMAGE_TAG}=${TARGET_IMAGE_TAG}" >> $GITHUB_OUTPUT
+        echo "TARGET_IMAGE_TAG=${TARGET_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
     # generate the alternative image tag
     - name: Get Alternate Tag
@@ -40,7 +40,7 @@ jobs:
       run: |
         export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-ubuntu"; fi)
         echo $ALT_IMAGE_TAG
-        echo "{ALT_IMAGE_TAG}=${ALT_IMAGE_TAG}" >> $GITHUB_OUTPUT
+        echo "ALT_IMAGE_TAG=${ALT_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
     # login to docker hub
     - name: Login to Docker Hub
