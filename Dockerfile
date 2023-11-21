@@ -51,7 +51,7 @@ RUN case "$(uname -m)" in \
 
 RUN case "$(uname -m)" in \
     x86_64) FFMPEG_ARCH='x86_64';; \
-    armv7l) FFMPEG_ARCH='armv7l';; \
+    armv7l) FFMPEG_ARCH='arm32v7';; \
     aarch64) FFMPEG_ARCH='aarch64';; \
     *) echo "unsupported architecture"; exit 1 ;; \
     esac \
