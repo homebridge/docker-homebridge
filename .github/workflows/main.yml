@@ -42,6 +42,15 @@ jobs:
         echo $ALT_IMAGE_TAG
         echo "ALT_IMAGE_TAG=${ALT_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
+    # generate versioned image tag
+    - name: Generate versioned image tag
+      id: get_versioned_tag
+      run: |
+        export FORMATED_DATE=`date +%Y-%m-%d`
+        export VERSION_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo ${FORMATED_DATE}; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-${FORMATED_DATE}"; fi)
+        echo $VERSION_IMAGE_TAG
+        echo "VERSION_IMAGE_TAG=${VERSION_IMAGE_TAG}" >> $GITHUB_OUTPUT
+
     # login to docker hub
     - name: Login to Docker Hub
       if: github.repository == 'homebridge/docker-homebridge'
@@ -66,11 +75,9 @@ jobs:
     # build the image for Docker Hub
     - name: Build Image For Docker Hub
       run: |
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} .
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} .
+        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} -t homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} -t homebridge/homebridge:${{ steps.get_versioned_tag.outputs.VERSION_IMAGE_TAG }} .
 
     # build the image for Github Container Registry (will use the cached build from the previous step)
     - name: Build Image For Github Container Registry
       run: |
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} .
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} .
+        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} -t ghcr.io/homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} -t ghcr.io/homebridge/homebridge:${{ steps.get_versioned_tag.outputs.VERSION_IMAGE_TAG }} .
