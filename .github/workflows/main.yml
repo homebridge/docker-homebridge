@@ -10,67 +10,81 @@ jobs:
 
     steps:
     # checkout repo
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    # setup multi-arch build support
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
-    # get branch / tag name
-    - name: Get Branch / Tag Name
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Get branch/tag name
       id: get_branch
       run: |
-        export BRANCH_NAME=$(if [[ ${GITHUB_REF} =~ "refs/tags/" ]]; then echo ${GITHUB_REF/refs\/tags\//}; else echo ${GITHUB_REF/refs\/heads\//}; fi)
+        export BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g" -e "s/refs\/tags\///g")
         echo $BRANCH_NAME
         echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_OUTPUT
 
-    # generate the image tag
-    - name: Get Image Tag
-      id: get_tag
+    - name: Set image tag
+      id: image_tag
       run: |
-        export TARGET_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "latest"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}"; fi)
-        echo $TARGET_IMAGE_TAG
-        echo "TARGET_IMAGE_TAG=${TARGET_IMAGE_TAG}" >> $GITHUB_OUTPUT
+        export IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo "latest"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}"; fi)
+        echo $IMAGE_TAG
+        echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-    # generate the alternative image tag
-    - name: Get Alternate Tag
-      id: get_alt_tag
+    - name: Set alternate image tag
+      id: alt_image_tag
       run: |
-        export ALT_IMAGE_TAG=$(if [ "${{ steps.get_branch.outputs.NAME }}" = "latest" ]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-ubuntu"; fi)
+        export ALT_IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-ubuntu"; fi)
         echo $ALT_IMAGE_TAG
         echo "ALT_IMAGE_TAG=${ALT_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-    # login to docker hub
-    - name: Login to Docker Hub
-      if: github.repository == 'homebridge/docker-homebridge'
+    - name: Set versioned image tag
+      id: versioned_image_tag
       run: |
-        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        export FORMATED_DATE=`date +%Y-%m-%d`
+        export VERSION_IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo ${FORMATED_DATE}; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-${FORMATED_DATE}"; fi)
+        echo $VERSION_IMAGE_TAG
+        echo "VERSION_IMAGE_TAG=${VERSION_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-    # login to github container registry
-    - name: Login to Packages Container registry
+    - name: Log into GitHub Container registry
       uses: docker/login-action@v3
-      if: github.repository == 'homebridge/docker-homebridge'
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # create docker buildx builder
-    - name: Create docker buildx builder
-      run: |
-        docker buildx create --name multibuilder
-        docker buildx use multibuilder
+    - name: Build and Push Image to GitHub Container Registry
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        push: true
+        tags: |
+          ghcr.io/${{ github.actor }}/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          ghcr.io/${{ github.actor }}/homebridge:${{ steps.alt_image_tag.outputs.ALT_IMAGE_TAG }}
+          ghcr.io/${{ github.actor }}/homebridge:${{ steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG }}
 
-    # build the image for Docker Hub
-    - name: Build Image For Docker Hub
-      run: |
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} .
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} .
+    - name: Log into Docker Hub
+      uses: docker/login-action@v3
+      if: github.repository == 'homebridge/docker-homebridge'
+      with:
+        registry: docker.io
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # build the image for Github Container Registry (will use the cached build from the previous step)
-    - name: Build Image For Github Container Registry
-      run: |
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/homebridge/homebridge:${{ steps.get_alt_tag.outputs.ALT_IMAGE_TAG }} .
-        docker buildx build --push -f Dockerfile --platform linux/amd64,linux/arm/v7,linux/arm64 -t ghcr.io/homebridge/homebridge:${{ steps.get_tag.outputs.TARGET_IMAGE_TAG }} .
+    - name: Build and Push Image to Docker Hub
+      uses: docker/build-push-action@v5
+      if: github.repository == 'homebridge/docker-homebridge'
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        push: true
+        tags: |
+          homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          homebridge/homebridge:${{ steps.alt_image_tag.outputs.ALT_IMAGE_TAG }}
+          homebridge/homebridge:${{ steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG }}
+
