@@ -29,7 +29,7 @@ RUN set -x \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
   && apt-get install -y python3 python3-pip python3-setuptools git make g++ libnss-mdns \
-    avahi-discover libavahi-compat-libdnssd-dev \
+    avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
   && pip3 install tzupdate \
   && chmod 4755 /bin/ping \
   && apt-get clean \
