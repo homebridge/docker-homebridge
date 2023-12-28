@@ -1,7 +1,8 @@
-name: "Build"
+name: Build and Push Docker Images
 
 on:
-  push
+  release:
+    types: [published]
 
 jobs:
   # build all the image variants
