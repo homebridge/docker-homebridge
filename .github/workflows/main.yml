@@ -89,3 +89,38 @@ jobs:
           homebridge/homebridge:ubuntu
           homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
 
+  tag:
+    name: Verify Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get Release Tag
+        id: get_version
+        uses: jannemattila/get-version-from-tag@v3
+      - name: Tag Info
+        run: |
+          echo "Release Tag: ${{github.ref}}"
+          echo "Latest Tag: ${{ steps.get_version.outputs.version }}"
+      - name: Tag Info Matches
+        if: endsWith(github.ref, steps.get_version.outputs.version )
+        run: |
+          echo Latest Tag matches Release tag
+      - name: Tag Info Doesn't Match
+        if: ${{ !endsWith(github.ref, steps.get_version.outputs.version ) }}
+        run: |
+          echo Latest Tag does not matches Release tag
+          exit 1   
+
+  github-releases-to-discord:
+    name: Discord Webhooks
+    needs: build
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
+    with:
+      title: "Homebridge Docker Release"
+      description: |
+        Version `${{ github.event.release.tag_name }}`
+      url: "https://github.com/homebridge/homebridge-docker/releases/tag/${{ github.event.release.tag_name }}"
+    secrets:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+
