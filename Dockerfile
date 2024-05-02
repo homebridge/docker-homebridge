@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # update to latest releases prior to release
 
-ENV HOMEBRIDGE_PKG_VERSION=1.2.0 \
+ENV HOMEBRIDGE_PKG_VERSION=v1.2.1 \
   FFMPEG_VERSION=v2.1.1
 
 ENV S6_OVERLAY_VERSION=3.1.1.2 \
