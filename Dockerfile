@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.title="Homebridge in Docker"
 LABEL org.opencontainers.image.description="Official Homebridge Docker Image"
@@ -11,10 +11,10 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 ARG HOMEBRIDGE_APT_PKG_VERSION
 ARG FFMPEG_VERSION
 
-ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.2.1}
+ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.0}
 ENV FFMPEG_VERSION=${FFMPEG_VERSION:-v2.1.1}
 
-ENV S6_OVERLAY_VERSION=3.1.1.2 \
+ENV S6_OVERLAY_VERSION=3.2.0.2 \
  S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
  S6_KEEP_ENV=1 \
  ENABLE_AVAHI=1 \
@@ -31,9 +31,9 @@ RUN set -x \
     libatomic1 apt-transport-https apt-utils jq openssl sudo nano net-tools \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
-  && apt-get install -y python3 python3-pip python3-setuptools git make g++ libnss-mdns \
+  && apt-get install -y python3 python3-pip pipx python3-setuptools git make g++ libnss-mdns \
     avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
-  && pip3 install tzupdate \
+  && pipx install tzupdate \
   && chmod 4755 /bin/ping \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
