@@ -37,12 +37,15 @@ Homebridge requires full access to your local network to function correctly whic
 1. Create the file `docker-compose.yml`
 
 ```yml
+---
 version: '2'
 services:
   homebridge:
     image: homebridge/homebridge:latest
     restart: always
     network_mode: host
+    cap_add:
+      - NET_RAW
     volumes:
       - ./volumes/homebridge:/homebridge
     logging:
@@ -67,15 +70,16 @@ docker compose up
 ### Or Command Line:
 
 ```bash
-docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
+docker run --volume=$(pwd)/homebridge:/homebridge --net=host --cap-add=NET_RAW --name=homebridge homebridge/homebridge:latest
 ```
 
 ## Parameters
 
 The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
 
+* `--volume=$(pwd)/homebridge:/homebridge` - The Homebridge config and plugin location, **required**
 * `--net=host` - Shares host networking with container, **required**
-* `-v /homebridge` - The Homebridge config and plugin location, **required**
+* `--cap-add=NET_RAW` - Allow RAW and PACKET [capabilities]([url](https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities)) for plugins that use ping **recommended**
 
 ##### *Optional Settings:*
 
