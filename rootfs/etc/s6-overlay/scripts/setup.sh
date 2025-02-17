@@ -57,10 +57,15 @@ if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/package-lock.json
 fi
 
-# setup initial package.json with homebridge
+# get latest version of homebridge
+HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
+
+# if package.json doesn't exist setup initial version, else update to latest version
 if [ ! -e /homebridge/package.json ]; then
-  HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
+else
+  packageJson="$(jq --arg hb_version "$HOMEBRIDGE_VERSION" '.dependencies += { "homebridge":$hb_version }' /homebridge/package.json)"
+  echo $packageJson | jq . > /homebridge/package.json
 fi
 
 # remove homebridge-config-ui-x from the package.json
