@@ -63,15 +63,17 @@ if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/package-lock.json
 fi
 
-# setup initial package.json with homebridge
+# Get image provided versions of Homebridge and Homebridge UI
+hb_update="$(cat /package-config-docker.json | jq -r '.dependencies."homebridge"' | tr -dc [0-9\.])"
+hbui_update="$(cat /package-config-docker.json | jq -r '.dependencies."homebridge-config-ui-x"' | tr -dc [0-9\.])"
+
+# setup initial package.json with Homebridge and Homebridge UI image versions
 if [ ! -e /homebridge/package.json ]; then
-  HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
-  echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
+  echo "{ \"dependencies\": { \"homebridge\": \"$hb_update\", \"homebridge-config-ui-x\": \"$hbui_update\" }}" | jq . > /homebridge/package.json
 else
   # Update Homebridge version if update is ahead of current
   # Handles if no current version is found - update is ahead of no version
   hb_current="$(cat /homebridge/package.json | jq -r '.dependencies."homebridge"' | tr -dc [0-9\.])"
-  hb_update="$(cat /package-config-docker.json | jq -r '.dependencies."homebridge"' | tr -dc [0-9\.])"
 
   if [ $(version $hb_update) -gt $(version $hb_current) ]; then
       packageJson="$(jq --arg hb_version "$hb_update" '.dependencies += { "homebridge":$hb_version }' /homebridge/package.json)"
@@ -81,7 +83,6 @@ else
   # Update Homebridge UI version if update is ahead of current
   # Handles if no current version is found - update is ahead of no version
   hbui_current="$(cat /homebridge/package.json | jq -r '.dependencies."homebridge-config-ui-x"' | tr -dc [0-9\.])"
-  hbui_update="$(cat /package-config-docker.json | jq -r '.dependencies."homebridge-config-ui-x"' | tr -dc [0-9\.])"
 
   if [ $(version $hbui_update) -gt $(version $hbui_current) ]; then
       packageJson="$(jq --arg hbui_version "$hbui_update" '.dependencies += { "homebridge-config-ui-x":$hbui_version }' /homebridge/package.json)"
