@@ -98,13 +98,13 @@ You can update Homebridge and Homebridge UI in different ways:
 * from the command line inside the container
 * by updating the Docker image version in the `docker-compose.yml` file
 
-If you update the Docker image, the image will come with a defined version of Homebridge and Homebridge UI. If the currently installed versions are behind the versions defined by the image, your Homebridge and Homebridge UI will be updated to the image versions. If you have installed a version ahead of the version provided by the image, the installed version will not be downgraded.
+The Docker image comes with predefined versions of Homebridge, Homebridge UI and Node.js. If the currently installed versions are behind the versions defined by the image, your Homebridge and Homebridge UI will be updated to the image versions. If the currently installed versions are ahead of the version provided by the image, the installed versions will not be downgraded.
 
 For example:
 * If you have Homebridge UI v1.1.9 installed and the version defined by the image is v1.2.0, the installed version will be updated to v1.2.0.
 * If you have Homebridge UI v1.2.1 installed and the version defined by the image is v1.2.0, the installed version will remain v1.2.1.
 
-**Note:** While it is also possible to update the Node.js runtime from the command line inside the container, it is **strongly discouraged** and done at your own risk. It is **strongly recommended** that Node.js be updated only by updating to the latest Docker image, as outlined in the Docker section of this document: [How-To-Update-Node.js](https://github.com/homebridge/homebridge/wiki/How-To-Update-Node.js#docker). Also, recreating the Docker container will always overwrite any manual updates of Node.js.
+**Note:** While it is also possible to update the Node.js runtime from the command line inside the Docker container, it is **strongly discouraged** and done at your own risk. It is **strongly recommended** that Node.js be updated only by updating to the latest Docker image, as outlined in the `Docker` section of this document: [How-To-Update-Node.js](https://github.com/homebridge/homebridge/wiki/How-To-Update-Node.js#docker). Also, **recreating a Docker container will always overwrite any manual updates of Node.js.**
 
 ## Automated Updates
 
