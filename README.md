@@ -100,7 +100,7 @@ You can update Homebridge and Homebridge UI in different ways:
 
 The Docker image comes with predefined versions of Homebridge, Homebridge UI and Node.js.<br />
 If the currently installed versions of Homebridge or Homebridge UI are behind the versions defined by the image, your Homebridge and Homebridge UI will be updated to the image versions.<br />
-If the currently installed versions are ahead of the version provided by the image, the installed versions will not be downgraded.
+If the currently installed versions of Homebridge or Homebridge UI are ahead of the version provided by the image, the installed versions will not be downgraded.
 
 For example:
 * If you have Homebridge UI v1.1.9 installed and the version defined by the image is v1.2.0, the installed version will be updated to v1.2.0.
