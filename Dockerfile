@@ -75,6 +75,7 @@ RUN case "$(uname -m)" in \
   && rm -rf /var/lib/homebridge
 
 COPY rootfs /
+COPY package-config-docker.json /
 
 EXPOSE 8581/tcp
 VOLUME /homebridge
