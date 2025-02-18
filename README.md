@@ -91,11 +91,23 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
 
+## Updates
+
+You can update Homebridge and Homebridge UI in different ways:
+* from the Update Information widget in the Homebridge UI
+* from the command line inside the container
+* by updating the Docker image version in the `docker-compose.yml` file
+
+If you update the Docker image, the image will come with a defined version of Homebridge and Homebridge UI. If the currently installed versions are behind the versions defined by the image, your Homebridge and Homebridge UI will be updated to the image versions. If you have installed a version ahead of the version provided by the image, the installed version will not be downgraded.
+For example:
+If you have Homebridge UI v1.1.9 installed and the version defined by the image is v1.2.0, the installed version will be updated to v1.2.0.
+If you have Homebridge UI v1.2.1 installed and the version defined by the image is v1.2.0, the installed version will remain v1.2.1.
+
+**Note:** While it is also possible to update the Node.js runtime from the command line inside the container, it is **strongly discouraged** and done at your own risk. It is **strongly recommended** that Node.js be updated only by updating to the latest Docker image, as outlined in the Docker section of this document: [How-To-Update-Node.js](https://github.com/homebridge/homebridge/wiki/How-To-Update-Node.js#docker). Also, recreating the Docker comntainer will always overwrite any manual updates of Node.js.
+
 ## Automated Updates
 
 Automated updates of the Homebridge Docker Image using tools such as Watchtower or similar are strongly discouraged and are done so at your own risk.
-
-**NOTE** - The version of Homebridge **IS NOT** tied to the version of the container.  You can update Homebridge, the Homebridge UI and the Node.js runtime from inside the container.
 
 ## Troubleshooting
 
