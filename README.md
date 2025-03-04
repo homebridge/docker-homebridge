@@ -66,7 +66,7 @@ docker compose up
 ### Or Command Line:
 
 ```bash
-docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
+docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest -p 8581:8581
 ```
 
 ## Parameters
