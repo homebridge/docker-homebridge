@@ -27,12 +27,16 @@ jobs:
           tag_name: ${{ steps.date.outputs.date }}
           release_name: ${{ steps.date.outputs.date }}
           body: |
-            Homebridge Apt Package Manifest
+            Homebridge Docker Package Manifest
 
             | Package | Version |
             |:-------:|:-------:|
-            |NodeJS| v*.*.* |
+            |Ubuntu|24.04|
+            |NodeJS| *.*.* |
             |Homebridge-Config-UI-X| *.*.* |
-            |Homebridge| *.*.* |
+            |Homebridge| latest * |
+            |ffmpeg for homebridge| *.*.* |
+
+            * Note: Homebridge is only updated to latest on a new installation, refreshing an existing installation does not update Homebridge version.  To update the Homebridge version please use the UI.
           draft: true
           prerelease: false

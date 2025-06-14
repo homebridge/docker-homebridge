@@ -34,7 +34,7 @@ RUN set -x \
   && apt-get install -y python3 python3-pip pipx python3-setuptools git make g++ libnss-mdns \
     avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
   && pipx install tzupdate \
-  && chmod 4755 /bin/ping \
+  && chmod 0755 /bin/ping \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
