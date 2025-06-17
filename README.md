@@ -83,13 +83,13 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 ## Custom Additions
 
-If you have custom requirements for your Docker installation, the Docker image provides the `setup.sh` script. It can be accessed from the `Startup & Environment` section in `Settings`.
+If you have custom requirements for your Docker installation, the Docker image provides the `startup.sh` script. It can be accessed from the `Startup & Environment` section in `Settings`.
 
 <p align="center">
   <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/settings-startup-script.png">
 </p>
 
-The `setup.sh` script survives restarting and recreating Docker containers and runs immediately after the container starts up. It's purpose is to execute custom commands, for example installing NodeJS packages, Python packages, copying files from the host to the container, etc. For example:
+The `startup.sh` script survives restarting and recreating Docker containers and runs immediately after the container starts up. It's purpose is to execute custom commands, for example installing NodeJS packages, Python packages, copying files from the host to the container, etc. For example:
 
 <p align="center">
   <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/sample-startup-script.png">
