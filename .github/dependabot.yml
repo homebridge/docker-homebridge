@@ -13,6 +13,9 @@ updates:
       time: "10:00"
     open-pull-requests-limit: 10
     versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "npm"
 
   # Beta /beta/package.json updates
   - package-ecosystem: npm
@@ -24,3 +27,18 @@ updates:
     versioning-strategy: increase
     commit-message:
       prefix: "BETA"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "beta"
+
+  # Docker base image updates
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "10:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "docker"
+      - "base-image"
