@@ -7,12 +7,13 @@ LABEL org.opencontainers.image.url="https://github.com/homebridge/docker-homebri
 LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # Latest release is supplied as a build argument
-
 ARG HOMEBRIDGE_APT_PKG_VERSION
-ARG FFMPEG_VERSION
+ARG FFMPEG_FOR_HOMEBRIDGE_VERSION
+ARG DOCKER_HOMEBRIDGE_VERSION
 
 ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.1}
-ENV FFMPEG_VERSION=${FFMPEG_VERSION:-v2.1.1}
+ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
+ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
 
 ENV S6_OVERLAY_VERSION=3.2.0.2 \
   S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
@@ -59,7 +60,7 @@ RUN case "$(uname -m)" in \
   *) echo "unsupported architecture"; exit 1 ;; \
   esac \
   && set -x \
-  && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+  && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 RUN case "$(uname -m)" in \
   x86_64) DEB_ARCH='amd64';; \

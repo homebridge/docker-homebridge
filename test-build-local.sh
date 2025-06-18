@@ -1,15 +1,21 @@
-#! /bin/sh
+#!/bin/sh
 
-get_latest_release() {
-  curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
-    grep '"tag_name":' |                                            # Get tag line
-    sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
-}
-
-export HOMEBRIDGE_APT_PKG_VERSION=`get_latest_release "homebridge/homebridge-apt-pkg"`
-export FFMPEG_VERSION=`get_latest_release "homebridge/ffmpeg-for-homebridge"`
+# Extract versions from package.json
+export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
+export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
+export DOCKER_HOMEBRIDGE_VERSION=$(date +'%Y-%m-%d')
 
 echo HOMEBRIDGE_APT_PKG_VERSION ${HOMEBRIDGE_APT_PKG_VERSION}
-echo FFMPEG_VERSION ${FFMPEG_VERSION}
+echo FFMPEG_FOR_HOMEBRIDGE_VERSION ${FFMPEG_FOR_HOMEBRIDGE_VERSION}
+echo DOCKER_HOMEBRIDGE_VERSION ${DOCKER_HOMEBRIDGE_VERSION}
 
-docker build -f ./Dockerfile --build-arg HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION} --build-arg FFMPEG_VERSION=${FFMPEG_VERSION} -t 'docker-homebridge' .
+# Build Docker image
+docker build -f ./Dockerfile \
+  --build-arg HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION} \
+  --build-arg FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION} \
+  --build-arg DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION} \
+  -t 'docker-homebridge' .
+
+# Start container using docker-compose
+cd test
+docker-compose up
