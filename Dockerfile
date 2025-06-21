@@ -12,6 +12,7 @@ ARG FFMPEG_FOR_HOMEBRIDGE_VERSION
 ARG DOCKER_HOMEBRIDGE_VERSION
 
 ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.1}
+ARG HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_VERSION}
 ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
 ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
 
@@ -69,7 +70,7 @@ RUN case "$(uname -m)" in \
   *) echo "unsupported architecture"; exit 1 ;; \
   esac \
   && set -x \
-  && curl -sSLf -o /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_APT_PKG_VERSION}/homebridge_${HOMEBRIDGE_APT_PKG_VERSION}_${DEB_ARCH}.deb \
+  && curl -sSLf -o /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_APT_PKG_VERSION}/homebridge_${HOMEBRIDGE_APT_PKG_FILE}_${DEB_ARCH}.deb \
   && dpkg -i /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && rm -rf /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && chown -R root:root /opt/homebridge \
