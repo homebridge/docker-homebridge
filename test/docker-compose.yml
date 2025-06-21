@@ -1,6 +1,6 @@
 services:
   homebridge:
-    image: docker-homebridge
+    image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:latest}
     restart: always
     network_mode: host
     volumes:
