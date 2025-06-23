@@ -7,7 +7,7 @@ export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([
 export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
 export DOCKER_HOMEBRIDGE_VERSION=beta-$(date +'%Y-%m-%d')
 
-export HOMEBRIDGE_IMAGE='beta-docker-homebridge'
+export HOMEBRIDGE_IMAGE='docker-homebridge'
 
 echo HOMEBRIDGE_APT_PKG_VERSION ${HOMEBRIDGE_APT_PKG_VERSION}
 echo HOMEBRIDGE_APT_PKG_FILE ${HOMEBRIDGE_APT_PKG_FILE}

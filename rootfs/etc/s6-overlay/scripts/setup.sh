@@ -68,6 +68,8 @@ if [ ! -e /homebridge/package.json ]; then
 else
   # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
   packageJson="$(cat /homebridge/package.json | jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version')"
+  printf "$packageJson" > /homebridge/package.json
+  echo "Updated homebridge to "$HOMEBRIDGE_VERSION
 fi
 
 # remove homebridge-config-ui-x from the package.json
