@@ -13,5 +13,7 @@ NC='\033[0m'
 printf "
     ${BWHITE}Thank you for using the ${CYAN}homebridge/homebridge${NC} ${BWHITE}docker image!${NC}
 "
+printf "\n${BWHITE}Contents of /opt/homebridge/Docker.manifest:${NC}\n"
+cat /opt/homebridge/Docker.manifest
 
 exit 0
