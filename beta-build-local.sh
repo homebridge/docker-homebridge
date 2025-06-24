@@ -3,7 +3,7 @@
 set -e
 # Extract versions from package.json
 export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
-export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1-beta\2/')
+export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
 export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
 export DOCKER_HOMEBRIDGE_VERSION=beta-$(date +'%Y-%m-%d')
 
