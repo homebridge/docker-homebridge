@@ -111,6 +111,7 @@ jobs:
           ghcr.io/homebridge/homebridge:latest
           ghcr.io/homebridge/homebridge:ubuntu
           ghcr.io/homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+        outputs: type=docker,dest=/tmp/image-stable.tar
 
     - name: Build and Push Image to GitHub Container Registry (Beta)
       if: steps.check_beta.outputs.IS_BETA == 'true'
@@ -128,6 +129,7 @@ jobs:
         tags: |
           ghcr.io/homebridge/homebridge:beta
           ghcr.io/homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+        outputs: type=docker,dest=/tmp/image-beta.tar
 
     - name: Log into Docker Hub
       uses: docker/login-action@v3
@@ -153,6 +155,7 @@ jobs:
           homebridge/homebridge:latest
           homebridge/homebridge:ubuntu
           homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+        outputs: type=docker,dest=/tmp/image-stable-dockerhub.tar
 
     - name: Build and Push Image to Docker Hub (Beta)
       if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
@@ -170,6 +173,27 @@ jobs:
         tags: |
           homebridge/homebridge:beta
           homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+        outputs: type=docker,dest=/tmp/image-beta-dockerhub.tar
+
+    - name: Extract Docker.manifest from Image
+      run: |
+        if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
+          docker import /tmp/image-beta.tar homebridge:beta
+          docker run --rm homebridge:beta cat /opt/homebridge/Docker.manifest > manifest.md
+        else
+          docker import /tmp/image-stable.tar homebridge:latest
+          docker run --rm homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
+        fi
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG_NAME=$(if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then echo "beta-${{ steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG }}"; else echo "${{ github.event.release.tag_name }}"; fi)
+        gh release create "${TAG_NAME}" \
+          --title "Homebridge Docker Release ${TAG_NAME}" \
+          --notes-file manifest.md \
+          --draft=false
 
     - name: Send Discord Notification
       uses: appleboy/discord-action@master
