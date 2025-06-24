@@ -76,6 +76,19 @@ RUN case "$(uname -m)" in \
   && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge
 
+  RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
+  echo "Homebridge Docker Package Manifest\n\n" \
+  "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
+  "| Package | Version |\n" \
+  "|:-------:|:-------:|\n" \
+  "|Ubuntu|24.04|\n" \
+  "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|\n" \
+  "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|\n" \
+  "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|\n" \
+  "|Homebridge-Config-UI-X|${HB_CONFIG_UI_X_VERSION}|\n" \
+  "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|\n" \
+  > /opt/homebridge/Docker.manifest
+
 COPY rootfs /
 
 EXPOSE 8581/tcp

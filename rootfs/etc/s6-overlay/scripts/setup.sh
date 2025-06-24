@@ -58,7 +58,10 @@ if [ -e /homebridge/pnpm-lock.yaml ]; then
 fi
 
 # setup initial package.json with homebridge
-HOMEBRIDGE_VERSION=$(jq -r '.dependencies["homebridge"]' /opt/homebridge/package.json | sed 's/\^//')
+if [ -e /opt/homebridge/package.json ]; then
+  HOMEBRIDGE_VERSION=$(jq -r '.dependencies["homebridge"]' /opt/homebridge/package.json | sed 's/\^//')
+fi
+
 if [ -z "$HOMEBRIDGE_VERSION" ]; then
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
 fi
