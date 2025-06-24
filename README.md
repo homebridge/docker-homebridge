@@ -81,6 +81,20 @@ The parameters are split into two halves, separated by a colon, the left hand si
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
 * `-e ENABLE_AVAHI` - default is `1`; set to `0` to prevent the Avahi mDNS service running in the container
 
+## Custom Additions
+
+If you have custom requirements for your Docker installation, the Docker image provides the `startup.sh` script. It can be accessed from the `Startup & Environment` section in `Settings`.
+
+<p align="center">
+  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/settings-startup-script.png">
+</p>
+
+The `startup.sh` script survives restarting and recreating Docker containers and runs immediately after the container starts up. It's purpose is to execute custom commands, for example installing NodeJS packages, Python packages, copying files from the host to the container, etc. For example:
+
+<p align="center">
+  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/sample-startup-script.png">
+</p>
+
 ## Homebridge UI
 
 This image comes with the [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) pre-installed and is the easiest way to manage all aspects of Homebridge.
