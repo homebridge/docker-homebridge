@@ -76,7 +76,9 @@ jobs:
       run: |
         if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
+          export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
+          echo "HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
         else
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
@@ -120,6 +122,7 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
         tags: |
@@ -161,6 +164,7 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
         tags: |
