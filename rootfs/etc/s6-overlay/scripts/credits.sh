@@ -12,16 +12,8 @@ NC='\033[0m'
 
 printf "
     ${BWHITE}Thank you for using the ${CYAN}homebridge/homebridge${NC} ${BWHITE}docker image!${NC}
-
-  If you find this project useful please ${BYELLOW}STAR${NC} it on GitHub:
-
-         ${UWHITE}https://github.com/homebridge/docker-homebridge${NC}
-
-                Or donate to the project:
-
-            ${UWHITE}https://github.com/sponsors/oznu${NC}
-                  ${UWHITE}https://paypal.me/oznu${NC}
-
 "
+printf "\n${BWHITE}Contents of /opt/homebridge/Docker.manifest:${NC}\n"
+cat /opt/homebridge/Docker.manifest
 
 exit 0

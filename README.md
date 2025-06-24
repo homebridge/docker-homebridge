@@ -109,7 +109,7 @@ To manage Homebridge go to `http://<ip of server>:8581` in your browser. For exa
 
 Automated updates of the Homebridge Docker Image using tools such as Watchtower or similar are strongly discouraged and are done so at your own risk.
 
-**NOTE** - The version of Homebridge **IS NOT** tied to the version of the container.  You can update Homebridge, the Homebridge UI and the Node.js runtime from inside the container.
+**NOTE** - Since release `2025-06-25` the version of Homebridge **IS TIED** to the version of the container.  You can update Homebridge, the Homebridge UI and the Node.js runtime from inside the container.
 
 ## Troubleshooting
 

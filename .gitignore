@@ -1,3 +1,5 @@
 test-volume
 .DS_Store
 /volumes
+node_modules
+/test/volumes

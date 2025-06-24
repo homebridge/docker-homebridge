@@ -1,0 +1,17 @@
+{
+  "name": "@homebridge/docker-homebridge",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge",
+  "dependencies": {
+    "@homebridge/homebridge-apt-pkg": "^1.5.3-beta.20250621",
+    "ffmpeg-for-homebridge": "^2.1.7"
+  },
+  "devDependencies": {
+    "npm-check-updates": "^18.0.1"
+  },
+  "scripts": {
+    "update-deps": "ncu -u && npm install",
+    "test": "echo \"No tests defined\""
+  }
+}
