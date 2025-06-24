@@ -73,7 +73,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and Push Image to GitHub Container Registry (Stable)
-      if: steps.check_beta.outputs.IS_BETA == 'false'
+      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'false'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -91,7 +91,7 @@ jobs:
         outputs: type=docker,dest=/tmp/image-stable.tar
 
     - name: Build and Push Image to GitHub Container Registry (Beta)
-      if: steps.check_beta.outputs.IS_BETA == 'true'
+      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
       uses: docker/build-push-action@v5
       with:
         context: .
