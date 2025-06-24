@@ -1,10 +1,12 @@
 name: Build and Push Docker Images
 
+run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'latest' || format('beta-{0}', github.event.workflow_run.created_at || 'YYYY-MM-DD') }})
+
 on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Choose release type: "stable" or "beta". Stable uses package.json, beta uses beta/package.json.'
+        description: 'Choose release type: "stable" (builds latest version) or "beta" (builds beta version with beta-YYYY-MM-DD tag).'
         required: true
         type: choice
         options:
@@ -31,7 +33,7 @@ jobs:
         if [[ "${{ inputs.release_type }}" == "beta" ]]; then
           export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
         else
-          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
+          export DOCKER_HOMEBRIDGE_VERSION="latest"
         fi
         echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
@@ -73,7 +75,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and Push Image to GitHub Container Registry (Stable)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'false'
+      if: steps.check_beta.outputs.IS_BETA == 'false'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -88,10 +90,9 @@ jobs:
           ghcr.io/homebridge/homebridge:latest
           ghcr.io/homebridge/homebridge:ubuntu
           ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-stable.tar
 
     - name: Build and Push Image to GitHub Container Registry (Beta)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
+      if: steps.check_beta.outputs.IS_BETA == 'true'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -106,7 +107,6 @@ jobs:
         tags: |
           ghcr.io/homebridge/homebridge:beta
           ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-beta.tar
 
     - name: Log into Docker Hub
       uses: docker/login-action@v3
@@ -132,7 +132,6 @@ jobs:
           homebridge/homebridge:latest
           homebridge/homebridge:ubuntu
           homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-stable-dockerhub.tar
 
     - name: Build and Push Image to Docker Hub (Beta)
       if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
@@ -150,23 +149,23 @@ jobs:
         tags: |
           homebridge/homebridge:beta
           homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-beta-dockerhub.tar
 
     - name: Extract Docker.manifest from Image
       run: |
         if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
-          docker import /tmp/image-beta.tar homebridge:beta
-          docker run --rm homebridge:beta cat /opt/homebridge/Docker.manifest > manifest.md
+          docker pull ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          docker run --rm ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }} cat /opt/homebridge/Docker.manifest > manifest.md
         else
-          docker import /tmp/image-stable.tar homebridge:latest
-          docker run --rm homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
+          docker pull ghcr.io/homebridge/homebridge:latest
+          docker run --rm ghcr.io/homebridge/homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
         fi
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create "${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
+        TAG_NAME=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        gh release create "${TAG_NAME}" \
           --title "Homebridge Docker Release ${TAG_NAME}" \
           --notes-file manifest.md \
           --draft=false
