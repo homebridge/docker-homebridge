@@ -1,14 +1,15 @@
 name: Build and Push Docker Images
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
-      logLevel:
-        description: 'Triggers a beta release of the Homebridge Docker image. The image will be built using versions from beta/package.json and tagged with "beta" and "beta-YYYY-MM-DD" (e.g., beta-2025-06-17). Images will be pushed to ghcr.io/homebridge/homebridge and, if configured, homebridge/homebridge on Docker Hub.'
-        required: false
-        default: 'info'
+      release_type:
+        description: 'Choose release type: "stable" or "beta". Stable uses package.json, beta uses beta/package.json.'
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
 
 jobs:
   build:
@@ -24,43 +25,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Get branch/tag name
-      id: get_branch
+    - name: Set Docker Homebridge version
+      id: docker_version
       run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          export BRANCH_NAME="beta-$(date +%Y-%m-%d)"
+        if [[ "${{ inputs.release_type }}" == "beta" ]]; then
+          export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
         else
-          export BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g" -e "s/refs\/tags\///g")
+          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
         fi
-        echo $BRANCH_NAME
-        echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_OUTPUT
-
-    - name: Set image tag
-      id: image_tag
-      run: |
-        export IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo "latest"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}"; fi)
-        echo $IMAGE_TAG
-        echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-
-    - name: Set alternate image tag
-      id: alt_image_tag
-      run: |
-        export ALT_IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo "ubuntu"; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-ubuntu"; fi)
-        echo $ALT_IMAGE_TAG
-        echo "ALT_IMAGE_TAG=${ALT_IMAGE_TAG}" >> $GITHUB_OUTPUT
-
-    - name: Set versioned image tag
-      id: versioned_image_tag
-      run: |
-        export FORMATED_DATE=`date +%Y-%m-%d`
-        export VERSION_IMAGE_TAG=$(if [[ "${{ steps.get_branch.outputs.BRANCH_NAME }}" =~ (latest|master|main) ]]; then echo ${FORMATED_DATE}; else echo "${{ steps.get_branch.outputs.BRANCH_NAME }}-${FORMATED_DATE}"; fi)
-        echo $VERSION_IMAGE_TAG
-        echo "VERSION_IMAGE_TAG=${VERSION_IMAGE_TAG}" >> $GITHUB_OUTPUT
+        echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
     - name: Check for beta release
       id: check_beta
       run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+        if [[ "${{ inputs.release_type }}" == "beta" ]]; then
           if [[ -f beta/package.json ]]; then
             echo "IS_BETA=true" >> $GITHUB_OUTPUT
           else
@@ -83,10 +61,9 @@ jobs:
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
         fi
-        export DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
         echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
-        echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
+        echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
 
     - name: Log into GitHub Container registry
       uses: docker/login-action@v3
@@ -106,11 +83,11 @@ jobs:
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           ghcr.io/homebridge/homebridge:latest
           ghcr.io/homebridge/homebridge:ubuntu
-          ghcr.io/homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         outputs: type=docker,dest=/tmp/image-stable.tar
 
     - name: Build and Push Image to GitHub Container Registry (Beta)
@@ -125,10 +102,10 @@ jobs:
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
           HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           ghcr.io/homebridge/homebridge:beta
-          ghcr.io/homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         outputs: type=docker,dest=/tmp/image-beta.tar
 
     - name: Log into Docker Hub
@@ -150,11 +127,11 @@ jobs:
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           homebridge/homebridge:latest
           homebridge/homebridge:ubuntu
-          homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         outputs: type=docker,dest=/tmp/image-stable-dockerhub.tar
 
     - name: Build and Push Image to Docker Hub (Beta)
@@ -169,10 +146,10 @@ jobs:
           HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
           HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.image_tag.outputs.IMAGE_TAG }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           homebridge/homebridge:beta
-          homebridge/homebridge:${{ steps.image_tag.outputs.IMAGE_TAG }}
+          homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         outputs: type=docker,dest=/tmp/image-beta-dockerhub.tar
 
     - name: Extract Docker.manifest from Image
@@ -189,8 +166,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        TAG_NAME=$(if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then echo "beta-${{ steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG }}"; else echo "${{ github.event.release.tag_name }}"; fi)
-        gh release create "${TAG_NAME}" \
+        gh release create "${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
           --title "Homebridge Docker Release ${TAG_NAME}" \
           --notes-file manifest.md \
           --draft=false
@@ -202,31 +178,5 @@ jobs:
         webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
         message: |
           **Homebridge Docker Release**
-          Version: ${{ github.event_name == 'workflow_dispatch' && format('beta-{0}', steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG) || github.event.release.tag_name }}
-          [View Release](https://github.com/homebridge/docker-homebridge/releases/tag/${{ github.event_name == 'workflow_dispatch' && format('beta-{0}', steps.versioned_image_tag.outputs.VERSION_IMAGE_TAG) || github.event.release.tag_name }})
-
-  tag:
-    name: Verify Release Tag
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - name: Get Release Tag
-        id: get_version
-        uses: jannemattila/get-version-from-tag@v3
-      - name: Tag Info
-        run: |
-          echo "Release Tag: ${{github.ref}}"
-          echo "Latest Tag: ${{ steps.get_version.outputs.version }}"
-      - name: Tag Info Matches
-        if: endsWith(github.ref, steps.get_version.outputs.version )
-        run: |
-          echo Latest Tag matches Release tag
-      - name: Tag Info Doesn't Match
-        if: ${{ !endsWith(github.ref, steps.get_version.outputs.version ) }}
-        run: |
-          echo Latest Tag does not matches Release tag
-          exit 1  
-      - name: Published
-        run: echo "::notice::GitHub Release - https://github.com/homebridge/docker-homebridge/releases/tag/${{ github.event.release.tag_name }}"
+          Version: ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          [View Release](https://github.com/homebridge/docker-homebridge/releases/tag/${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }})
