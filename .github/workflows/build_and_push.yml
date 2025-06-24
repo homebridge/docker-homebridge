@@ -1,6 +1,5 @@
 name: Build and Push Docker Images
-
-run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'latest' || format('beta-{0}', github.event.workflow_run.created_at || 'YYYY-MM-DD') }})
+run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'stable' || 'beta' }})
 
 on:
   workflow_dispatch:
@@ -12,6 +11,7 @@ on:
         options:
           - stable
           - beta
+        default: beta
 
 jobs:
   build:
@@ -58,7 +58,7 @@ jobs:
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
           export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
-          echo "HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
+          echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
         else
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
