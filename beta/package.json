@@ -6,12 +6,6 @@
   "dependencies": {
     "@homebridge/homebridge-apt-pkg": "^1.5.3-beta.20250622",
     "ffmpeg-for-homebridge": "^2.1.7"
-  },
-  "devDependencies": {
-    "npm-check-updates": "^18.0.1"
-  },
   "scripts": {
-    "update-deps": "ncu -u && npm install",
-    "test": "echo \"No tests defined\""
   }
 }
