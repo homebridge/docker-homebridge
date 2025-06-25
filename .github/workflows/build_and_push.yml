@@ -1,29 +1,31 @@
 name: Build and Push Docker Images
+run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'stable' || 'beta' }})
 
 on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Choose release type: "stable" or "beta". Stable uses package.json, beta uses beta/package.json.'
+        description: 'Choose release type: "stable" (builds latest version) or "beta" (builds beta version with beta-YYYY-MM-DD tag).'
         required: true
         type: choice
         options:
           - stable
           - beta
+        default: beta
 
 jobs:
-  build:
+  set-versions:
     runs-on: ubuntu-latest
+    outputs:
+      DOCKER_HOMEBRIDGE_VERSION: ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+      IS_BETA: ${{ steps.check_beta.outputs.IS_BETA }}
+      HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+      HOMEBRIDGE_APT_PKG_FILE: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
+      FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
 
     - name: Set Docker Homebridge version
       id: docker_version
@@ -31,7 +33,7 @@ jobs:
         if [[ "${{ inputs.release_type }}" == "beta" ]]; then
           export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
         else
-          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
+          export DOCKER_HOMEBRIDGE_VERSION="latest"
         fi
         echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
@@ -56,14 +58,26 @@ jobs:
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
           export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
-          echo "HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
+          echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
         else
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
         fi
         echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
-        echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
+
+  build-images:
+    runs-on: ubuntu-latest
+    needs: set-versions
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Log into GitHub Container registry
       uses: docker/login-action@v3
@@ -73,7 +87,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and Push Image to GitHub Container Registry (Stable)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'false'
+      if: needs.set-versions.outputs.IS_BETA == 'false'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -81,17 +95,16 @@ jobs:
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
         build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           ghcr.io/homebridge/homebridge:latest
           ghcr.io/homebridge/homebridge:ubuntu
-          ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-stable.tar
+          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Build and Push Image to GitHub Container Registry (Beta)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
+      if: needs.set-versions.outputs.IS_BETA == 'true'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -99,14 +112,13 @@ jobs:
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
         build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
+          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           ghcr.io/homebridge/homebridge:beta
-          ghcr.io/homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-beta.tar
+          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Log into Docker Hub
       uses: docker/login-action@v3
@@ -117,7 +129,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and Push Image to Docker Hub (Stable)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'false'
+      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'false'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -125,17 +137,16 @@ jobs:
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
         build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           homebridge/homebridge:latest
           homebridge/homebridge:ubuntu
-          homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-stable-dockerhub.tar
+          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Build and Push Image to Docker Hub (Beta)
-      if: github.repository == 'homebridge/docker-homebridge' && steps.check_beta.outputs.IS_BETA == 'true'
+      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'true'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -143,40 +154,66 @@ jobs:
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
         build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
+          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
           homebridge/homebridge:beta
-          homebridge/homebridge:${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        outputs: type=docker,dest=/tmp/image-beta-dockerhub.tar
+          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
+  extract-manifest:
+    runs-on: ubuntu-latest
+    needs: [set-versions, build-images]
+    outputs:
+      manifest_file: ${{ steps.extract.outputs.manifest_file }}
+    steps:
     - name: Extract Docker.manifest from Image
+      id: extract
       run: |
-        if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
-          docker import /tmp/image-beta.tar homebridge:beta
-          docker run --rm homebridge:beta cat /opt/homebridge/Docker.manifest > manifest.md
+        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
+          docker pull ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          docker run --rm ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} cat /opt/homebridge/Docker.manifest > manifest.md
         else
-          docker import /tmp/image-stable.tar homebridge:latest
-          docker run --rm homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
+          docker pull ghcr.io/homebridge/homebridge:latest
+          docker run --rm ghcr.io/homebridge/homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
         fi
+        echo "manifest_file=manifest.md" >> $GITHUB_OUTPUT
+
+    - name: Upload manifest artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: manifest
+        path: manifest.md
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [set-versions, extract-manifest]
+    steps:
+    - name: Download manifest artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: manifest
+        path: .
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create "${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
+        TAG_NAME=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        gh release create "${TAG_NAME}" \
           --title "Homebridge Docker Release ${TAG_NAME}" \
           --notes-file manifest.md \
           --draft=false
 
-    - name: Send Discord Notification
-      uses: appleboy/discord-action@master
-      with:
-        webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-        webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-        message: |
-          **Homebridge Docker Release**
-          Version: ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-          [View Release](https://github.com/homebridge/docker-homebridge/releases/tag/${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }})
+  discord-notification:
+    name: Discord Webhooks
+    needs: [set-versions, create-release]
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
+    with:
+      title: "Homebridge Docker Release"
+      description: |
+        Version `${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}`
+        url: "https://github.com/homebridge/docker-homebridge/releases/tag/${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+    secrets:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
