@@ -66,6 +66,14 @@ jobs:
         echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
+    - name: Output versions
+      run: |
+        echo "::notice::DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        echo "::notice::IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
+        echo "::notice::HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
+        echo "::notice::HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
+        echo "::notice::FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+
   build-images:
     runs-on: ubuntu-latest
     needs: set-versions
@@ -185,11 +193,14 @@ jobs:
       with:
         name: manifest
         path: manifest.md
-
+        
   create-release:
     runs-on: ubuntu-latest
     needs: [set-versions, extract-manifest]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Download manifest artifact
       uses: actions/download-artifact@v4
       with:
