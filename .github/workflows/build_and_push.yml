@@ -180,12 +180,12 @@ jobs:
       id: extract
       run: |
         if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
-          docker pull ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-          docker run --rm ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} cat /opt/homebridge/Docker.manifest > manifest.md
+          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         else
-          docker pull ghcr.io/homebridge/homebridge:latest
-          docker run --rm ghcr.io/homebridge/homebridge:latest cat /opt/homebridge/Docker.manifest > manifest.md
+          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:latest
         fi
+        docker cp temp-homebridge:/opt/homebridge/Docker.manifest ./manifest.md
+        docker rm temp-homebridge
         echo "manifest_file=manifest.md" >> $GITHUB_OUTPUT
 
     - name: Upload manifest artifact
