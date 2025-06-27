@@ -1,5 +1,13 @@
 #!/command/with-contenv sh
 
+BWHITE='\033[1;37m'
+UWHITE='\033[4;37m'
+BYELLOW='\033[1;33m'
+CYAN='\033[4;36m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 # make folders
 mkdir -p /var/run/dbus
 mkdir -p /var/run/avahi-daemon
@@ -79,13 +87,12 @@ else
     # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
     packageJson="$(jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json)"
     printf '%s' "$packageJson" > /homebridge/package.json
-    echo "Updated homebridge to "$HOMEBRIDGE_VERSION
   fi
 fi
 
 if [ ! -z "$DOCKER_HOMEBRIDGE_VERSION" ]; then
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
-    echo "Docker version was updated from $INSTALLED_DOCKER_HOMEBRIDGE_VERSION to $DOCKER_HOMEBRIDGE_VERSION"
+    printf "${GREEN}Docker version was updated from ${RED}${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}${GREEN} to ${RED}${DOCKER_HOMEBRIDGE_VERSION}${NC}\n"
     if [ -f /homebridge/homebridgeContainer.json ]; then
       homebridgeContainerJson=$(jq -rM --arg version "$DOCKER_HOMEBRIDGE_VERSION" '.docker_tag = $version' /homebridge/homebridgeContainer.json 2>/dev/null) || homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
     else
