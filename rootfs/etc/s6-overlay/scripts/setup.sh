@@ -66,13 +66,33 @@ if [ -z "$HOMEBRIDGE_VERSION" ]; then
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
 fi
 
+if [ -f /homebridge/homebridgeContainer.json ]; then
+  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag' /homebridge/homebridgeContainer.json)
+else
+  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Initial Install"
+fi
+
 if [ ! -e /homebridge/package.json ]; then
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
 else
-  # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
-  packageJson="$(cat /homebridge/package.json | jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version')"
-  printf '%s' "$packageJson" > /homebridge/package.json
-  echo "Updated homebridge to "$HOMEBRIDGE_VERSION
+  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+    # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
+    packageJson="$(jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json)"
+    printf '%s' "$packageJson" > /homebridge/package.json
+    echo "Updated homebridge to "$HOMEBRIDGE_VERSION
+  fi
+fi
+
+if [ ! -z "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+    echo "Docker version was updated from $INSTALLED_DOCKER_HOMEBRIDGE_VERSION to $DOCKER_HOMEBRIDGE_VERSION"
+    if [ -f /homebridge/homebridgeContainer.json ]; then
+      homebridgeContainerJson=$(jq -rM --arg version "$DOCKER_HOMEBRIDGE_VERSION" '.docker_tag = $version' /homebridge/homebridgeContainer.json 2>/dev/null) || homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
+    else
+      homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
+    fi
+    printf '%s' "$homebridgeContainerJson" > /homebridge/homebridgeContainer.json
+  fi
 fi
 
 # remove homebridge-config-ui-x from the package.json
@@ -93,6 +113,6 @@ fi
 
 # install plugins
 echo "Installing Homebridge and user plugins, please wait..."
-npm --prefix /homebridge install
+npm --prefix /homebridge install --omit=dev
 
 exit 0
