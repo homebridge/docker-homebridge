@@ -66,14 +66,16 @@ if [ -z "$HOMEBRIDGE_VERSION" ]; then
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
 fi
 
-export HOMEBRIDGE_APT_PKG_VERSION=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/^v//')
+if [ -f /homebridge/homebridgeContainer.json ]; then
+  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag' /homebridge/homebridgeContainer.json)
+else
+  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Inital Install"
+fi
 
 if [ ! -e /homebridge/package.json ]; then
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
 else
-  export INSTALLED_HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.devDependencies["@homebridge/homebridge-apt-pkg"]' /homebridge/package.json | sed 's/\^//')
-  echo "Installed homebridge-apt-pkg version: $INSTALLED_HOMEBRIDGE_APT_PKG_VERSION vs Docker Image $HOMEBRIDGE_APT_PKG_VERSION"
-  if [ "$INSTALLED_HOMEBRIDGE_APT_PKG_VERSION" != "$HOMEBRIDGE_APT_PKG_VERSION" ]; then
+  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
     # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
     packageJson="$(cat /homebridge/package.json | jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version')"
     printf '%s' "$packageJson" > /homebridge/package.json
@@ -81,10 +83,15 @@ else
   fi
 fi
 
-if [ ! -z "$HOMEBRIDGE_APT_PKG_VERSION" ]; then
-  if [ "$INSTALLED_HOMEBRIDGE_APT_PKG_VERSION" != "$HOMEBRIDGE_APT_PKG_VERSION" ]; then
-    echo "Installing homebridge-apt-pkg version $HOMEBRIDGE_APT_PKG_VERSION"
-    npm --prefix /homebridge install --omit=dev --save-dev @homebridge/homebridge-apt-pkg@$HOMEBRIDGE_APT_PKG_VERSION
+if [ ! -z "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+    echo "Docker version was updated from $INSTALLED_DOCKER_HOMEBRIDGE_VERSION to $DOCKER_HOMEBRIDGE_VERSION"
+    if [ -f /homebridge/homebridgeContainer.json ]; then
+      homebridgeContainerJson=$(jq -rM --arg version "$DOCKER_HOMEBRIDGE_VERSION" '.docker_tag = $version' /homebridge/homebridgeContainer.json 2>/dev/null) || homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
+    else
+      homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
+    fi
+    printf '%s' "$homebridgeContainerJson" > /homebridge/homebridgeContainer.json
   fi
 fi
 
