@@ -69,7 +69,7 @@ fi
 if [ -f /homebridge/homebridgeContainer.json ]; then
   export INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag' /homebridge/homebridgeContainer.json)
 else
-  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Inital Install"
+  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Initial Install"
 fi
 
 if [ ! -e /homebridge/package.json ]; then
