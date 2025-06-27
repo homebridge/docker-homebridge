@@ -77,7 +77,7 @@ if [ ! -e /homebridge/package.json ]; then
 else
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
     # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
-    packageJson="$(cat /homebridge/package.json | jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version')"
+    packageJson="$(jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json)"
     printf '%s' "$packageJson" > /homebridge/package.json
     echo "Updated homebridge to "$HOMEBRIDGE_VERSION
   fi
