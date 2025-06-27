@@ -1,5 +1,5 @@
 [![Donate](https://img.shields.io/badge/donate-paypal-yellowgreen.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZEW8TFQCU2MSJ&source=url)
-[![Docker Build Status](https://github.com/homebridge/docker-homebridge/workflows/Build/badge.svg)](https://github.com/homebridge/docker-homebridge/actions)
+[![Build and Push Docker Images](https://github.com/homebridge/docker-homebridge/actions/workflows/build_and_push.yml/badge.svg)](https://github.com/homebridge/docker-homebridge/actions/workflows/build_and_push.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/homebridge/homebridge.svg)](https://hub.docker.com/r/homebridge/homebridge/)
 [![Discord](https://img.shields.io/discord/432663330281226270?color=728ED5&logo=discord&label=discord)](https://discord.gg/Cmq8a44)
 
