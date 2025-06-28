@@ -33,7 +33,7 @@ jobs:
         if [[ "${{ inputs.release_type }}" == "beta" ]]; then
           export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
         else
-          export DOCKER_HOMEBRIDGE_VERSION="latest"
+          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
         fi
         echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
