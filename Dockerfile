@@ -29,6 +29,10 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
 
 RUN set -x \
   && apt-get update \
+  && apt-get upgrade -y
+
+RUN set -x \
+  && apt-get update \
   && apt-get install -y curl wget tzdata locales psmisc procps iputils-ping logrotate \
   libatomic1 apt-transport-https apt-utils jq openssl sudo nano net-tools \
   && locale-gen en_US.UTF-8 \
@@ -76,7 +80,7 @@ RUN case "$(uname -m)" in \
   && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge
 
-  RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
+RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
   echo "Homebridge Docker Package Manifest\n\n" \
   "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
   "| Package | Version |\n" \
