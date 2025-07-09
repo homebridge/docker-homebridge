@@ -16,6 +16,8 @@ ARG HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_VERSION}
 ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
 ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 ENV S6_OVERLAY_VERSION=3.2.0.2 \
   S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
   S6_KEEP_ENV=1 \
@@ -29,6 +31,7 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
 
 RUN set -x \
   && apt-get update \
+  && apt-get upgrade -y \
   && apt-get install -y curl wget tzdata locales psmisc procps iputils-ping logrotate \
   libatomic1 apt-transport-https apt-utils jq openssl sudo nano net-tools \
   && locale-gen en_US.UTF-8 \
@@ -76,7 +79,7 @@ RUN case "$(uname -m)" in \
   && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge
 
-  RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
+RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
   echo "Homebridge Docker Package Manifest\n\n" \
   "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
   "| Package | Version |\n" \
