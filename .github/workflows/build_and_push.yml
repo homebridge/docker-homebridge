@@ -212,9 +212,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         TAG_NAME=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        # Generate release notes and save to release_notes.md
+        gh release notes "${TAG_NAME}" --generate > release_notes.md
+        # Combine manifest.md and release_notes.md into a single file
+        echo -e "# Manifest\n$(cat manifest.md)\n\n$(cat release_notes.md)" > combined_notes.md
+        # Create the release using the combined notes
         gh release create "${TAG_NAME}" \
           --title "Homebridge Docker Release ${TAG_NAME}" \
-          --notes-file manifest.md \
+          --notes-file combined_notes.md \
           --draft=false
 
   discord-notification:
