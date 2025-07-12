@@ -88,7 +88,7 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
   "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|\n" \
   "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|\n" \
   "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|\n" \
-  "|Homebridge-Config-UI-X|${HB_CONFIG_UI_X_VERSION}|\n" \
+  "|Homebridge UI|${HB_CONFIG_UI_X_VERSION}|\n" \
   "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|\n" \
   > /opt/homebridge/Docker.manifest
 
