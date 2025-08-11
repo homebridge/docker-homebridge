@@ -1,5 +1,6 @@
-name: Trigger Beta Release
-run-name: Trigger Beta Release Workflow
+name: Beta Stage 2 - Trigger Beta Release
+
+# this is just a stub to allow reuse of Beta Stage 1 from homebridge-apt-pkg
 
 on:
   workflow_dispatch:
