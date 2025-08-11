@@ -169,7 +169,7 @@ jobs:
         run: |
           branch="${{ steps.create-branch.outputs.branch_name }}"
           changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
-          pr_url=$(gh pr create --title "Update beta dependencies in $changed_dirs" --body "Automated dependency update" --label beta)
+          pr_url=$(gh pr create --title "BETA: Update beta dependencies in $changed_dirs" --body "Automated dependency update" --label beta)
           pr_number="${pr_url##*/}"
           echo "::notice::Pull request created: #$pr_number ($pr_url)"
           echo "PR created: $pr_url"

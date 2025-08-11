@@ -17,7 +17,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'build_and_push.yml', // Replace with the actual filename of the target workflow
-              ref: 'main',
+              ref: 'latest',
               inputs: {
                 release_type: 'beta'
               }
