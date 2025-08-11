@@ -1,0 +1,23 @@
+name: Trigger Beta Release
+run-name: Trigger Beta Release Workflow
+
+on:
+  workflow_dispatch:
+jobs:
+  trigger-beta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Build and Push Docker Images
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build_and_push.yml', // Replace with the actual filename of the target workflow
+              ref: 'main',
+              inputs: {
+                release_type: 'beta'
+              }
+            });

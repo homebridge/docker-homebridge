@@ -1,6 +1,6 @@
 services:
   homebridge:
-    image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:latest}
+    image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:beta}
     restart: always
     network_mode: host
     volumes:

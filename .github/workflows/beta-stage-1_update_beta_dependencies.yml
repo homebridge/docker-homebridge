@@ -1,0 +1,206 @@
+name: Beta Stage 1 - Update Beta Dependencies, Create PR, Merge PR and Trigger Beta Stage 2
+
+# aka beta-bot
+
+# This workflow is shared with homebridge-apt-pkg
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # 6 AM Eastern (10 AM UTC)
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      changes_detected: ${{ steps.check-changes.outputs.changes_detected }}
+      changed_dirs: ${{ steps.check-changes.outputs.changed_dirs }}
+      branch_name: ${{ steps.create-branch.outputs.branch_name }}
+      pr_number: ${{ steps.create-pr.outputs.pr_number }}
+      auto_merge: ${{ steps.load-config.outputs.auto_merge }}
+      user_name: ${{ steps.load-config.outputs.user_name }}
+      user_email: ${{ steps.load-config.outputs.user_email }}
+      dirs_length: ${{ steps.load-config.outputs.dirs_length }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Load config file
+        id: load-config
+        run: |
+          config=".github/beta-bot.json"
+          config_abs="$(pwd)/$config"
+          if [ ! -f "$config_abs" ]; then
+            echo "::error::Config file not found: $config_abs. Please ensure .github/beta-bot.json exists in the repository."
+            exit 1
+          fi
+          user_name=$(jq -r '.git_user.name // "GitHub Actions"' "$config_abs")
+          user_email=$(jq -r '.git_user.email // "actions@github.com"' "$config_abs")
+          auto_merge=$(jq -r '.auto_merge // false' "$config_abs")
+          dirs_length=$(jq '.directories | length' "$config_abs")
+          for i in $(seq 0 $(($dirs_length - 1))); do
+            pkgs_length=$(jq ".directories[$i].packages | length" "$config_abs")
+            for j in $(seq 0 $(($pkgs_length - 1))); do
+              pkg=$(jq -r ".directories[$i].packages[$j].name" "$config_abs")
+              has_tag=$(jq -r ".directories[$i].packages[$j].tag // null" "$config_abs")
+              has_pattern=$(jq -r ".directories[$i].packages[$j].pattern // null" "$config_abs")
+              if [ "$has_tag" != "null" ] && [ "$has_pattern" != "null" ]; then
+                echo "::error::Package $pkg in directory $i has both tag and pattern defined. Specify only one."
+                exit 1
+              fi
+              if [ "$has_tag" = "null" ] && [ "$has_pattern" = "null" ]; then
+                echo "::error::Package $pkg in directory $i has neither tag nor pattern defined. Specify one."
+                exit 1
+              fi
+            done
+          done
+          echo "Config file loaded: $config_abs"
+          echo "config_abs=$config_abs" >> $GITHUB_OUTPUT
+          echo "user_name=$user_name" >> $GITHUB_OUTPUT
+          echo "user_email=$user_email" >> $GITHUB_OUTPUT
+          echo "auto_merge=$auto_merge" >> $GITHUB_OUTPUT
+          echo "dirs_length=$dirs_length" >> $GITHUB_OUTPUT
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "${{ steps.load-config.outputs.user_name }}"
+          git config user.email "${{ steps.load-config.outputs.user_email }}"
+          echo "Git identity configured: ${{ steps.load-config.outputs.user_name }} <${{ steps.load-config.outputs.user_email }}>"
+
+      - name: Process directories and packages
+        id: process-dirs
+        run: |
+          config="${{ steps.load-config.outputs.config_abs }}"
+          dirs_length="${{ steps.load-config.outputs.dirs_length }}"
+          echo "Found $dirs_length directories in config"
+          for i in $(seq 0 $(($dirs_length - 1))); do
+            dir=$(jq -r ".directories[$i].directory" "$config")
+            if [ ! -d "$dir" ]; then
+              echo "Directory not found: $dir"
+              continue
+            fi
+            echo "Processing directory: $dir"
+            cd "$dir"
+            pkgs_length=$(jq ".directories[$i].packages | length" "$config")
+            echo "Found $pkgs_length packages in $dir"
+            for j in $(seq 0 $(($pkgs_length - 1))); do
+              pkg=$(jq -r ".directories[$i].packages[$j].name" "$config")
+              tag=$(jq -r ".directories[$i].packages[$j].tag // null" "$config")
+              pattern=$(jq -r ".directories[$i].packages[$j].pattern // null" "$config")
+              if [ "$tag" != "null" ]; then
+                echo "::notice::Installing $pkg@$tag in $dir"
+                npm install "$pkg@$tag" || { echo "::error::Failed to install $pkg@$tag"; exit 1; }
+              else
+                unescaped_pattern=$(echo "$pattern" | sed 's/\\\+/\\/g')
+                latest_version=$(npm view "$pkg" versions --json | jq -r ".[] | select(test(\"$unescaped_pattern\"))" | sort -V | tail -n 1)
+                if [ -z "$latest_version" ]; then
+                  echo "::error::No versions found for $pkg matching pattern $unescaped_pattern"
+                  exit 1
+                fi
+                echo "::notice::Installing $pkg@$latest_version in $dir"
+                npm install "$pkg@$latest_version" || { echo "::error::Failed to install $pkg@$latest_version"; exit 1; }
+              fi
+            done
+            cd - > /dev/null
+            echo "Completed processing $dir"
+          done
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          config="${{ steps.load-config.outputs.config_abs }}"
+          dirs_length="${{ steps.load-config.outputs.dirs_length }}"
+          changes_detected=false
+          changed_dirs=""
+          for i in $(seq 0 $(($dirs_length - 1))); do
+            dir=$(jq -r ".directories[$i].directory" "$config")
+            if [ ! -d "$dir" ]; then
+              continue
+            fi
+            cd "$dir"
+            if git diff --quiet -- package.json package-lock.json; then
+              echo "No changes in $dir"
+            else
+              echo "Changes detected in $dir"
+              changes_detected=true
+              if [ -z "$changed_dirs" ]; then
+                changed_dirs="$dir"
+              else
+                changed_dirs="$changed_dirs,$dir"
+              fi
+              git add package.json package-lock.json
+            fi
+            cd - > /dev/null
+          done
+          if [ "$changes_detected" = "true" ]; then
+            echo "::notice::Changes detected in directories: $changed_dirs"
+          else
+            echo "::notice::No changes detected in any directories"
+          fi
+          echo "changes_detected=$changes_detected" >> $GITHUB_OUTPUT
+          echo "changed_dirs=$changed_dirs" >> $GITHUB_OUTPUT
+
+      - name: Create and push branch
+        id: create-branch
+        if: steps.check-changes.outputs.changes_detected == 'true'
+        run: |
+          changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
+          branch="update/beta-$(date +%s)"
+          git checkout -b "$branch"
+          git commit -m "Update beta dependencies in $changed_dirs"
+          git push origin "$branch"
+          echo "::notice::Branch pushed: $branch"
+          echo "branch_name=$branch" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create pull request
+        id: create-pr
+        if: steps.check-changes.outputs.changes_detected == 'true'
+        run: |
+          branch="${{ steps.create-branch.outputs.branch_name }}"
+          changed_dirs="${{ steps.check-changes.outputs.changed_dirs }}"
+          pr_url=$(gh pr create --title "Update beta dependencies in $changed_dirs" --body "Automated dependency update" --label beta)
+          pr_number="${pr_url##*/}"
+          echo "::notice::Pull request created: #$pr_number ($pr_url)"
+          echo "PR created: $pr_url"
+          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve pull request
+        id: approve-pr
+        if: steps.check-changes.outputs.changes_detected == 'true' && steps.load-config.outputs.auto_merge == 'true'
+        run: |
+          pr_number="${{ steps.create-pr.outputs.pr_number }}"
+          echo "::notice::Approving PR #$pr_number"
+          gh pr review "$pr_number" --approve || { echo "::error::Failed to approve PR #$pr_number"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Auto-merge PR
+        id: auto-merge
+        if: steps.check-changes.outputs.changes_detected == 'true' && steps.load-config.outputs.auto_merge == 'true'
+        run: |
+          pr_number="${{ steps.create-pr.outputs.pr_number }}"
+          echo "::notice::Auto-merging PR #$pr_number"
+          gh pr merge "$pr_number" --squash --delete-branch || { echo "::error::Failed to merge PR #$pr_number"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Beta Stage 2 Workflow
+        if: steps.check-changes.outputs.changes_detected == 'true' && steps.load-config.outputs.auto_merge == 'true'
+        run: |
+          echo "::notice::Triggering Beta Stage 2 - Build and Release Beta Package"
+          gh workflow run beta-stage-2_build_beta_release_and_store.yml --ref latest || { echo "::error::Failed to trigger Beta Stage 2 workflow"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
