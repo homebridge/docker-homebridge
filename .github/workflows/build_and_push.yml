@@ -22,6 +22,7 @@ jobs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       HOMEBRIDGE_APT_PKG_FILE: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+      RELEASE_TITLE: ${{ steps.set_title.outputs.RELEASE_TITLE }}
 
     steps:
     - name: Checkout
@@ -66,6 +67,15 @@ jobs:
         echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
+    - name: Set Release Title
+      id: set_title
+      run: |
+        if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
+          echo "RELEASE_TITLE=BETA: Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
+        else
+          echo "RELEASE_TITLE=Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Output versions
       run: |
         echo "::notice::DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
@@ -73,6 +83,7 @@ jobs:
         echo "::notice::HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
         echo "::notice::HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "::notice::FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+        echo "::notice::RELEASE_TITLE=${{ steps.set_title.outputs.RELEASE_TITLE }}"
 
   build-images:
     runs-on: ubuntu-latest
@@ -213,7 +224,7 @@ jobs:
       run: |
         TAG_NAME=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         gh release create "${TAG_NAME}" \
-          --title "Homebridge Docker Release ${TAG_NAME}" \
+          --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
           --notes-file manifest.md \
           --draft=false
 
@@ -222,7 +233,7 @@ jobs:
     needs: [set-versions, create-release]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
-      title: "Homebridge Docker Release"
+      title: "${{ needs.set-versions.outputs.RELEASE_TITLE }}"
       description: |
         Version `${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}`
         url: "https://github.com/homebridge/docker-homebridge/releases/tag/${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
