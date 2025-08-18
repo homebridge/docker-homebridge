@@ -19,6 +19,9 @@ jobs:
     if: needs.homebridge-beta-bot.outputs.changes_detected == 'true' && needs.homebridge-beta-bot.outputs.auto_merge == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Trigger Beta Stage 2 Workflow
         run: |
           echo "::notice::Triggering Beta Stage 2 - Build and Release Beta Package"
