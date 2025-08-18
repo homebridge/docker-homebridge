@@ -11,6 +11,7 @@ jobs:
     uses: homebridge/.github/.github/workflows/homebridge-beta-bot.yml@latest
     with:
       config_file: '.github/homebridge-beta-bot.json'
+    secrets: inherit
 
   trigger-beta-stage-2:
     name: Trigger Build and Release Beta Package
