@@ -11,10 +11,10 @@ ARG HOMEBRIDGE_APT_PKG_VERSION
 ARG FFMPEG_FOR_HOMEBRIDGE_VERSION
 ARG DOCKER_HOMEBRIDGE_VERSION
 
-ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.1}
+# ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.1}
 ARG HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_VERSION}
-ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
-ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
+# ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
+# ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -91,6 +91,13 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
   "|Homebridge UI|${HB_CONFIG_UI_X_VERSION}|\n" \
   "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|\n" \
   > /opt/homebridge/Docker.manifest
+
+# Fix Docker-Homebridge Update info wrong #645
+
+RUN echo "# Appended by docker-homebridge" >> /opt/homebridge/source.sh \
+  && echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source.sh \
+  && echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source.sh \
+  && echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source.sh
 
 COPY rootfs /
 
