@@ -3,7 +3,7 @@
 # Extract versions from package.json
 export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
 export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
-export DOCKER_HOMEBRIDGE_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}
+export DOCKER_HOMEBRIDGE_VERSION=$(date +'%Y-%m-%d')
 
 export HOMEBRIDGE_IMAGE='docker-homebridge'
 
