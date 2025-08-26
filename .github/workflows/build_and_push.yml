@@ -32,9 +32,11 @@ jobs:
       id: docker_version
       run: |
         if [[ "${{ inputs.release_type }}" == "beta" ]]; then
-          export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
+          # Use beta apt-package version as Docker version
+          export DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
         else
-          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
+          # Use stable apt-package version as Docker version  
+          export DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
         fi
         echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
