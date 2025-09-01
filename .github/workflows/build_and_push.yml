@@ -223,7 +223,7 @@ jobs:
             if ! diff -u ./previous/Docker.manifest ./manifest.md > manifest.diff 2>/dev/null; then
               echo "### Package Version Changes" >> manifest.md
               echo "\`\`\`diff" >> manifest.md
-              cat manifest.diff | grep -E "^[+-]\|" | head -20 >> manifest.md
+              cat manifest.diff | grep -E "^[+-] \|" | head -20 >> manifest.md
               echo "\`\`\`" >> manifest.md
             else
               echo "No package version changes detected." >> manifest.md
