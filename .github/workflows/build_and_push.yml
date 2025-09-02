@@ -246,6 +246,7 @@ jobs:
     needs: [set-versions, build-images]
     outputs:
       manifest_file: ${{ steps.extract.outputs.manifest_file }}
+      package_changes: ${{ steps.extract_changes.outputs.package_changes }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -307,6 +308,69 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Extract package changes for Discord
+      id: extract_changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Get the latest release to compare against (excluding the current one being created)
+        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
+          # For beta releases, compare with the latest beta release
+          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r '.[] | select(.tagName | startswith("beta-")) | .tagName' | head -1)
+        else
+          # For stable releases, compare with the latest stable release (no beta prefix)
+          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r '.[] | select(.tagName | startswith("beta-") | not) | .tagName' | head -1)
+        fi
+
+        echo "Comparing with latest release: $LATEST_RELEASE"
+
+        if [[ -n "$LATEST_RELEASE" ]]; then
+          # Get the previous release manifest
+          PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
+
+          # Extract package versions from current manifest
+          CURRENT_MANIFEST=$(cat manifest.md)
+
+          # Parse package versions from both manifests
+          extract_package_version() {
+            local manifest="$1"
+            local package="$2"
+            echo "$manifest" | grep "|$package|" | awk -F'|' '{print $3}' | tr -d ' '
+          }
+
+          # Compare packages and build changes summary
+          PACKAGE_CHANGES=""
+          packages=("Ubuntu" "ffmpeg for homebridge" "Homebridge APT Package" "NodeJS" "Homebridge UI" "Homebridge")
+
+          for package in "${packages[@]}"; do
+            current_version=$(extract_package_version "$CURRENT_MANIFEST" "$package")
+            prev_version=$(extract_package_version "$PREV_MANIFEST" "$package")
+
+            if [[ "$current_version" != "$prev_version" && -n "$current_version" && -n "$prev_version" ]]; then
+              if [[ -n "$PACKAGE_CHANGES" ]]; then
+                PACKAGE_CHANGES="$PACKAGE_CHANGES\n"
+              fi
+              PACKAGE_CHANGES="${PACKAGE_CHANGES}• **$package**: $prev_version → $current_version"
+            fi
+          done
+
+          if [[ -z "$PACKAGE_CHANGES" ]]; then
+            PACKAGE_CHANGES="• No package version changes detected"
+          fi
+        else
+          PACKAGE_CHANGES="• Initial release - no previous version to compare"
+        fi
+
+        echo "Package changes:"
+        echo -e "$PACKAGE_CHANGES"
+
+        # Set output using multiline string
+        {
+          echo 'package_changes<<EOF'
+          echo -e "$PACKAGE_CHANGES"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+
     - name: Upload manifest artifact
       uses: actions/upload-artifact@v4
       with:
@@ -341,12 +405,15 @@ jobs:
 
   discord-notification:
     name: Discord Webhooks
-    needs: [set-versions, create-release]
+    needs: [set-versions, create-release, extract-manifest]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "${{ needs.set-versions.outputs.RELEASE_TITLE }}"
       description: |
         Version `${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}`
         url: "https://github.com/homebridge/docker-homebridge/releases/tag/${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+
+        **Package Changes:**
+        ${{ needs.extract-manifest.outputs.package_changes }}
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
