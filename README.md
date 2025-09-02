@@ -20,8 +20,12 @@ This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 
 ## Step-By-Step Guides
 
 - [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)
-- [Running Homebridge on a Synology NAS](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)
+- **Synology NAS:**
+  - [DSM 6 - Using Docker](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology-DSM-6-with-Docker) *(Docker required)*
+  - [DSM 7 - Native Package](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Synology-DSM) *(Package Center)*
 - [Running Homebridge on Unraid](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Unraid)
+
+> **Note for Synology DSM 6 Users:** DSM 6 requires using this Docker image as there's no native package available. Make sure to use the `DSM_HOSTNAME` environment variable with your NAS hostname for proper HomeKit discovery. DSM 7 users should use the [native Homebridge package](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Synology-DSM) instead of Docker.
 
 ## Compatibility
 
@@ -63,6 +67,36 @@ services:
 docker compose up
 ```
 
+### For Synology DSM 6:
+
+If you're running on Synology DSM 6, use this docker-compose configuration that includes the DSM_HOSTNAME environment variable:
+
+```yml
+version: '2'
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    restart: always
+    network_mode: host
+    environment:
+      - DSM_HOSTNAME=your-synology-hostname
+    volumes:
+      - ./volumes/homebridge:/homebridge
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '1'
+    healthcheck:
+      test: curl --fail localhost:8581 || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 300s
+      timeout: 2s
+```
+
+Replace `your-synology-hostname` with your actual NAS hostname.
+
 ### Or Command Line:
 
 ```bash
@@ -80,6 +114,7 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 * `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
 * `-e ENABLE_AVAHI` - default is `1`; set to `0` to prevent the Avahi mDNS service running in the container
+* `-e DSM_HOSTNAME` - for Synology DSM 6 systems, set to your NAS hostname for proper mDNS configuration
 
 ## Custom Additions
 
