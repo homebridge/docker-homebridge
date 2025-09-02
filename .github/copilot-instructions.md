@@ -45,6 +45,62 @@ This repository creates the official multi-architecture Docker images for Homebr
    - Uses beta package versions from `beta/package.json`
    - Creates beta-tagged image
 
+### Automated Beta Updates (homebridge-beta-bot)
+
+**Overview:**
+This repository uses the homebridge-beta-bot from `homebridge/.github` to automatically update beta dependencies and trigger beta releases. The bot runs daily via scheduled workflows and can also be triggered manually.
+
+**Beta Automation Workflow:**
+1. **Stage 1** (`beta-stage-1_update_beta_dependencies.yml`):
+   - Runs daily at 10:00 UTC (6 AM Eastern)
+   - Calls the reusable `homebridge-beta-bot.yml` workflow
+   - Updates dependencies in `beta/package.json` based on configuration
+   - Creates and auto-merges PR if changes detected
+   - Triggers Stage 2 on successful merge
+
+2. **Stage 2** (`beta-stage-2_build_beta_release_and_store.yml`):
+   - Triggered automatically after Stage 1 completes
+   - Builds and releases beta Docker images
+   - Uses updated beta dependencies from merged PR
+
+**Configuration (`.github/homebridge-beta-bot.json`):**
+```json
+{
+  "auto_merge": true,
+  "git_user": {
+    "name": "Homebridge Beta Bot", 
+    "email": "actions@github.com"
+  },
+  "directories": [
+    {
+      "directory": "beta",
+      "packages": [
+        {
+          "name": "@homebridge/homebridge-apt-pkg",
+          "tag": "beta"
+        },
+        {
+          "name": "ffmpeg-for-homebridge", 
+          "tag": "latest"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Manual vs Automated Beta Process:**
+- **Manual:** Use `./beta-build-local.sh` for local development and testing
+- **Automated:** homebridge-beta-bot handles dependency updates and release builds
+- Both processes use the same `beta/package.json` file
+- Automated process ensures beta releases stay current with upstream changes
+
+**Troubleshooting Beta Bot:**
+- Check workflow run logs in Actions tab
+- Verify `homebridge-beta-bot.json` syntax with `jq . .github/homebridge-beta-bot.json`
+- Manual trigger available via workflow_dispatch in GitHub Actions UI
+- Bot requires `GH_TOKEN` secret for PR approval (auto-configured)
+
 ### Build Process Details
 
 **Version Management:**
@@ -96,8 +152,12 @@ docker compose up
 │       └── s6-rc.d/           # S6 service definitions
 ├── test/                       # Local testing configuration
 │   └── docker-compose.yml     # Test container setup
-└── .github/workflows/          # CI/CD automation
-    └── build_and_push.yml     # Main build and release workflow
+└── .github/                    # CI/CD automation and configuration
+    ├── homebridge-beta-bot.json  # Beta bot configuration
+    └── workflows/
+        ├── build_and_push.yml  # Main build and release workflow
+        ├── beta-stage-1_update_beta_dependencies.yml  # Automated beta updates
+        └── beta-stage-2_build_beta_release_and_store.yml  # Beta release builds
 ```
 
 ### Key Configuration Files
@@ -105,10 +165,11 @@ docker compose up
 - **rootfs/etc/s6-overlay/scripts/setup.sh:** Primary container initialization (npm installs, config setup)
 - **test/docker-compose.yml:** Local testing environment
 - **build scripts:** `test-build-local.sh` (stable), `beta-build-local.sh` (beta)
+- **.github/homebridge-beta-bot.json:** Configuration for automated beta dependency updates
 
-### CI/CD Pipeline (.github/workflows/build_and_push.yml)
+### CI/CD Pipeline 
 
-**Validation Pipeline:**
+**Main Release Pipeline (.github/workflows/build_and_push.yml):**
 1. **Version extraction** from package.json files
 2. **Multi-architecture builds** (amd64, arm32v7, arm64v8)
 3. **Container registry pushes** (GitHub Container Registry + Docker Hub)
@@ -116,6 +177,12 @@ docker compose up
 5. **Discord notifications** for release announcements
 
 **Manual Trigger Required:** Workflow runs via `workflow_dispatch` only.
+
+**Beta Automation Pipeline:**
+- **Stage 1:** Daily automated dependency updates via homebridge-beta-bot (10:00 UTC)
+- **Stage 2:** Automated beta builds and releases triggered after dependency updates
+- **Schedule:** Runs daily, updates after 4 AM Eastern APT package builds
+- **Auto-merge:** Enabled for beta dependency PRs to maintain currency
 
 **Build Matrix:**
 - Stable: `latest`, `ubuntu`, `YYYY-MM-DD` tags
@@ -162,6 +229,7 @@ docker compose up
 
 **Always validate:**
 - JSON syntax in package.json files (`jq . package.json`)
+- JSON syntax in beta bot config (`jq . .github/homebridge-beta-bot.json`)
 - Shell script syntax (`bash -n script.sh`)
 - Docker build completes without errors
 - Container starts and reaches healthy state
