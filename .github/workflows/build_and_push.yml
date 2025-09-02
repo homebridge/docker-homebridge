@@ -203,6 +203,47 @@ jobs:
         docker rm temp-homebridge
         echo "manifest_file=manifest.md" >> $GITHUB_OUTPUT
 
+    - name: Generate Release Notes with Changes
+      id: generate_notes
+      run: |
+        # Get the previous release tag (excluding current one)
+        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
+          PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -E "^beta-[0-9]{4}-[0-9]{2}-[0-9]{2}" | head -1)
+        else
+          PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -vE "^beta-" | head -1)
+        fi
+        
+        echo "Previous release tag: $PREVIOUS_TAG"
+        
+        if [[ -n "$PREVIOUS_TAG" ]]; then
+          # Download previous manifest if it exists
+          if gh release download "$PREVIOUS_TAG" --pattern "Docker.manifest" --dir ./previous 2>/dev/null; then
+            echo -e "\n## Changes Since Previous Release ($PREVIOUS_TAG)\n" >> manifest.md
+            
+            # Compare manifests and show differences
+            if ! diff -u ./previous/Docker.manifest ./manifest.md > manifest.diff 2>/dev/null; then
+              echo "### Package Version Changes" >> manifest.md
+              echo "\`\`\`diff" >> manifest.md
+              cat manifest.diff | grep -E "^[+-] \|" | head -20 >> manifest.md
+              echo "\`\`\`" >> manifest.md
+            else
+              echo "No package version changes detected." >> manifest.md
+            fi
+            
+            # Show Docker image specific changes
+            echo -e "\n### Docker Image Changes" >> manifest.md
+            echo "See [commit history](https://github.com/homebridge/docker-homebridge/compare/$PREVIOUS_TAG...${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}) for Docker-specific changes." >> manifest.md
+          else
+            echo -e "\n## Changes Since Previous Release\n" >> manifest.md
+            echo "Previous release manifest not available for comparison." >> manifest.md
+          fi
+        else
+          echo -e "\n## Initial Release\n" >> manifest.md
+          echo "This appears to be the initial release." >> manifest.md
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Extract package changes for Discord
       id: extract_changes
       env:
@@ -290,10 +331,13 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         TAG_NAME=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        # Copy manifest for release asset with proper name
+        cp manifest.md Docker.manifest
         gh release create "${TAG_NAME}" \
           --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
           --notes-file manifest.md \
-          --draft=false
+          --draft=false \
+          Docker.manifest
 
   discord-notification:
     name: Discord Webhooks
