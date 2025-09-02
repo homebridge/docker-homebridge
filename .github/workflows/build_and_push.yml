@@ -186,11 +186,7 @@ jobs:
     needs: [set-versions, build-images]
     outputs:
       manifest_file: ${{ steps.extract.outputs.manifest_file }}
-      changes_summary: ${{ steps.generate_changes.outputs.changes_summary }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Extract Docker.manifest from Image
       id: extract
       run: |
@@ -202,80 +198,6 @@ jobs:
         docker cp temp-homebridge:/opt/homebridge/Docker.manifest ./manifest.md
         docker rm temp-homebridge
         echo "manifest_file=manifest.md" >> $GITHUB_OUTPUT
-
-    - name: Generate changes summary
-      id: generate_changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Get the latest release (excluding the current one being created)
-        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
-          # For beta releases, compare with the latest beta release
-          LATEST_RELEASE=$(gh release list --limit 50 --json tagName,body | jq -r '.[] | select(.tagName | startswith("beta-")) | .tagName' | head -1)
-        else
-          # For stable releases, compare with the latest stable release (no beta prefix)
-          LATEST_RELEASE=$(gh release list --limit 50 --json tagName,body | jq -r '.[] | select(.tagName | startswith("beta-") | not) | .tagName' | head -1)
-        fi
-
-        echo "Comparing with latest release: $LATEST_RELEASE"
-
-        if [[ -n "$LATEST_RELEASE" ]]; then
-          # Get the previous release manifest
-          PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
-
-          # Parse current and previous manifests to extract package versions
-          echo "Parsing manifests..."
-
-          # Extract package versions from current manifest
-          echo "Current manifest:"
-          cat manifest.md
-
-          # Extract package versions from previous manifest
-          echo "Previous manifest:"
-          echo "$PREV_MANIFEST"
-
-          # Generate changes summary by comparing package versions
-          CHANGES_SUMMARY=""
-
-          # Extract package versions using a more robust approach
-          extract_version() {
-            local manifest="$1"
-            local package="$2"
-            # Look for exact package name in the table and extract the version from the next column
-            echo "$manifest" | grep -E "^\|$package\|" | sed 's/|/ | /g' | awk -F'|' '{print $3}' | tr -d ' '
-          }
-
-          # Compare each package
-          packages=("Ubuntu" "ffmpeg for homebridge" "Homebridge APT Package" "NodeJS" "Homebridge UI" "Homebridge")
-
-          for package in "${packages[@]}"; do
-            current_version=$(extract_version "$(cat manifest.md)" "$package")
-            prev_version=$(extract_version "$PREV_MANIFEST" "$package")
-
-            if [[ "$current_version" != "$prev_version" && -n "$current_version" && -n "$prev_version" ]]; then
-              if [[ -n "$CHANGES_SUMMARY" ]]; then
-                CHANGES_SUMMARY="$CHANGES_SUMMARY\n"
-              fi
-              CHANGES_SUMMARY="${CHANGES_SUMMARY}• **$package**: $prev_version → $current_version"
-            fi
-          done
-
-          if [[ -z "$CHANGES_SUMMARY" ]]; then
-            CHANGES_SUMMARY="• No package version changes detected"
-          fi
-        else
-          CHANGES_SUMMARY="• Initial release - no previous version to compare"
-        fi
-
-        echo "Generated changes summary:"
-        echo -e "$CHANGES_SUMMARY"
-
-        # Set output using multiline string
-        {
-          echo 'changes_summary<<EOF'
-          echo -e "$CHANGES_SUMMARY"
-          echo 'EOF'
-        } >> $GITHUB_OUTPUT
 
     - name: Upload manifest artifact
       uses: actions/upload-artifact@v4
@@ -308,15 +230,12 @@ jobs:
 
   discord-notification:
     name: Discord Webhooks
-    needs: [set-versions, create-release, extract-manifest]
+    needs: [set-versions, create-release]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "${{ needs.set-versions.outputs.RELEASE_TITLE }}"
       description: |
         Version `${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}`
         url: "https://github.com/homebridge/docker-homebridge/releases/tag/${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
-
-        **Package Changes:**
-        ${{ needs.extract-manifest.outputs.changes_summary }}
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
