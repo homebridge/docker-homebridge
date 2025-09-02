@@ -17,6 +17,19 @@
           "tag": "latest"
         }
       ]
+    },
+    {
+      "directory": "alpha",
+      "packages": [
+        {
+          "name": "@homebridge/homebridge-apt-pkg",
+          "tag": "alpha"
+        },
+        {
+          "name": "ffmpeg-for-homebridge",
+          "tag": "latest"
+        }
+      ]
     }
   ]
 }
