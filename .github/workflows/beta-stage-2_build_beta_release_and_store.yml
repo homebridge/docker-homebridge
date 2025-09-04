@@ -1,13 +1,31 @@
-name: Beta Stage 2 - Trigger Beta Release
+name: Stage 2 - Trigger Release Build
 
-# this is just a stub to allow reuse of Beta Stage 1 from homebridge-apt-pkg
+# this is just a stub to allow reuse of Stage 1 from homebridge-apt-pkg
 
 on:
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Choose release stream to build: "beta" or "alpha"'
+        required: false
+        type: choice
+        options:
+          - beta
+          - alpha
+        default: beta
+
 jobs:
-  trigger-beta:
+  trigger-release:
     runs-on: ubuntu-latest
     steps:
+      - name: Determine release type
+        id: release_type
+        run: |
+          # Default to beta if no input provided (for backward compatibility)
+          release_type="${{ inputs.release_type || 'beta' }}"
+          echo "release_type=${release_type}" >> $GITHUB_OUTPUT
+          echo "::notice::Triggering ${release_type} release build"
+          
       - name: Trigger Build and Push Docker Images
         uses: actions/github-script@v7
         with:
@@ -19,6 +37,6 @@ jobs:
               workflow_id: 'build_and_push.yml', // Replace with the actual filename of the target workflow
               ref: 'latest',
               inputs: {
-                release_type: 'beta'
+                release_type: '${{ steps.release_type.outputs.release_type }}'
               }
             });

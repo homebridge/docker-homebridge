@@ -1,9 +1,21 @@
-name: Beta Stage 1 - Update Beta Dependencies, Create PR, Merge PR and Trigger Beta Stage 2
+name: Stage 1 - Update Dependencies and Trigger Builds
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # 6 AM Eastern (10 AM UTC), APT updates at 4 AM Eastern
+    # Beta updates - 6 AM Eastern (10 AM UTC), APT updates at 4 AM Eastern  
+    - cron: '0 10 * * *'
+    # Alpha updates - 7 AM Eastern (11 AM UTC), 1 hour after beta updates
+    - cron: '0 11 * * *'
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Choose release stream to update: "beta" or "alpha"'
+        required: true
+        type: choice
+        options:
+          - beta
+          - alpha
+        default: beta
 
 jobs:
   homebridge-beta-bot:
@@ -13,10 +25,62 @@ jobs:
       config_file: '.github/homebridge-beta-bot.json'
     secrets: inherit
 
-  trigger-beta-stage-2:
-    name: Trigger Build and Release Beta Package
+  determine-changes:
+    name: Determine which streams have changes
     needs: homebridge-beta-bot
     if: needs.homebridge-beta-bot.outputs.changes_detected == 'true' && needs.homebridge-beta-bot.outputs.auto_merge == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      beta_changed: ${{ steps.check_changes.outputs.beta_changed }}
+      alpha_changed: ${{ steps.check_changes.outputs.alpha_changed }}
+      current_hour: ${{ steps.check_changes.outputs.current_hour }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check which streams have changes
+        id: check_changes
+        run: |
+          # Get the current UTC hour to determine which stream should be processed
+          current_hour=$(date -u +%H)
+          echo "current_hour=${current_hour}" >> $GITHUB_OUTPUT
+          echo "::notice::Current UTC hour: ${current_hour}"
+          
+          # For manual dispatch, respect the input
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.release_type }}" == "beta" ]]; then
+              echo "beta_changed=true" >> $GITHUB_OUTPUT
+              echo "alpha_changed=false" >> $GITHUB_OUTPUT
+              echo "::notice::Manual dispatch: Processing beta stream"
+            else
+              echo "beta_changed=false" >> $GITHUB_OUTPUT
+              echo "alpha_changed=true" >> $GITHUB_OUTPUT
+              echo "::notice::Manual dispatch: Processing alpha stream"
+            fi
+          else
+            # For scheduled runs, process the appropriate stream based on hour
+            if [[ "${current_hour}" == "10" ]]; then
+              # Beta time (10 AM UTC)
+              echo "beta_changed=true" >> $GITHUB_OUTPUT
+              echo "alpha_changed=false" >> $GITHUB_OUTPUT
+              echo "::notice::Scheduled run: Processing beta stream"
+            elif [[ "${current_hour}" == "11" ]]; then
+              # Alpha time (11 AM UTC)  
+              echo "beta_changed=false" >> $GITHUB_OUTPUT
+              echo "alpha_changed=true" >> $GITHUB_OUTPUT
+              echo "::notice::Scheduled run: Processing alpha stream"
+            else
+              # Shouldn't happen with current cron, but just in case
+              echo "beta_changed=true" >> $GITHUB_OUTPUT
+              echo "alpha_changed=true" >> $GITHUB_OUTPUT
+              echo "::notice::Unexpected time: Processing both streams"
+            fi
+          fi
+
+  trigger-beta-stage-2:
+    name: Trigger Build and Release Beta Package
+    needs: [homebridge-beta-bot, determine-changes]
+    if: needs.determine-changes.outputs.beta_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,5 +90,21 @@ jobs:
         run: |
           echo "::notice::Triggering Beta Stage 2 - Build and Release Beta Package"
           gh workflow run beta-stage-2_build_beta_release_and_store.yml --ref latest || { echo "::error::Failed to trigger Beta Stage 2 workflow"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-alpha-stage-2:
+    name: Trigger Build and Release Alpha Package  
+    needs: [homebridge-beta-bot, determine-changes]
+    if: needs.determine-changes.outputs.alpha_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Trigger Alpha Stage 2 Workflow
+        run: |
+          echo "::notice::Triggering Alpha Stage 2 - Build and Release Alpha Package"
+          gh workflow run beta-stage-2_build_beta_release_and_store.yml --ref latest --field release_type=alpha || { echo "::error::Failed to trigger Alpha Stage 2 workflow"; exit 1; }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
