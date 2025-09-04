@@ -85,14 +85,14 @@ This repository creates the official multi-architecture Docker images for Homebr
 This repository uses the homebridge-beta-bot from `homebridge/.github` to automatically update beta dependencies and trigger beta releases. The bot runs daily via scheduled workflows and can also be triggered manually.
 
 **Beta Automation Workflow:**
-1. **Stage 1** (`beta-stage-1_update_beta_dependencies.yml`):
+1. **Stage 1** (`prerelease-stage-1_update_dependencies.yml`):
    - Runs daily at 10:00 UTC (6 AM Eastern)
    - Calls the reusable `homebridge-beta-bot.yml` workflow
    - Updates dependencies in `beta/package.json` based on configuration
    - Creates and auto-merges PR if changes detected
    - Triggers Stage 2 on successful merge
 
-2. **Stage 2** (`beta-stage-2_build_beta_release_and_store.yml`):
+2. **Stage 2** (`prerelease-stage-2_build_release.yml`):
    - Triggered automatically after Stage 1 completes
    - Builds and releases beta Docker images
    - Uses updated beta dependencies from merged PR
@@ -213,8 +213,8 @@ docker compose down
     ├── homebridge-beta-bot.json  # Beta bot configuration
     └── workflows/
         ├── build_and_push.yml  # Main build and release workflow
-        ├── beta-stage-1_update_beta_dependencies.yml  # Automated beta updates
-        └── beta-stage-2_build_beta_release_and_store.yml  # Beta release builds
+        ├── prerelease-stage-1_update_dependencies.yml  # Automated prerelease updates
+        └── prerelease-stage-2_build_release.yml  # Prerelease builds
 ```
 
 ### Key Configuration Files

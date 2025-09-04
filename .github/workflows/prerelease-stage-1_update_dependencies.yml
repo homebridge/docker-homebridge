@@ -1,4 +1,4 @@
-name: Stage 1 - Update Dependencies and Trigger Builds
+name: Prerelease Stage 1 - Update Dependencies and Trigger Builds
 
 on:
   schedule:
@@ -61,7 +61,7 @@ jobs:
             echo "::notice::Scheduled run: Processing both beta and alpha streams"
           fi
 
-  trigger-beta-stage-2:
+  trigger-beta-prerelease-stage-2:
     name: Trigger Build and Release Beta Package
     needs: [homebridge-beta-bot, determine-changes]
     if: needs.determine-changes.outputs.beta_changed == 'true'
@@ -70,14 +70,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Trigger Beta Stage 2 Workflow
+      - name: Trigger Beta Prerelease Stage 2 Workflow
         run: |
-          echo "::notice::Triggering Beta Stage 2 - Build and Release Beta Package"
-          gh workflow run beta-stage-2_build_beta_release_and_store.yml --ref latest || { echo "::error::Failed to trigger Beta Stage 2 workflow"; exit 1; }
+          echo "::notice::Triggering Beta Prerelease Stage 2 - Build and Release Beta Package"
+          gh workflow run prerelease-stage-2_build_release.yml --ref latest || { echo "::error::Failed to trigger Beta Prerelease Stage 2 workflow"; exit 1; }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  trigger-alpha-stage-2:
+  trigger-alpha-prerelease-stage-2:
     name: Trigger Build and Release Alpha Package  
     needs: [homebridge-beta-bot, determine-changes]
     if: needs.determine-changes.outputs.alpha_changed == 'true'
@@ -86,9 +86,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Trigger Alpha Stage 2 Workflow
+      - name: Trigger Alpha Prerelease Stage 2 Workflow
         run: |
-          echo "::notice::Triggering Alpha Stage 2 - Build and Release Alpha Package"
-          gh workflow run beta-stage-2_build_beta_release_and_store.yml --ref latest --field release_type=alpha || { echo "::error::Failed to trigger Alpha Stage 2 workflow"; exit 1; }
+          echo "::notice::Triggering Alpha Prerelease Stage 2 - Build and Release Alpha Package"
+          gh workflow run prerelease-stage-2_build_release.yml --ref latest --field release_type=alpha || { echo "::error::Failed to trigger Alpha Prerelease Stage 2 workflow"; exit 1; }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

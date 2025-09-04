@@ -1,4 +1,4 @@
-name: Stage 2 - Trigger Release Build
+name: Prerelease Stage 2 - Trigger Release Build
 
 # this is just a stub to allow reuse of Stage 1 from homebridge-apt-pkg
 
