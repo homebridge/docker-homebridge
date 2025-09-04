@@ -1,16 +1,17 @@
 name: Build and Push Docker Images
-run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'stable' || 'beta' }})
+run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'stable' || inputs.release_type == 'alpha' && 'alpha' || 'beta' }})
 
 on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Choose release type: "stable" (builds latest version) or "beta" (builds beta version with beta-YYYY-MM-DD tag).'
+        description: 'Choose release type: "stable" (builds latest version), "beta" (builds beta version with beta-YYYY-MM-DD tag), or "alpha" (builds alpha version with alpha-YYYY-MM-DD tag).'
         required: true
         type: choice
         options:
           - stable
           - beta
+          - alpha
         default: beta
 
 jobs:
@@ -19,6 +20,7 @@ jobs:
     outputs:
       DOCKER_HOMEBRIDGE_VERSION: ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
       IS_BETA: ${{ steps.check_beta.outputs.IS_BETA }}
+      IS_ALPHA: ${{ steps.check_alpha.outputs.IS_ALPHA }}
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       HOMEBRIDGE_APT_PKG_FILE: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
@@ -33,6 +35,8 @@ jobs:
       run: |
         if [[ "${{ inputs.release_type }}" == "beta" ]]; then
           export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
+        elif [[ "${{ inputs.release_type }}" == "alpha" ]]; then
+          export DOCKER_HOMEBRIDGE_VERSION="alpha-$(date +%Y-%m-%d)"
         else
           export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
         fi
@@ -52,6 +56,20 @@ jobs:
           echo "IS_BETA=false" >> $GITHUB_OUTPUT
         fi
 
+    - name: Check for alpha release
+      id: check_alpha
+      run: |
+        if [[ "${{ inputs.release_type }}" == "alpha" ]]; then
+          if [[ -f alpha/package.json ]]; then
+            echo "IS_ALPHA=true" >> $GITHUB_OUTPUT
+          else
+            echo "Error: alpha/package.json is missing for alpha release"
+            exit 1
+          fi
+        else
+          echo "IS_ALPHA=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Set Package Versions
       id: pkg_version
       run: |
@@ -59,6 +77,11 @@ jobs:
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
           export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
+          echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
+        elif [[ "${{ steps.check_alpha.outputs.IS_ALPHA }}" == "true" ]]; then
+          export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' alpha/package.json | sed 's/\^//')
+          export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-alpha\(\.[0-9][0-9]*\)/\1.alpha\2/')
+          export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' alpha/package.json | sed 's/\^//')
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
         else
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
@@ -72,6 +95,8 @@ jobs:
       run: |
         if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
           echo "RELEASE_TITLE=BETA: Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
+        elif [[ "${{ steps.check_alpha.outputs.IS_ALPHA }}" == "true" ]]; then
+          echo "RELEASE_TITLE=ALPHA: Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
         else
           echo "RELEASE_TITLE=Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
         fi
@@ -80,6 +105,7 @@ jobs:
       run: |
         echo "::notice::DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
         echo "::notice::IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
+        echo "::notice::IS_ALPHA=${{ steps.check_alpha.outputs.IS_ALPHA }}"
         echo "::notice::HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
         echo "::notice::HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "::notice::FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
@@ -105,8 +131,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and Push Image to GitHub Container Registry (Stable)
-      if: needs.set-versions.outputs.IS_BETA == 'false'
+    - name: Build and Push Image to GitHub Container Registry
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -115,28 +140,14 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          ghcr.io/homebridge/homebridge:latest
-          ghcr.io/homebridge/homebridge:ubuntu
-          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to GitHub Container Registry (Beta)
-      if: needs.set-versions.outputs.IS_BETA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          ghcr.io/homebridge/homebridge:beta
+          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'ghcr.io/homebridge/homebridge:beta' || '' }}
+          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'ghcr.io/homebridge/homebridge:alpha' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:latest' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:ubuntu' || '' }}
           ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Log into Docker Hub
@@ -147,8 +158,8 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and Push Image to Docker Hub (Stable)
-      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'false'
+    - name: Build and Push Image to Docker Hub
+      if: github.repository == 'homebridge/docker-homebridge'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -157,28 +168,14 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          homebridge/homebridge:latest
-          homebridge/homebridge:ubuntu
-          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to Docker Hub (Beta)
-      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          homebridge/homebridge:beta
+          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'homebridge/homebridge:beta' || '' }}
+          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'homebridge/homebridge:alpha' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:latest' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:ubuntu' || '' }}
           homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
   extract-manifest:
@@ -196,6 +193,8 @@ jobs:
       run: |
         if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
           docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        elif [[ "${{ needs.set-versions.outputs.IS_ALPHA }}" == "true" ]]; then
+          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         else
           docker create --name temp-homebridge ghcr.io/homebridge/homebridge:latest
         fi
@@ -209,8 +208,10 @@ jobs:
         # Get the previous release tag (excluding current one)
         if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
           PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -E "^beta-[0-9]{4}-[0-9]{2}-[0-9]{2}" | head -1)
+        elif [[ "${{ needs.set-versions.outputs.IS_ALPHA }}" == "true" ]]; then
+          PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -E "^alpha-[0-9]{4}-[0-9]{2}-[0-9]{2}" | head -1)
         else
-          PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -vE "^beta-" | head -1)
+          PREVIOUS_TAG=$(gh release list --limit 50 | cut -f3 | grep -vE "^(beta|alpha)-" | head -1)
         fi
         
         echo "Previous release tag: $PREVIOUS_TAG"
@@ -224,7 +225,8 @@ jobs:
             if ! diff -u ./previous/Docker.manifest ./manifest.md > manifest.diff 2>/dev/null; then
               echo "### Package Version Changes" >> manifest.md
               echo "\`\`\`diff" >> manifest.md
-              cat manifest.diff | grep -E "^[+-] \|" | head -20 >> manifest.md
+              # Sort the diff output by package name for better readability
+              cat manifest.diff | grep -E "^[+-] \|" | sort -k2 | head -20 >> manifest.md
               echo "\`\`\`" >> manifest.md
             else
               echo "No package version changes detected." >> manifest.md

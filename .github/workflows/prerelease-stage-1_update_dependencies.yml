@@ -1,0 +1,94 @@
+name: Prerelease Stage 1 - Update Dependencies and Trigger Builds
+
+on:
+  schedule:
+    # Daily updates - 6 AM Eastern (10 AM UTC), processes both beta and alpha streams
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Choose release stream to update: "beta", "alpha", or "both"'
+        required: true
+        type: choice
+        options:
+          - beta
+          - alpha
+          - both
+        default: both
+
+jobs:
+  homebridge-beta-bot:
+    name: Run Homebridge Beta Bot
+    uses: homebridge/.github/.github/workflows/homebridge-beta-bot.yml@latest
+    with:
+      config_file: '.github/homebridge-beta-bot.json'
+    secrets: inherit
+
+  determine-changes:
+    name: Determine which streams have changes
+    needs: homebridge-beta-bot
+    if: needs.homebridge-beta-bot.outputs.changes_detected == 'true' && needs.homebridge-beta-bot.outputs.auto_merge == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      beta_changed: ${{ steps.check_changes.outputs.beta_changed }}
+      alpha_changed: ${{ steps.check_changes.outputs.alpha_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check which streams have changes
+        id: check_changes
+        run: |
+          # For manual dispatch, respect the input
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.release_type }}" == "beta" ]]; then
+              echo "beta_changed=true" >> $GITHUB_OUTPUT
+              echo "alpha_changed=false" >> $GITHUB_OUTPUT
+              echo "::notice::Manual dispatch: Processing beta stream only"
+            elif [[ "${{ inputs.release_type }}" == "alpha" ]]; then
+              echo "beta_changed=false" >> $GITHUB_OUTPUT
+              echo "alpha_changed=true" >> $GITHUB_OUTPUT
+              echo "::notice::Manual dispatch: Processing alpha stream only"
+            else
+              echo "beta_changed=true" >> $GITHUB_OUTPUT
+              echo "alpha_changed=true" >> $GITHUB_OUTPUT
+              echo "::notice::Manual dispatch: Processing both beta and alpha streams"
+            fi
+          else
+            # For scheduled runs, always process both streams
+            echo "beta_changed=true" >> $GITHUB_OUTPUT
+            echo "alpha_changed=true" >> $GITHUB_OUTPUT
+            echo "::notice::Scheduled run: Processing both beta and alpha streams"
+          fi
+
+  trigger-beta-prerelease-stage-2:
+    name: Trigger Build and Release Beta Package
+    needs: [homebridge-beta-bot, determine-changes]
+    if: needs.determine-changes.outputs.beta_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Trigger Beta Prerelease Stage 2 Workflow
+        run: |
+          echo "::notice::Triggering Beta Prerelease Stage 2 - Build and Release Beta Package"
+          gh workflow run prerelease-stage-2_build_release.yml --ref latest || { echo "::error::Failed to trigger Beta Prerelease Stage 2 workflow"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-alpha-prerelease-stage-2:
+    name: Trigger Build and Release Alpha Package  
+    needs: [homebridge-beta-bot, determine-changes]
+    if: needs.determine-changes.outputs.alpha_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Trigger Alpha Prerelease Stage 2 Workflow
+        run: |
+          echo "::notice::Triggering Alpha Prerelease Stage 2 - Build and Release Alpha Package"
+          gh workflow run prerelease-stage-2_build_release.yml --ref latest --field release_type=alpha || { echo "::error::Failed to trigger Alpha Prerelease Stage 2 workflow"; exit 1; }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
