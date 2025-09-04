@@ -131,8 +131,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and Push Image to GitHub Container Registry (Stable)
-      if: needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false'
+    - name: Build and Push Image to GitHub Container Registry
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -141,45 +140,14 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          ghcr.io/homebridge/homebridge:latest
-          ghcr.io/homebridge/homebridge:ubuntu
-          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to GitHub Container Registry (Beta)
-      if: needs.set-versions.outputs.IS_BETA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          ghcr.io/homebridge/homebridge:beta
-          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to GitHub Container Registry (Alpha)
-      if: needs.set-versions.outputs.IS_ALPHA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          ghcr.io/homebridge/homebridge:alpha
+          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'ghcr.io/homebridge/homebridge:beta' || '' }}
+          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'ghcr.io/homebridge/homebridge:alpha' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:latest' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:ubuntu' || '' }}
           ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Log into Docker Hub
@@ -190,8 +158,8 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and Push Image to Docker Hub (Stable)
-      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false'
+    - name: Build and Push Image to Docker Hub
+      if: github.repository == 'homebridge/docker-homebridge'
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -200,45 +168,14 @@ jobs:
         push: true
         build-args: |
           HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          homebridge/homebridge:latest
-          homebridge/homebridge:ubuntu
-          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to Docker Hub (Beta)
-      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_BETA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          homebridge/homebridge:beta
-          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-
-    - name: Build and Push Image to Docker Hub (Alpha)
-      if: github.repository == 'homebridge/docker-homebridge' && needs.set-versions.outputs.IS_ALPHA == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
-        push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          homebridge/homebridge:alpha
+          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'homebridge/homebridge:beta' || '' }}
+          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'homebridge/homebridge:alpha' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:latest' || '' }}
+          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:ubuntu' || '' }}
           homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
   extract-manifest:
