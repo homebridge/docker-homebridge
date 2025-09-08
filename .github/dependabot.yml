@@ -1,10 +1,15 @@
-# DEPRECATED: This file is no longer used.
-# Dependency management has been migrated to NorthernMan54/Homebridge-Dependency-Bot
-# See .github/homebridge-dependency-bot.json for the new configuration.
-#
-# This file is kept for reference but dependabot is disabled.
-# The new dependency bot handles both npm packages and provides more
-# granular control over release streams (stable, beta, alpha).
+# Hybrid dependency management configuration
+# - npm dependencies: Managed by NorthernMan54/Homebridge-Dependency-Bot (see .github/homebridge-dependency-bot-*.json)
+# - Docker base images: Managed by GitHub Dependabot (configured below)
 
 version: 2
-updates: []
+updates:
+  # Docker base image updates
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "10:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "production"

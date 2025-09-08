@@ -29,106 +29,48 @@ permissions:
   checks: read
 
 jobs:
-  update-stable-dependencies:
-    name: Update Stable Dependencies
-    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == 'stable' || inputs.release_stream == 'all') }}
+  update-dependencies:
+    name: Update ${{ matrix.stream }} Dependencies
+    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == matrix.stream || inputs.release_stream == 'all') }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stream: [stable, beta, alpha]
     outputs:
-      changes_detected: ${{ steps.dependency-bot.outputs.changes_detected }}
-      pr_number: ${{ steps.dependency-bot.outputs.pr_number }}
+      stable_changes: ${{ steps.set-outputs.outputs.stable_changes }}
+      beta_changes: ${{ steps.set-outputs.outputs.beta_changes }}
+      alpha_changes: ${{ steps.set-outputs.outputs.alpha_changes }}
     steps:
-      - name: Update Stable Dependencies
+      - name: Update Dependencies
         id: dependency-bot
         uses: NorthernMan54/Homebridge-Dependency-Bot@latest
         with:
-          config_file: '.github/homebridge-dependency-bot-stable.json'
-          release_stream: 'stable'
+          config_file: '.github/homebridge-dependency-bot-${{ matrix.stream }}.json'
+          release_stream: ${{ matrix.stream }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  update-beta-dependencies:
-    name: Update Beta Dependencies
-    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == 'beta' || inputs.release_stream == 'all') }}
-    runs-on: ubuntu-latest
-    outputs:
-      changes_detected: ${{ steps.dependency-bot.outputs.changes_detected }}
-      pr_number: ${{ steps.dependency-bot.outputs.pr_number }}
-    steps:
-      - name: Update Beta Dependencies
-        id: dependency-bot
-        uses: NorthernMan54/Homebridge-Dependency-Bot@latest
-        with:
-          config_file: '.github/homebridge-dependency-bot-beta.json'
-          release_stream: 'beta'
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Set outputs for build triggers
+        id: set-outputs
+        run: |
+          echo "${{ matrix.stream }}_changes=${{ steps.dependency-bot.outputs.changes_detected }}" >> $GITHUB_OUTPUT
 
-  update-alpha-dependencies:
-    name: Update Alpha Dependencies
-    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == 'alpha' || inputs.release_stream == 'all') }}
+  trigger-builds:
+    name: Trigger ${{ matrix.stream }} Build
+    needs: update-dependencies
+    if: ${{ !inputs.skip_build && ((matrix.stream == 'stable' && needs.update-dependencies.outputs.stable_changes == 'true') || (matrix.stream == 'beta' && needs.update-dependencies.outputs.beta_changes == 'true') || (matrix.stream == 'alpha' && needs.update-dependencies.outputs.alpha_changes == 'true')) }}
     runs-on: ubuntu-latest
-    outputs:
-      changes_detected: ${{ steps.dependency-bot.outputs.changes_detected }}
-      pr_number: ${{ steps.dependency-bot.outputs.pr_number }}
-    steps:
-      - name: Update Alpha Dependencies
-        id: dependency-bot
-        uses: NorthernMan54/Homebridge-Dependency-Bot@latest
-        with:
-          config_file: '.github/homebridge-dependency-bot-alpha.json'
-          release_stream: 'alpha'
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-  trigger-stable-build:
-    name: Trigger Stable Build
-    needs: update-stable-dependencies
-    if: ${{ needs.update-stable-dependencies.outputs.changes_detected == 'true' && !inputs.skip_build }}
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stream: [stable, beta, alpha]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Trigger Stable Build and Release
+      - name: Trigger Build and Release
         run: |
-          echo "::notice::Triggering stable build - Build and Push Docker Images"
-          gh workflow run build_and_push.yml --ref latest --field release_type=stable || { 
-            echo "::error::Failed to trigger stable build workflow"; 
-            exit 1; 
-          }
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  trigger-beta-build:
-    name: Trigger Beta Build
-    needs: update-beta-dependencies
-    if: ${{ needs.update-beta-dependencies.outputs.changes_detected == 'true' && !inputs.skip_build }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Trigger Beta Build and Release
-        run: |
-          echo "::notice::Triggering beta build - Build and Push Docker Images"
-          gh workflow run build_and_push.yml --ref latest --field release_type=beta || { 
-            echo "::error::Failed to trigger beta build workflow"; 
-            exit 1; 
-          }
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  trigger-alpha-build:
-    name: Trigger Alpha Build
-    needs: update-alpha-dependencies
-    if: ${{ needs.update-alpha-dependencies.outputs.changes_detected == 'true' && !inputs.skip_build }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Trigger Alpha Build and Release
-        run: |
-          echo "::notice::Triggering alpha build - Build and Push Docker Images"
-          gh workflow run build_and_push.yml --ref latest --field release_type=alpha || { 
-            echo "::error::Failed to trigger alpha build workflow"; 
+          echo "::notice::Triggering ${{ matrix.stream }} build - Build and Push Docker Images"
+          gh workflow run build_and_push.yml --ref latest --field release_type=${{ matrix.stream }} || { 
+            echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; 
             exit 1; 
           }
         env:
