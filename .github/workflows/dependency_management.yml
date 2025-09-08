@@ -49,6 +49,10 @@ jobs:
             echo 'matrix={"stream":["stable","beta","alpha"]}' >> $GITHUB_OUTPUT
           fi
 
+      - name: Output matrix for debugging
+        run: |
+          echo "::notice::Dependencies Matrix: ${{ steps.set-matrix.outputs.matrix }}"
+
   update-dependencies:
     name: Update ${{ matrix.stream }} Dependencies
     needs: define-matrix
@@ -108,6 +112,9 @@ jobs:
             MATRIX_JSON="[${MATRIX_JSON%,}]"
             echo "{\"stream\":$MATRIX_JSON}" | jq -c . | sed 's/"/\\"/g' | awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
           fi
+      - name: Output matrix for debugging
+        run: |
+          echo "::notice::Build Trigger Matrix: ${{ steps.set-matrix.outputs.matrix }}"
 
   trigger-builds-notice:
     name: Notify No Builds Triggered
