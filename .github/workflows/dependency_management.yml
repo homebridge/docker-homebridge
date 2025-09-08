@@ -124,7 +124,7 @@ jobs:
     steps:
       - name: No builds to trigger
         run: |
-          echo "::notice::No dependency updates detected or build skipped. No builds to trigger."
+          echo "::warning::No dependency updates detected or build skipped. No builds to trigger."
 
   trigger-builds:
     name: Trigger ${{ matrix.stream }} Build
