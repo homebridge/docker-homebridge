@@ -109,9 +109,20 @@ jobs:
             echo "{\"stream\":$MATRIX_JSON}" | jq -c . | sed 's/"/\\"/g' | awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
           fi
 
+  trigger-builds-notice:
+    name: Notify No Builds Triggered
+    needs: [update-dependencies, build-trigger-matrix]
+    if: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream == '' || fromJson(needs.build-trigger-matrix.outputs.matrix).stream == null }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: No builds to trigger
+        run: |
+          echo "::notice::No dependency updates detected or build skipped. No builds to trigger."
+
   trigger-builds:
     name: Trigger ${{ matrix.stream }} Build
     needs: [update-dependencies, build-trigger-matrix]
+    if: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream != '' && fromJson(needs.build-trigger-matrix.outputs.matrix).stream != null }}
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
