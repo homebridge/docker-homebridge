@@ -1,0 +1,79 @@
+name: Dependency Management - Update and Build
+
+on:
+  schedule:
+    # Daily updates - 6 AM Eastern (10 AM UTC), processes stable, beta and alpha streams
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    inputs:
+      release_stream:
+        description: 'Choose release stream to update and build'
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
+          - all
+        default: all
+      skip_build:
+        description: 'Skip build and only update dependencies'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  metadata: read
+  checks: read
+
+jobs:
+  update-dependencies:
+    name: Update ${{ matrix.stream }} Dependencies
+    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == matrix.stream || inputs.release_stream == 'all') }}
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        stream: [stable, beta, alpha]
+    outputs:
+      stable_changes: ${{ steps.set-outputs.outputs.stable_changes }}
+      beta_changes: ${{ steps.set-outputs.outputs.beta_changes }}
+      alpha_changes: ${{ steps.set-outputs.outputs.alpha_changes }}
+    steps:
+      - name: Update Dependencies
+        id: dependency-bot
+        uses: NorthernMan54/Homebridge-Dependency-Bot@latest
+        with:
+          config_file: '.github/homebridge-dependency-bot-${{ matrix.stream }}.json'
+          release_stream: ${{ matrix.stream }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Set outputs for build triggers
+        id: set-outputs
+        run: |
+          echo "${{ matrix.stream }}_changes=${{ steps.dependency-bot.outputs.changes_detected }}" >> $GITHUB_OUTPUT
+
+  trigger-builds:
+    name: Trigger ${{ matrix.stream }} Build
+    needs: update-dependencies
+    if: ${{ !inputs.skip_build && ((matrix.stream == 'stable' && needs.update-dependencies.outputs.stable_changes == 'true') || (matrix.stream == 'beta' && needs.update-dependencies.outputs.beta_changes == 'true') || (matrix.stream == 'alpha' && needs.update-dependencies.outputs.alpha_changes == 'true')) }}
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        stream: [stable, beta, alpha]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Trigger Build and Release
+        run: |
+          echo "::notice::Triggering ${{ matrix.stream }} build - Build and Push Docker Images"
+          gh workflow run build_and_push.yml --ref latest --field release_type=${{ matrix.stream }} || { 
+            echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; 
+            exit 1; 
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

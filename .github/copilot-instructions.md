@@ -79,59 +79,33 @@ This repository creates the official multi-architecture Docker images for Homebr
    ```
    - Same tzupdate dependency issue as stable build
 
-### Automated Beta Updates (homebridge-beta-bot)
+### Automated Dependency Updates (NorthernMan54/Homebridge-Dependency-Bot)
 
 **Overview:**
-This repository uses the homebridge-beta-bot from `homebridge/.github` to automatically update beta dependencies and trigger beta releases. The bot runs daily via scheduled workflows and can also be triggered manually.
+This repository uses the NorthernMan54/Homebridge-Dependency-Bot to automatically update dependencies for stable, beta, and alpha release streams. The bot runs daily via a consolidated workflow and can also be triggered manually.
 
-**Beta Automation Workflow:**
-1. **Stage 1** (`prerelease-stage-1_update_dependencies.yml`):
-   - Runs daily at 10:00 UTC (6 AM Eastern)
-   - Calls the reusable `homebridge-beta-bot.yml` workflow
-   - Updates dependencies in `beta/package.json` based on configuration
-   - Creates and auto-merges PR if changes detected
-   - Triggers Stage 2 on successful merge
+**Dependency Management Workflow:**
+- **Consolidated Workflow** (`dependency_management.yml`):
+  - Runs daily at 10:00 UTC (6 AM Eastern)
+  - Updates dependencies for all three release streams: stable, beta, alpha
+  - Uses NorthernMan54/Homebridge-Dependency-Bot action
+  - Creates and auto-merges PRs if changes detected
+  - Triggers builds automatically after dependency updates
 
-2. **Stage 2** (`prerelease-stage-2_build_release.yml`):
-   - Triggered automatically after Stage 1 completes
-   - Builds and releases beta Docker images
-   - Uses updated beta dependencies from merged PR
+**Configuration Structure:**
+- `.github/homebridge-dependency-bot-stable.json`: Manages root `package.json` with latest releases
+- `.github/homebridge-dependency-bot-beta.json`: Manages `beta/package.json` with beta releases
+- `.github/homebridge-dependency-bot-alpha.json`: Manages `alpha/package.json` with alpha releases
 
-**Configuration (`.github/homebridge-beta-bot.json`):**
-```json
-{
-  "auto_merge": true,
-  "git_user": {
-    "name": "Homebridge Beta Bot", 
-    "email": "actions@github.com"
-  },
-  "directories": [
-    {
-      "directory": "beta",
-      "packages": [
-        {
-          "name": "@homebridge/homebridge-apt-pkg",
-          "tag": "beta"
-        },
-        {
-          "name": "ffmpeg-for-homebridge", 
-          "tag": "latest"
-        }
-      ]
-    }
-  ]
-}
-```
+**Manual vs Automated Process:**
+- **Manual:** Trigger via workflow_dispatch in GitHub Actions UI
+- **Automated:** Daily scheduled runs process all release streams
+- Both processes use the same configuration files and dependency bot action
+- Automated process ensures all release streams stay current with upstream changes
 
-**Manual vs Automated Beta Process:**
-- **Manual:** Currently not possible due to local build failures
-- **Automated:** homebridge-beta-bot handles dependency updates and release builds
-- Both processes use the same `beta/package.json` file
-- Automated process ensures beta releases stay current with upstream changes
-
-**Troubleshooting Beta Bot:**
-- Check workflow run logs in Actions tab
-- Verify `homebridge-beta-bot.json` syntax with `jq . .github/homebridge-beta-bot.json`
+**Troubleshooting Dependency Bot:**
+- Check workflow run logs in Actions tab for `dependency_management.yml`
+- Verify JSON syntax with `jq . .github/homebridge-dependency-bot-*.json`
 - Manual trigger available via workflow_dispatch in GitHub Actions UI
 - Bot requires `GH_TOKEN` secret for PR approval (auto-configured)
 
@@ -210,19 +184,22 @@ docker compose down
 ├── test/                       # Local testing configuration
 │   └── docker-compose.yml     # Test container setup
 └── .github/                    # CI/CD automation and configuration
-    ├── homebridge-beta-bot.json  # Beta bot configuration
+    ├── homebridge-dependency-bot-stable.json  # Stable release dependency configuration
+    ├── homebridge-dependency-bot-beta.json    # Beta release dependency configuration  
+    ├── homebridge-dependency-bot-alpha.json   # Alpha release dependency configuration
+    ├── dependabot.yml          # Deprecated - migrated to dependency bot
     └── workflows/
-        ├── build_and_push.yml  # Main build and release workflow
-        ├── prerelease-stage-1_update_dependencies.yml  # Automated prerelease updates
-        └── prerelease-stage-2_build_release.yml  # Prerelease builds
+        ├── build_and_push.yml     # Main build and release workflow
+        └── dependency_management.yml  # Consolidated dependency management
 ```
 
 ### Key Configuration Files
 - **Dockerfile:** Main image definition with multi-arch support
 - **rootfs/etc/s6-overlay/scripts/setup.sh:** Primary container initialization (npm installs, config setup)
 - **test/docker-compose.yml:** Local testing environment
-- **build scripts:** `test-build-local.sh` (stable), `beta-build-local.sh` (beta)
-- **.github/homebridge-beta-bot.json:** Configuration for automated beta dependency updates
+- **build scripts:** `test-build-local.sh` (stable), `beta-build-local.sh` (beta), `alpha-build-local.sh` (alpha)
+- **.github/homebridge-dependency-bot-*.json:** Configuration for automated dependency updates per release stream
+- **.github/dependabot.yml:** Deprecated dependency management (replaced by dependency bot)
 
 ### CI/CD Pipeline 
 
@@ -235,15 +212,17 @@ docker compose down
 
 **Manual Trigger Required:** Workflow runs via `workflow_dispatch` only.
 
-**Beta Automation Pipeline:**
-- **Stage 1:** Daily automated dependency updates via homebridge-beta-bot (10:00 UTC)
-- **Stage 2:** Automated beta builds and releases triggered after dependency updates
-- **Schedule:** Runs daily, updates after 4 AM Eastern APT package builds
-- **Auto-merge:** Enabled for beta dependency PRs to maintain currency
+**Dependency Management Pipeline:**
+- **Consolidated Workflow:** `dependency_management.yml` handles all release streams
+- **Daily Schedule:** Runs at 10:00 UTC, processes stable/beta/alpha streams  
+- **Auto-merge:** Enabled for dependency PRs to maintain currency
+- **Trigger Builds:** Automatically triggers build_and_push.yml after updates
+- **Manual Control:** Support selective stream updates via workflow_dispatch
 
 **Build Matrix:**
-- Stable: `latest`, `ubuntu`, `YYYY-MM-DD` tags
-- Beta: `beta`, `beta-YYYY-MM-DD` tags
+- Stable: `latest`, `ubuntu`, `YYYY-MM-DD` tags (from root package.json)
+- Beta: `beta`, `beta-YYYY-MM-DD` tags (from beta/package.json)
+- Alpha: `alpha`, `alpha-YYYY-MM-DD` tags (from alpha/package.json)
 
 ### Dependencies & Requirements
 

@@ -1,21 +1,9 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Hybrid dependency management configuration
+# - npm dependencies: Managed by NorthernMan54/Homebridge-Dependency-Bot (see .github/homebridge-dependency-bot-*.json)
+# - Docker base images: Managed by GitHub Dependabot (configured below)
 
 version: 2
 updates:
-  # Root package.json updates
-  - package-ecosystem: npm
-    directory: "/"
-    schedule:
-      interval: daily
-      time: "10:00"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    labels:
-      - "production"
-
   # Docker base image updates
   - package-ecosystem: docker
     directory: "/"
