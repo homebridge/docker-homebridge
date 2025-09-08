@@ -25,18 +25,37 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  metadata: read
   checks: read
 
 jobs:
+  define-matrix:
+    name: Define Jobs Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set matrix based on trigger
+        id: set-matrix
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.release_stream }}" == "all" ]]; then
+              echo 'matrix={"stream":["stable","beta","alpha"]}' >> $GITHUB_OUTPUT
+            else
+              echo "matrix={\"stream\":[\"${{ github.event.inputs.release_stream }}\"]}" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Scheduled run - process stable, beta, and alpha streams
+            echo 'matrix={"stream":["stable","beta","alpha"]}' >> $GITHUB_OUTPUT
+          fi
+
   update-dependencies:
     name: Update ${{ matrix.stream }} Dependencies
-    if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == matrix.stream || inputs.release_stream == 'all') }}
+    needs: define-matrix
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
       matrix:
-        stream: [stable, beta, alpha]
+        stream: ${{ fromJson(needs.define-matrix.outputs.matrix).stream }}
     outputs:
       stable_changes: ${{ steps.set-outputs.outputs.stable_changes }}
       beta_changes: ${{ steps.set-outputs.outputs.beta_changes }}
@@ -55,15 +74,48 @@ jobs:
         run: |
           echo "${{ matrix.stream }}_changes=${{ steps.dependency-bot.outputs.changes_detected }}" >> $GITHUB_OUTPUT
 
+  build-trigger-matrix:
+    name: Build Trigger Matrix
+    needs: update-dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set build trigger matrix
+        id: set-matrix
+        run: |
+          MATRIX_ENTRIES=()
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_build }}" == "true" ]]; then
+            echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [[ "${{ needs.update-dependencies.outputs.stable_changes }}" == "true" ]]; then
+            MATRIX_ENTRIES+=('{"stream":"stable"}')
+          fi
+          if [[ "${{ needs.update-dependencies.outputs.beta_changes }}" == "true" ]]; then
+            MATRIX_ENTRIES+=('{"stream":"beta"}')
+          fi
+          if [[ "${{ needs.update-dependencies.outputs.alpha_changes }}" == "true" ]]; then
+            MATRIX_ENTRIES+=('{"stream":"alpha"}')
+          fi
+
+          if [ ${#MATRIX_ENTRIES[@]} -eq 0 ]; then
+            echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
+          else
+            MATRIX_JSON=$(printf '%s,' "${MATRIX_ENTRIES[@]}")
+            MATRIX_JSON="[${MATRIX_JSON%,}]"
+            echo "{\"stream\":$MATRIX_JSON}" | jq -c . | sed 's/"/\\"/g' | awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
+          fi
+
   trigger-builds:
     name: Trigger ${{ matrix.stream }} Build
-    needs: update-dependencies
-    if: ${{ !inputs.skip_build && ((matrix.stream == 'stable' && needs.update-dependencies.outputs.stable_changes == 'true') || (matrix.stream == 'beta' && needs.update-dependencies.outputs.beta_changes == 'true') || (matrix.stream == 'alpha' && needs.update-dependencies.outputs.alpha_changes == 'true')) }}
+    needs: [update-dependencies, build-trigger-matrix]
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
       matrix:
-        stream: [stable, beta, alpha]
+        stream: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
