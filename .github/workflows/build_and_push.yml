@@ -14,6 +14,10 @@ on:
           - alpha
         default: beta
 
+concurrency:
+  group: build-and-push-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   set-versions:
     runs-on: ubuntu-latest
