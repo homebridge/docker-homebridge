@@ -34,6 +34,7 @@ jobs:
     if: ${{ (github.event_name == 'schedule') || (inputs.release_stream == matrix.stream || inputs.release_stream == 'all') }}
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
       matrix:
         stream: [stable, beta, alpha]
     outputs:
@@ -60,6 +61,7 @@ jobs:
     if: ${{ !inputs.skip_build && ((matrix.stream == 'stable' && needs.update-dependencies.outputs.stable_changes == 'true') || (matrix.stream == 'beta' && needs.update-dependencies.outputs.beta_changes == 'true') || (matrix.stream == 'alpha' && needs.update-dependencies.outputs.alpha_changes == 'true')) }}
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
       matrix:
         stream: [stable, beta, alpha]
     steps:
