@@ -119,7 +119,7 @@ jobs:
   trigger-builds-notice:
     name: Notify No Builds Triggered
     needs: [update-dependencies, build-trigger-matrix]
-    if: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream == '' || fromJson(needs.build-trigger-matrix.outputs.matrix).stream == null || fromJson(needs.build-trigger-matrix.outputs.matrix).stream == [] }}
+    if: ${{ (fromJson(needs.build-trigger-matrix.outputs.matrix).stream.length == 0) }}
     runs-on: ubuntu-latest
     steps:
       - name: No builds to trigger
@@ -129,7 +129,7 @@ jobs:
   trigger-builds:
     name: Trigger ${{ matrix.stream }} Build
     needs: [update-dependencies, build-trigger-matrix]
-    if: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream != '' && fromJson(needs.build-trigger-matrix.outputs.matrix).stream != null }}
+    if: ${{  (fromJson(needs.build-trigger-matrix.outputs.matrix).stream.length > 0) }}
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
