@@ -1,23 +1,10 @@
 {
   "auto_merge": true,
   "git_user": {
-    "name": "Homebridge Beta Bot",
+    "name": "Homebridge Dependency Bot",
     "email": "actions@github.com"
   },
   "directories": [
-    {
-      "directory": "beta",
-      "packages": [
-        {
-          "name": "@homebridge/homebridge-apt-pkg",
-          "tag": "beta"
-        },
-        {
-          "name": "ffmpeg-for-homebridge",
-          "tag": "latest"
-        }
-      ]
-    },
     {
       "directory": "alpha",
       "packages": [
