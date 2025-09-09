@@ -85,10 +85,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      build: ${{ steps.set-matrix.outputs.build }}
     steps:
       - name: Set build trigger matrix
         id: set-matrix
         run: |
+          BUILD=""
           MATRIX_ENTRIES=()
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_build }}" == "true" ]]; then
             echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
@@ -96,30 +98,35 @@ jobs:
           fi
 
           if [[ "${{ needs.update-dependencies.outputs.stable_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('{"stream":"stable"}')
+            MATRIX_ENTRIES+=('"stable"')
+            BUILD="true"
           fi
           if [[ "${{ needs.update-dependencies.outputs.beta_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('{"stream":"beta"}')
+            MATRIX_ENTRIES+=('"beta"')
+            BUILD="true"
           fi
           if [[ "${{ needs.update-dependencies.outputs.alpha_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('{"stream":"alpha"}')
+            MATRIX_ENTRIES+=('"alpha"')
+            BUILD="true"
           fi
 
           if [ ${#MATRIX_ENTRIES[@]} -eq 0 ]; then
             echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
+            echo "build=false" >> $GITHUB_OUTPUT
           else
             MATRIX_JSON=$(printf '%s,' "${MATRIX_ENTRIES[@]}")
             MATRIX_JSON="[${MATRIX_JSON%,}]"
             echo "{\"stream\":$MATRIX_JSON}" | jq -c . | sed 's/"/\\"/g' | awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
+            echo "build=true" >> $GITHUB_OUTPUT
           fi
       - name: Output matrix for debugging
         run: |
-          echo "::notice::Build Trigger Matrix: ${{ steps.set-matrix.outputs.matrix }}"
+          echo "::notice::Build Trigger Matrix: ${{ steps.set-matrix.outputs.build }} - ${{ steps.set-matrix.outputs.matrix }}"
 
   trigger-builds-notice:
     name: Notify No Builds Triggered
     needs: [update-dependencies, build-trigger-matrix]
-    if: ${{ (fromJson(needs.build-trigger-matrix.outputs.matrix).stream.length == 0) }}
+    if: ${{ needs.build-trigger-matrix.outputs.build == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: No builds to trigger
@@ -129,7 +136,7 @@ jobs:
   trigger-builds:
     name: Trigger ${{ matrix.stream }} Build
     needs: [update-dependencies, build-trigger-matrix]
-    if: ${{  (fromJson(needs.build-trigger-matrix.outputs.matrix).stream.length > 0) }}
+    if: ${{ needs.build-trigger-matrix.outputs.build == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
@@ -142,7 +149,7 @@ jobs:
       - name: Trigger Build and Release
         run: |
           echo "::notice::Triggering ${{ matrix.stream }} build - Build and Push Docker Images"
-          gh workflow run build_and_push.yml --ref latest --field release_type=${{ matrix.stream }} || { 
+          gh workflow run release-stage-2_build_and_push_docker_images.yml --ref latest --field release_type=${{ matrix.stream }} || { 
             echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; 
             exit 1; 
           }

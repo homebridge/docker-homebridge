@@ -1,5 +1,5 @@
-name: Build and Push Docker Images
-run-name: Build and Push Docker Images (${{ inputs.release_type == 'stable' && 'stable' || inputs.release_type == 'alpha' && 'alpha' || 'beta' }})
+name: Release Stage 2 - Build and Push Docker Images
+run-name: Release Stage 2 - Build and Push ${{ inputs.release_type }} Docker Images
 
 on:
   workflow_dispatch:
@@ -29,6 +29,7 @@ jobs:
       HOMEBRIDGE_APT_PKG_FILE: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
       RELEASE_TITLE: ${{ steps.set_title.outputs.RELEASE_TITLE }}
+      DOCKER_TAG: ${{ steps.pkg_version.outputs.DOCKER_TAG }}
 
     steps:
     - name: Checkout
@@ -82,14 +83,17 @@ jobs:
           export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
+          echo "DOCKER_TAG=beta" >> $GITHUB_OUTPUT
         elif [[ "${{ steps.check_alpha.outputs.IS_ALPHA }}" == "true" ]]; then
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' alpha/package.json | sed 's/\^//')
           export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-alpha\(\.[0-9][0-9]*\)/\1.alpha\2/')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' alpha/package.json | sed 's/\^//')
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
+          echo "DOCKER_TAG=alpha" >> $GITHUB_OUTPUT
         else
           export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
           export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
+          echo "DOCKER_TAG=latest" >> $GITHUB_OUTPUT
         fi
         echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
@@ -107,6 +111,7 @@ jobs:
 
     - name: Output versions
       run: |
+        echo "::group::Version Information"
         echo "::notice::DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
         echo "::notice::IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
         echo "::notice::IS_ALPHA=${{ steps.check_alpha.outputs.IS_ALPHA }}"
@@ -114,6 +119,8 @@ jobs:
         echo "::notice::HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "::notice::FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
         echo "::notice::RELEASE_TITLE=${{ steps.set_title.outputs.RELEASE_TITLE }}"
+        echo "::notice::DOCKER_TAG=${{ steps.pkg_version.outputs.DOCKER_TAG }}"
+        echo "::endgroup::"
 
   build-images:
     runs-on: ubuntu-latest
@@ -148,10 +155,8 @@ jobs:
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'ghcr.io/homebridge/homebridge:beta' || '' }}
-          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'ghcr.io/homebridge/homebridge:alpha' || '' }}
-          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:latest' || '' }}
           ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:ubuntu' || '' }}
+          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
           ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
 
     - name: Log into Docker Hub
@@ -176,11 +181,9 @@ jobs:
           FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
           DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         tags: |
-          ${{ needs.set-versions.outputs.IS_BETA == 'true' && 'homebridge/homebridge:beta' || '' }}
-          ${{ needs.set-versions.outputs.IS_ALPHA == 'true' && 'homebridge/homebridge:alpha' || '' }}
-          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:latest' || '' }}
           ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:ubuntu' || '' }}
           homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
 
   extract-manifest:
     runs-on: ubuntu-latest
@@ -195,13 +198,7 @@ jobs:
     - name: Extract Docker.manifest from Image
       id: extract
       run: |
-        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
-          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        elif [[ "${{ needs.set-versions.outputs.IS_ALPHA }}" == "true" ]]; then
-          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        else
-          docker create --name temp-homebridge ghcr.io/homebridge/homebridge:latest
-        fi
+        docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         docker cp temp-homebridge:/opt/homebridge/Docker.manifest ./manifest.md
         docker rm temp-homebridge
         echo "manifest_file=manifest.md" >> $GITHUB_OUTPUT
