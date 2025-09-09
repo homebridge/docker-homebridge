@@ -1,5 +1,5 @@
-name: Dependency Management - Update and Build
-run-name: Dependency Management - ${{ github.event_name == 'workflow_dispatch' && format('Manual - {0}', github.event.inputs.release_stream) || 'Scheduled' }} Run
+name: Release Stage 1 - Dependency Management - Update and Build
+run-name: Release Stage 1 - Dependency Management - ${{ github.event_name == 'workflow_dispatch' && format('Manual - {0}', github.event.inputs.release_stream) || 'Scheduled' }} Run
 
 on:
   schedule:
