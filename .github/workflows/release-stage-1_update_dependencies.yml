@@ -98,30 +98,33 @@ jobs:
           fi
 
           if [[ "${{ needs.update-dependencies.outputs.stable_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"stable"')
+            MATRIX_ENTRIES+=('stable')
             BUILD="true"
           fi
           if [[ "${{ needs.update-dependencies.outputs.beta_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"beta"')
+            MATRIX_ENTRIES+=('beta')
             BUILD="true"
           fi
           if [[ "${{ needs.update-dependencies.outputs.alpha_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"alpha"')
+            MATRIX_ENTRIES+=('alpha')
             BUILD="true"
           fi
 
           if [ ${#MATRIX_ENTRIES[@]} -eq 0 ]; then
-            echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
+            echo 'matrix={stream:[]}' >> $GITHUB_OUTPUT
             echo "build=false" >> $GITHUB_OUTPUT
           else
             MATRIX_JSON=$(printf '%s,' "${MATRIX_ENTRIES[@]}")
             MATRIX_JSON="[${MATRIX_JSON%,}]"
-            echo "{\"stream\":$MATRIX_JSON}" | jq -c . | sed 's/"/\\"/g' | awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
+            echo "{stream:$MATRIX_JSON}" |  awk '{print "matrix=" $0}' >> $GITHUB_OUTPUT
             echo "build=true" >> $GITHUB_OUTPUT
           fi
       - name: Output matrix for debugging
         run: |
           echo "::notice::Build Trigger Matrix: ${{ steps.set-matrix.outputs.build }} - ${{ steps.set-matrix.outputs.matrix }}"
+
+# Worsk - Notice: Dependencies Matrix: {stream:[stable,beta,alpha]}
+# Fails - Notice: Build Trigger Matrix: true - {"stream":["beta","alpha"]}
 
   trigger-builds-notice:
     name: Notify No Builds Triggered
