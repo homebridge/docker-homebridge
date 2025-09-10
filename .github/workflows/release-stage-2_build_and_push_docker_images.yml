@@ -112,14 +112,14 @@ jobs:
     - name: Output versions
       run: |
         echo "::group::Version Information"
-        echo "::notice::DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
-        echo "::notice::IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
-        echo "::notice::IS_ALPHA=${{ steps.check_alpha.outputs.IS_ALPHA }}"
-        echo "::notice::HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
-        echo "::notice::HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
-        echo "::notice::FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
-        echo "::notice::RELEASE_TITLE=${{ steps.set_title.outputs.RELEASE_TITLE }}"
-        echo "::notice::DOCKER_TAG=${{ steps.pkg_version.outputs.DOCKER_TAG }}"
+        echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        echo "IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
+        echo "IS_ALPHA=${{ steps.check_alpha.outputs.IS_ALPHA }}"
+        echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
+        echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
+        echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+        echo "RELEASE_TITLE=${{ steps.set_title.outputs.RELEASE_TITLE }}"
+        echo "DOCKER_TAG=${{ steps.pkg_version.outputs.DOCKER_TAG }}"
         echo "::endgroup::"
 
   build-images:
