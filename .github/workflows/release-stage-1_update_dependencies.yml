@@ -144,7 +144,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        stream: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream }}
+        stream: ${{ needs.build-trigger-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
