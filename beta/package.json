@@ -2,7 +2,7 @@
   "name": "@homebridge/docker-homebridge",
   "private": true,
   "version": "0.0.0",
-  "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge",
+  "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge for the beta release stream",
   "dependencies": {
     "@homebridge/homebridge-apt-pkg": "1.7.9-beta.20250910",
     "ffmpeg-for-homebridge": "2.1.7"
