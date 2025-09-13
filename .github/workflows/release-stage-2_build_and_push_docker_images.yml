@@ -1,5 +1,5 @@
 name: Release Stage 2 - Build and Push Docker Images
-run-name: Release Stage 2 - Build and Push ${{ inputs.release_type }} Docker Images
+run-name: Release Stage 2 - ${{ github.event.inputs.Scheduled}} - Build and Push ${{ inputs.release_type }} Docker Images
 
 on:
   workflow_dispatch:
@@ -13,6 +13,14 @@ on:
           - beta
           - alpha
         default: beta
+      Scheduled:
+          description: 'Whether this is a scheduled run'
+          required: false
+          type: choice
+          options:
+            - Scheduled
+            - Manual
+          default: Manual
 
 concurrency:
   group: build-and-push-${{ github.ref }}

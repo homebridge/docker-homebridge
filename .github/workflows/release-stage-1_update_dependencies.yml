@@ -67,96 +67,27 @@ jobs:
       beta_changes: ${{ steps.set-outputs.outputs.beta_changes }}
       alpha_changes: ${{ steps.set-outputs.outputs.alpha_changes }}
     steps:
-      - name: Update Dependencies
-        id: dependency-bot
+      - name: Update Dependencies ${{ matrix.stream }}
+        id: homebridge-bot
         uses: NorthernMan54/Homebridge-Dependency-Bot@latest
         with:
           config_file: '.github/homebridge-dependency-bot-${{ matrix.stream }}.json'
           release_stream: ${{ matrix.stream }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Set outputs for build triggers
-        id: set-outputs
+      - name: Log Skipped ${{ matrix.stream }} Stage 2 Trigger
+        if: steps.homebridge-bot.outputs.changes_detected != 'true' || steps.homebridge-bot.outputs.auto_merge != 'true'
         run: |
-          echo "${{ matrix.stream }}_changes=${{ steps.dependency-bot.outputs.changes_detected }}" >> $GITHUB_OUTPUT
-
-  build-trigger-matrix:
-    name: Build Trigger Matrix
-    needs: update-dependencies
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      build: ${{ steps.set-matrix.outputs.build }}
-    steps:
-      - name: Set build trigger matrix
-        id: set-matrix
-        run: |
-          BUILD=""
-          MATRIX_ENTRIES=()
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_build }}" == "true" ]]; then
-            echo 'matrix={"stream":[]}' >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if [[ "${{ needs.update-dependencies.outputs.stable_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"stable"')
-            BUILD="true"
-          fi
-          if [[ "${{ needs.update-dependencies.outputs.beta_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"beta"')
-            BUILD="true"
-          fi
-          if [[ "${{ needs.update-dependencies.outputs.alpha_changes }}" == "true" ]]; then
-            MATRIX_ENTRIES+=('"alpha"')
-            BUILD="true"
-          fi
-
-          if [ ${#MATRIX_ENTRIES[@]} -eq 0 ]; then
-            echo 'matrix={stream:[]}' >> $GITHUB_OUTPUT
-            echo "build=false" >> $GITHUB_OUTPUT
-          else
-            MATRIX_JSON=$(printf '%s,' "${MATRIX_ENTRIES[@]}")
-            MATRIX_JSON="[${MATRIX_JSON%,}]"
-            echo "matrix={\"stream\":$MATRIX_JSON}"
-            echo "matrix={\"stream\":$MATRIX_JSON}"  >> $GITHUB_OUTPUT
-            echo "build=true" >> $GITHUB_OUTPUT
-          fi
-      - name: Output matrix for debugging
-        run: |
-          echo "::notice::Build Trigger Matrix: ${{ steps.set-matrix.outputs.build }} - ${{ steps.set-matrix.outputs.matrix }}"
-
-# Worsk - Notice: Dependencies Matrix: {stream:[stable,beta,alpha]}
-# Fails - Notice: Build Trigger Matrix: true - {"stream":["beta","alpha"]}
-
-  trigger-builds-notice:
-    name: Notify No Builds Triggered
-    needs: [update-dependencies, build-trigger-matrix]
-    if: ${{ needs.build-trigger-matrix.outputs.build == 'false' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: No builds to trigger
-        run: |
-          echo "::warning::No dependency updates detected or build skipped. No builds to trigger."
-
-  trigger-builds:
-    name: Trigger ${{ matrix.stream }} Build
-    needs: [update-dependencies, build-trigger-matrix]
-    if: ${{ needs.build-trigger-matrix.outputs.build == 'true' }}
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        stream: ${{ fromJson(needs.build-trigger-matrix.outputs.matrix).stream }}
-    steps:
-      - name: Checkout repository
+          echo "::warning::${{ matrix.stream }} Stage 2 not triggered: Changes Detected=${{ steps.homebridge-bot.outputs.changes_detected }}, Auto Merge=${{ steps.homebridge-bot.outputs.auto_merge }}"
+  
+      - name: Checkout repository (for trigger step)
+        if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
         uses: actions/checkout@v4
-        
-      - name: Trigger Build and Release
+
+      - name: Trigger Build and Release ${{ matrix.stream }} Package
+        if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "::notice::Triggering ${{ matrix.stream }} build - Build and Push Docker Images"
-          gh workflow run release-stage-2_build_and_push_docker_images.yml --ref latest --field release_type=${{ matrix.stream }} || { 
-            echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; 
-            exit 1; 
-          }
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh workflow run release-stage-2_build_and_push_docker_images.yml --ref latest --field release_type=${{ matrix.stream }} --field Scheduled=${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} || { echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; exit 1; }
