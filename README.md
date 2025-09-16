@@ -151,6 +151,31 @@ homebridge    | # unreachable code
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
+## Container Validation
+
+This repository includes automated validation workflows to ensure container builds work correctly:
+
+### Manual Container Validation
+
+To validate a specific release manually, you can trigger the **Validate Docker Container** workflow:
+
+1. Go to [Actions](https://github.com/homebridge/docker-homebridge/actions)
+2. Select "Validate Docker Container" workflow
+3. Click "Run workflow"  
+4. Choose the release tag to validate:
+   - `latest` - Stable release
+   - `beta` - Beta pre-release  
+   - `alpha` - Alpha early release
+
+The validation workflow will:
+- ✅ Start the container and verify it runs successfully
+- ✅ Check that Homebridge UI is accessible on port 8581
+- ✅ Verify Homebridge service starts properly with version detection
+- ✅ Validate container health checks pass
+- ✅ Extract and validate the Docker manifest
+
+This ensures each release works correctly before users download and run it.
+
 ## License
 
 Copyright (C) 2024 homebridge
