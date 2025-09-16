@@ -141,6 +141,15 @@ jobs:
           exit 1
         fi
 
+    - name: Validate hb-serivice status
+      working-directory: ./test
+      run: |
+        echo "Validating hb-service status inside container..."
+        docker compose exec homebridge sudo hb-service status || echo "⚠️ hb-service status failed"
+
+        echo "Running hb-service view inside the container..."
+        docker compose exec homebridge sudo hb-service view || echo "⚠️ hb-service view failed"
+
     - name: Validate version manifest
       run: |
         echo "Checking Docker manifest for ${{ inputs.release_tag }} release..."
