@@ -25,25 +25,8 @@ jobs:
     - name: Set container image based on release tag
       id: set-image
       run: |
-        case "${{ inputs.release_tag }}" in
-          "alpha")
-            echo "CONTAINER_IMAGE=ghcr.io/homebridge/homebridge:alpha" >> $GITHUB_OUTPUT
-            echo "EXPECTED_TAG=alpha" >> $GITHUB_OUTPUT
-            ;;
-          "beta")
-            echo "CONTAINER_IMAGE=ghcr.io/homebridge/homebridge:beta" >> $GITHUB_OUTPUT
-            echo "EXPECTED_TAG=beta" >> $GITHUB_OUTPUT
-            ;;
-          "latest")
-            echo "CONTAINER_IMAGE=ghcr.io/homebridge/homebridge:latest" >> $GITHUB_OUTPUT
-            echo "EXPECTED_TAG=latest" >> $GITHUB_OUTPUT
-            ;;
-          *)
-            echo "Error: Invalid release tag '${{ inputs.release_tag }}'"
-            exit 1
-            ;;
-        esac
-        echo "Selected container image: $(cat $GITHUB_OUTPUT | grep CONTAINER_IMAGE | cut -d'=' -f2)"
+        echo "CONTAINER_IMAGE=ghcr.io/homebridge/homebridge:${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
+        echo "EXPECTED_TAG=${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
 
     - name: Start Homebridge container
       working-directory: ./test
