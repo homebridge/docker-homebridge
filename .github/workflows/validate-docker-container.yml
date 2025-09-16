@@ -1,6 +1,15 @@
-name: Validate Docker Container
+name: Validate Homebridge Docker Container
+run-name: Validate Homebridge Docker Container - ${{ github.event.inputs.release_tag }} Release
 
 on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: 'Release tag to validate (alpha, beta, or latest)'
+        required: true
+        type: string
+        default: latest
+
   workflow_dispatch:
     inputs:
       release_tag:
@@ -12,6 +21,10 @@ on:
           - beta
           - latest
         default: latest
+
+concurrency:
+  group: validate-docker-container
+  cancel-in-progress: false
 
 jobs:
   validate-container:
@@ -168,3 +181,13 @@ jobs:
         echo "  ✅ Homebridge UI accessible on port 8581"
         echo "  ✅ Homebridge service running"
         echo "  ✅ Container health check passed"
+        echo "::notice::Validation completed successfully for tag ${{ inputs.release_tag }}"
+
+    - name: Validation failure summary
+      if: failure()
+      run: |
+        echo "❌ Container validation failed!"
+        echo "Release tag: ${{ inputs.release_tag }}"
+        echo "Container image: ${{ steps.set-image.outputs.CONTAINER_IMAGE }}"
+        echo "Please review the logs above for details on the failure."
+        echo "::error::Validation failed for tag ${{ inputs.release_tag }}"

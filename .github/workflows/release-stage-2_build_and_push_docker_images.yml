@@ -364,3 +364,12 @@ jobs:
         ${{ needs.extract-manifest.outputs.package_changes }}
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+
+  validate-container:
+    name: Validate Docker Container
+    needs: [set-versions, create-release, discord-notification]
+    uses: ./.github/workflows/validate-docker-container.yml
+    with:
+      release_tag: ${{ needs.set-versions.outputs.DOCKER_TAG }}
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
