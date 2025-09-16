@@ -23,6 +23,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: release-stage-1-update-dependencies
+  cancel-in-progress: false
+  
 permissions:
   contents: write
   pull-requests: write
