@@ -1,0 +1,151 @@
+name: 'Trigger and Wait for Workflow'
+description: 'Triggers a workflow and waits for its completion with timeout protection'
+inputs:
+  workflow-file:
+    description: 'The workflow file to trigger (e.g., release-stage-2_build_and_release.yml)'
+    required: true
+  ref:
+    description: 'The git ref to run the workflow on'
+    required: true
+    default: 'latest'
+  release-type:
+    description: 'The release type parameter to pass to the workflow'
+    required: true
+  scheduled:
+    description: 'The scheduled parameter to pass to the workflow'
+    required: false
+    default: 'Manual'
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+  timeout-minutes:
+    description: 'Maximum wait time in minutes'
+    required: false
+    default: '30'
+  run-name:
+    description: 'Name of the triggered workflow run'
+    required: false
+    default: ''
+
+outputs:
+  workflow-conclusion:
+    description: 'The conclusion of the triggered workflow'
+    value: ${{ steps.wait-completion.outputs.conclusion }}
+  run-id:
+    description: 'The run ID of the triggered workflow'
+    value: ${{ steps.extract-run-id.outputs.run_id }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Trigger ${{ inputs.release-type }} Workflow
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        echo "::notice::Triggering ${{ inputs.release-type }} workflow - ${{ inputs.workflow-file }}"
+        
+        gh workflow run "${{ inputs.workflow-file }}" \
+          --ref "${{ inputs.ref }}" \
+          --field release_type="${{ inputs.release-type }}" \
+          --field Scheduled="${{ inputs.scheduled }}" || { 
+          echo "::error::Failed to trigger ${{ inputs.release-type }} workflow"; 
+          exit 1; 
+        }
+        
+        echo "::notice::${{ inputs.release-type }} workflow triggered successfully"
+
+    - name: Find ${{ inputs.release-type }} Workflow Run
+      id: find-workflow
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        echo "::notice::Waiting for ${{ inputs.release-type }} workflow to appear in run list..."
+        
+        # Wait for the workflow to appear in the list
+        sleep 5
+
+        # gh run list --workflow "release-stage-2_build_and_release.yml" --event workflow_dispatch --json url,name --jq '[.[] | select(.name | contains("Scheduled - beta"))] | .[].url'
+
+        # Get the URL of the most recent workflow run
+        WORKFLOW_URL=$(gh run list --workflow "${{ inputs.workflow-file }}" \
+          --event workflow_dispatch \
+          --branch "${{ inputs.ref }}" \
+          --limit 1 \
+          --json url,name \
+          --jq '[.[] | select(.name | contains("${{ inputs.run-name }}"))] | .[].url' | \
+          head -n 1)
+        if [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; then
+          echo "::error::Could not find triggered ${{ inputs.run-name }} workflow run"
+          gh run list --workflow "${{ inputs.workflow-file }}" --event workflow_dispatch --branch "${{ inputs.ref }}" --limit 5 --json url,name
+          exit 1
+        fi
+        
+        echo "::notice::Found ${{ inputs.release-type }} workflow run: $WORKFLOW_URL"
+        echo "workflow_url=$WORKFLOW_URL" >> $GITHUB_OUTPUT
+
+    - name: Extract ${{ inputs.release-type }} Workflow Run ID
+      id: extract-run-id
+      shell: bash
+      run: |
+        WORKFLOW_URL="${{ steps.find-workflow.outputs.workflow_url }}"
+        
+        # Extract run ID from the URL
+        if [[ "$WORKFLOW_URL" =~ actions/runs/([0-9]+) ]]; then
+          RUN_ID="${BASH_REMATCH[1]}"
+          echo "::notice::Extracted run ID: $RUN_ID"
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        else
+          echo "::error::Could not extract run ID from workflow URL: $WORKFLOW_URL"
+          exit 1
+        fi
+
+    - name: Wait for ${{ inputs.release-type }} Workflow Completion
+      id: wait-completion
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        RUN_ID="${{ steps.extract-run-id.outputs.run_id }}"
+        echo "::notice::Waiting for ${{ inputs.release-type }} workflow (run $RUN_ID) to complete..."
+        
+        # Set maximum wait time (convert minutes to seconds)
+        MAX_WAIT_SECONDS=$(( ${{ inputs.timeout-minutes }} * 60 ))
+        START_TIME=$(date +%s)
+        
+        # Poll the workflow status until it completes
+        while true; do
+          # Check if we've exceeded the maximum wait time
+          CURRENT_TIME=$(date +%s)
+          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+          
+          if [[ $ELAPSED_TIME -gt $MAX_WAIT_SECONDS ]]; then
+            echo "::error::${{ inputs.release-type }} workflow timed out after ${{ inputs.timeout-minutes }} minutes"
+            exit 0
+          fi
+          
+          STATUS=$(gh run view "$RUN_ID" --json status -q '.status')
+          
+          case "$STATUS" in
+            "completed")
+              CONCLUSION=$(gh run view "$RUN_ID" --json conclusion -q '.conclusion')
+              echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+              if [[ "$CONCLUSION" == "success" ]]; then
+                echo "::notice::${{ inputs.release-type }} workflow completed successfully"
+                break
+              else
+                echo "::error::${{ inputs.release-type }} workflow failed with conclusion: $CONCLUSION"
+                break
+              fi
+              ;;
+            "in_progress"|"queued"|"requested"|"waiting")
+              echo "::notice::${{ inputs.release-type }} workflow status: $STATUS - continuing to wait... (elapsed: ${ELAPSED_TIME}s)"
+              sleep 30
+              ;;
+            *)
+              echo "::error::${{ inputs.release-type }} workflow has unexpected status: $STATUS"
+              break
+              ;;
+          esac
+        done

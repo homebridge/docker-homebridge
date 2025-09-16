@@ -23,7 +23,7 @@ on:
           default: Manual
 
 concurrency:
-  group: build-and-push-${{ github.ref }}
+  group: stage-2-build-and-push
   cancel-in-progress: false
 
 jobs:

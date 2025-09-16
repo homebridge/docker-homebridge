@@ -62,10 +62,6 @@ jobs:
       max-parallel: 1
       matrix:
         stream: ${{ fromJson(needs.define-matrix.outputs.matrix).stream }}
-    outputs:
-      stable_changes: ${{ steps.set-outputs.outputs.stable_changes }}
-      beta_changes: ${{ steps.set-outputs.outputs.beta_changes }}
-      alpha_changes: ${{ steps.set-outputs.outputs.alpha_changes }}
     steps:
       - name: Update Dependencies ${{ matrix.stream }}
         id: homebridge-bot
@@ -84,10 +80,14 @@ jobs:
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
         uses: actions/checkout@v4
 
-      - name: Trigger Build and Release ${{ matrix.stream }} Package
+      - name: Trigger and Wait for ${{ matrix.stream }} Stage 2 Workflow
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "::notice::Triggering ${{ matrix.stream }} build - Build and Push Docker Images"
-          gh workflow run release-stage-2_build_and_push_docker_images.yml --ref latest --field release_type=${{ matrix.stream }} --field Scheduled=${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} || { echo "::error::Failed to trigger ${{ matrix.stream }} build workflow"; exit 1; }
+        uses: ./.github/actions/trigger-and-wait-workflow
+        with:
+          workflow-file: 'release-stage-2_build_and_push_docker_images.yml'
+          ref: 'latest'
+          release-type: ${{ matrix.stream }}
+          scheduled: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
+          github-token: ${{ secrets.GH_TOKEN }}
+          timeout-minutes: '30'
+          run-name: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} - Build and Push ${{ matrix.stream }}
