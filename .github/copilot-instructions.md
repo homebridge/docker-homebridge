@@ -26,7 +26,7 @@ This repository creates the official multi-architecture Docker images for Homebr
 
 ### Current Build Status - IMPORTANT
 
-**⚠️ LOCAL BUILDS CURRENTLY FAIL** due to `pipx install tzupdate` dependency issue in Dockerfile (fails after ~2 minutes at build step 2/9). Use published images for all testing and validation.
+**⚠️ LOCAL BUILDS CURRENTLY FAIL** due to `pipx install tzupdate` dependency issue in Dockerfile (fails after ~89 seconds at build step 2/9). Use published images for all testing and validation.
 
 ### Working Validation Commands
 
@@ -34,7 +34,7 @@ This repository creates the official multi-architecture Docker images for Homebr
 
 1. **Test Stable Release (Published Image):**
    ```bash
-   # Uses published stable image - NEVER CANCEL, takes ~25 seconds
+   # Uses published stable image - NEVER CANCEL, takes ~19 seconds
    cd test
    export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest'
    docker compose up -d
@@ -42,13 +42,13 @@ This repository creates the official multi-architecture Docker images for Homebr
    # Should return 200
    docker compose down
    ```
-   - Duration: 25 seconds for image pull, 10 seconds for startup
+   - Duration: 19 seconds for image pull, 15 seconds for startup
    - Validates: Container startup, UI accessibility, Homebridge functionality
    - Creates working container accessible at http://localhost:8581
 
 2. **Test Beta Release (Published Image):**
    ```bash
-   # Uses published beta image - NEVER CANCEL, takes ~25 seconds
+   # Uses published beta image - NEVER CANCEL, takes ~20 seconds
    cd test
    export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta'
    docker compose up -d
@@ -56,9 +56,23 @@ This repository creates the official multi-architecture Docker images for Homebr
    # Should return 200
    docker compose down
    ```
-   - Duration: 25 seconds for image pull, 10 seconds for startup
+   - Duration: 20 seconds for image pull, 15 seconds for startup
    - Uses beta package versions and latest development features
    - Creates beta-tagged container
+
+3. **Test Alpha Release (Published Image):**
+   ```bash
+   # Uses published alpha image - NEVER CANCEL, takes ~21 seconds
+   cd test
+   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
+   docker compose up -d
+   # Verify UI accessible: curl -s -o /dev/null -w "%{http_code}" http://localhost:8581
+   # Should return 200
+   docker compose down
+   ```
+   - Duration: 21 seconds for image pull, 15 seconds for startup
+   - Uses alpha package versions for early testing
+   - Creates alpha-tagged container
 
 ### Local Build Commands (Currently Failing - Use Only for Investigation)
 
@@ -69,7 +83,7 @@ This repository creates the official multi-architecture Docker images for Homebr
    # Extracts versions from package.json automatically - WILL FAIL at tzupdate step
    ./test-build-local.sh
    ```
-   - Expected failure at ~113 seconds during `pipx install tzupdate`
+   - Expected failure at ~89 seconds during `pipx install tzupdate`
    - Error: "No matching distribution found for tzupdate"
 
 2. **Beta Build (Will Fail):**
@@ -85,7 +99,7 @@ This repository creates the official multi-architecture Docker images for Homebr
 This repository uses the NorthernMan54/Homebridge-Dependency-Bot to automatically update dependencies for stable, beta, and alpha release streams. The bot runs daily via a consolidated workflow and can also be triggered manually.
 
 **Dependency Management Workflow:**
-- **Consolidated Workflow** (`dependency_management.yml`):
+- **Consolidated Workflow** (`release-stage-1_update_dependencies.yml`):
   - Runs daily at 10:00 UTC (6 AM Eastern)
   - Updates dependencies for all three release streams: stable, beta, alpha
   - Uses NorthernMan54/Homebridge-Dependency-Bot action
@@ -104,7 +118,7 @@ This repository uses the NorthernMan54/Homebridge-Dependency-Bot to automaticall
 - Automated process ensures all release streams stay current with upstream changes
 
 **Troubleshooting Dependency Bot:**
-- Check workflow run logs in Actions tab for `dependency_management.yml`
+- Check workflow run logs in Actions tab for `release-stage-1_update_dependencies.yml`
 - Verify JSON syntax with `jq . .github/homebridge-dependency-bot-*.json`
 - Manual trigger available via workflow_dispatch in GitHub Actions UI
 - Bot requires `GH_TOKEN` secret for PR approval (auto-configured)
@@ -141,14 +155,21 @@ docker build \
 cd test
 # Test stable
 export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest'
-docker compose up -d && sleep 10
+docker compose up -d && sleep 15
 curl -f http://localhost:8581 || echo "UI not accessible"
 docker compose logs --tail 20
 docker compose down
 
 # Test beta
 export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta'
-docker compose up -d && sleep 10
+docker compose up -d && sleep 15
+curl -f http://localhost:8581 || echo "UI not accessible"
+docker compose logs --tail 20
+docker compose down
+
+# Test alpha
+export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
+docker compose up -d && sleep 15
 curl -f http://localhost:8581 || echo "UI not accessible"
 docker compose logs --tail 20
 docker compose down
@@ -189,8 +210,8 @@ docker compose down
     ├── homebridge-dependency-bot-alpha.json   # Alpha release dependency configuration
     ├── dependabot.yml          # Deprecated - migrated to dependency bot
     └── workflows/
-        ├── build_and_push.yml     # Main build and release workflow
-        └── dependency_management.yml  # Consolidated dependency management
+        ├── release-stage-1_update_dependencies.yml     # Dependency management workflow
+        └── release-stage-2_build_and_push_docker_images.yml  # Main build and release workflow
 ```
 
 ### Key Configuration Files
@@ -203,7 +224,7 @@ docker compose down
 
 ### CI/CD Pipeline 
 
-**Main Release Pipeline (.github/workflows/build_and_push.yml):**
+**Main Release Pipeline (.github/workflows/release-stage-2_build_and_push_docker_images.yml):**
 1. **Version extraction** from package.json files
 2. **Multi-architecture builds** (amd64, arm32v7, arm64v8)
 3. **Container registry pushes** (GitHub Container Registry + Docker Hub)
@@ -213,10 +234,10 @@ docker compose down
 **Manual Trigger Required:** Workflow runs via `workflow_dispatch` only.
 
 **Dependency Management Pipeline:**
-- **Consolidated Workflow:** `dependency_management.yml` handles all release streams
+- **Consolidated Workflow:** `release-stage-1_update_dependencies.yml` handles all release streams
 - **Daily Schedule:** Runs at 10:00 UTC, processes stable/beta/alpha streams  
 - **Auto-merge:** Enabled for dependency PRs to maintain currency
-- **Trigger Builds:** Automatically triggers build_and_push.yml after updates
+- **Trigger Builds:** Automatically triggers release-stage-2_build_and_push_docker_images.yml after updates
 - **Manual Control:** Support selective stream updates via workflow_dispatch
 
 **Build Matrix:**
@@ -265,7 +286,7 @@ docker compose down
 
 **Always validate:**
 - JSON syntax in package.json files (`jq . package.json`)
-- JSON syntax in beta bot config (`jq . .github/homebridge-beta-bot.json`)
+- JSON syntax in dependency bot configs (`jq . .github/homebridge-dependency-bot-*.json`)
 - Shell script syntax (`bash -n script.sh`)
 - Published image functionality using test commands above
 
@@ -306,13 +327,27 @@ docker compose down
    docker compose down
    ```
 
-3. **Version Verification:**
+3. **Alpha Version Test:**
+   ```bash
+   cd test
+   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
+   docker compose up -d
+   sleep 15
+   curl -f http://localhost:8581 > /dev/null && echo "✅ Alpha UI accessible" || echo "❌ Alpha UI failed"
+   docker compose logs | grep "Homebridge v2" && echo "✅ Alpha version running" || echo "❌ Not alpha version"
+   docker compose down
+   ```
+
+4. **Version Verification:**
    ```bash
    # Check stable version
    docker run --rm ghcr.io/homebridge/homebridge:latest cat /opt/homebridge/Docker.manifest | head -10
    
    # Check beta version  
    docker run --rm ghcr.io/homebridge/homebridge:beta cat /opt/homebridge/Docker.manifest | head -10
+   
+   # Check alpha version
+   docker run --rm ghcr.io/homebridge/homebridge:alpha cat /opt/homebridge/Docker.manifest | head -10
    ```
 
 ## Common Tasks Reference
@@ -321,11 +356,14 @@ docker compose down
 
 ### Test Published Images
 ```bash
-# Pull and test stable image (~25 seconds)
+# Pull and test stable image (~19 seconds)
 cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest' && docker compose up -d
 
-# Pull and test beta image (~25 seconds)  
+# Pull and test beta image (~20 seconds)  
 cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta' && docker compose up -d
+
+# Pull and test alpha image (~21 seconds)
+cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha' && docker compose up -d
 ```
 
 ### Verify JSON Configuration
@@ -336,8 +374,13 @@ jq . package.json
 # Validate beta package.json syntax
 jq . beta/package.json
 
-# Validate beta bot configuration
-jq . .github/homebridge-beta-bot.json
+# Validate alpha package.json syntax
+jq . alpha/package.json
+
+# Validate dependency bot configurations
+jq . .github/homebridge-dependency-bot-stable.json
+jq . .github/homebridge-dependency-bot-beta.json
+jq . .github/homebridge-dependency-bot-alpha.json
 ```
 
 ### Check Repository Structure
@@ -352,7 +395,7 @@ find rootfs/etc/s6-overlay -type f | head -10
 
 # GitHub workflows
 ls .github/workflows/
-# Output: build_and_push.yml, beta automation workflows
+# Output: release-stage-1_update_dependencies.yml, release-stage-2_build_and_push_docker_images.yml, etc.
 ```
 
 ### Test Environment
@@ -369,9 +412,9 @@ grep "image:" test/docker-compose.yml
 **CRITICAL REMINDERS:**
 - **NEVER attempt local builds** - they will fail due to tzupdate dependency issue
 - **ALWAYS use published images** for testing and validation
-- **NEVER CANCEL** published image pulls - they take 20-25 seconds and work reliably
-- **Always wait 10-15 seconds** after container startup before testing UI
-- **Always use `docker compose down`** for clean shutdown (takes ~10 seconds)
+- **NEVER CANCEL** published image pulls - they take 19-21 seconds and work reliably
+- **Always wait 15 seconds** after container startup before testing UI
+- **Always use `docker compose down`** for clean shutdown (takes ~3 seconds)
 
 ## Validation Steps
 
@@ -388,7 +431,7 @@ grep "image:" test/docker-compose.yml
 
 **Always validate:**
 - JSON syntax in package.json files (`jq . package.json`)
-- JSON syntax in beta bot config (`jq . .github/homebridge-beta-bot.json`)
+- JSON syntax in dependency bot configs (`jq . .github/homebridge-dependency-bot-*.json`)
 - Shell script syntax (`bash -n script.sh`)
 - Docker build completes without errors
 - Container starts and reaches healthy state
