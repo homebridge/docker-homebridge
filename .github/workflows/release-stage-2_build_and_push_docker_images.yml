@@ -371,5 +371,3 @@ jobs:
     uses: ./.github/workflows/validate-docker-container.yml
     with:
       release_tag: ${{ needs.set-versions.outputs.DOCKER_TAG }}
-    secrets:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}

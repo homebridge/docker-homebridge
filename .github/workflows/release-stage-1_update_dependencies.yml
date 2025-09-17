@@ -95,3 +95,11 @@ jobs:
           github-token: ${{ secrets.GH_TOKEN }}
           timeout-minutes: '30'
           run-name: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} - Build and Push ${{ matrix.stream }}
+
+      - name: Cleanup older beta and alpha release and tags
+        if: ${{ matrix.stream != 'stable' }}
+        uses: ./.github/actions/cleanup-old-releases-and-tags
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          release-type: ${{ matrix.stream }}
+          releases-to-keep: 5

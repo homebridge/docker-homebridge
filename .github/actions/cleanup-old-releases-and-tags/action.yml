@@ -1,0 +1,43 @@
+name: "Cleanup Old Releases and Tags"
+description: "Deletes older releases and tags for a given release type, keeping only the latest N."
+inputs:
+  github-token:
+    description: "GitHub token with repo permissions"
+    required: true
+  release-type:
+    description: "Release type (beta or alpha)"
+    required: true
+  releases-to-keep:
+    description: "Number of releases to keep"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Delete Old Releases and Tags
+      if: ${{ inputs.release-type != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        RELEASE_TYPE: ${{ inputs.release-type }}
+        RELEASES_TO_KEEP: ${{ inputs.releases-to-keep }}
+      run: |
+        set -e
+        echo "::group::Finding releases for $RELEASE_TYPE"
+        # Get all releases for the release type, sorted by creation date (newest first)
+        RELEASES=$(gh release list --limit 100 --json tagName,createdAt | jq -r '.[] | select(.tagName | contains("'"$RELEASE_TYPE"'")) | .tagName' | sort -V -r)
+        echo "Found releases:"
+        echo "$RELEASES"
+        # Keep only the latest N releases
+        KEEP_TAGS=$(echo "$RELEASES" | head -n "$RELEASES_TO_KEEP")
+        DELETE_TAGS=$(echo "$RELEASES" | grep -vxFf <(echo "$KEEP_TAGS"))
+        echo "::endgroup::"
+        if [[ -z "$DELETE_TAGS" ]]; then
+          echo "::notice::No old $RELEASE_TYPE releases to delete."
+          exit 0
+        fi
+        echo "::group::Deleting old $RELEASE_TYPE releases and tags"
+        for TAG in $DELETE_TAGS; do
+          echo "Deleting release and tag: $TAG"
+          gh release delete "$TAG" --cleanup-tag --yes || echo "::warning::Failed to delete $TAG"
+        done
+        echo "::endgroup::"
