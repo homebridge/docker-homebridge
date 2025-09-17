@@ -350,6 +350,11 @@ jobs:
           --draft=false \
           Docker.manifest
 
+    - name: Release created
+      run: |
+        echo "::notice::Release ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} - ${{ needs.set-versions.outputs.RELEASE_TITLE }} created successfully." 
+        echo "::notice::Release Manifest: $(cat manifest.md)"
+
   discord-notification:
     name: Discord Webhooks
     needs: [set-versions, create-release, extract-manifest]
