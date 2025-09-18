@@ -64,6 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
+      fail-fast: false
       matrix:
         stream: ${{ fromJson(needs.define-matrix.outputs.matrix).stream }}
     steps:
