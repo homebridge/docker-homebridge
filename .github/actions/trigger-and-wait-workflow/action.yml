@@ -55,33 +55,45 @@ runs:
         
         echo "::notice::${{ inputs.release-type }} workflow triggered successfully"
 
-    - name: Find ${{ inputs.release-type }} Workflow Run
+    - name: Find ${{ inputs.run-name }} Workflow Run
       id: find-workflow
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        echo "::notice::Waiting for ${{ inputs.release-type }} workflow to appear in run list..."
-        
-        # Wait for the workflow to appear in the list
-        sleep 5
+        echo "::notice::Waiting for ${{ inputs.run-name }} workflow to appear in run list..."
 
-        # gh run list --workflow "release-stage-2_build_and_release.yml" --event workflow_dispatch --json url,name --jq '[.[] | select(.name | contains("Scheduled - beta"))] | .[].url'
+        # Initialize variables
+        WORKFLOW_URL=""
+        MAX_RETRIES=12  # Retry for up to 1 minute (12 retries * 5 seconds)
+        RETRY_COUNT=0
 
-        # Get the URL of the most recent workflow run
-        WORKFLOW_URL=$(gh run list --workflow "${{ inputs.workflow-file }}" \
-          --event workflow_dispatch \
-          --branch "${{ inputs.ref }}" \
-          --limit 1 \
-          --json url,name \
-          --jq '[.[] | select(.name | contains("${{ inputs.run-name }}"))] | .[].url' | \
-          head -n 1)
-        if [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; then
-          echo "::error::Could not find triggered ${{ inputs.run-name }} workflow run"
-          gh run list --workflow "${{ inputs.workflow-file }}" --event workflow_dispatch --branch "${{ inputs.ref }}" --limit 5 --json url,name
-          exit 1
-        fi
-        
+        # Retry loop
+        while [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; do
+          if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
+            echo "::error::Could not find triggered ${{ inputs.run-name }} workflow run after 1 minute"
+            gh run list --workflow "${{ inputs.workflow-file }}" --event workflow_dispatch --branch "${{ inputs.ref }}" --limit 5 --json url,name
+            exit 1
+          fi
+
+          # Increment retry count
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+
+          # Check for the workflow run
+          WORKFLOW_URL=$(gh run list --workflow "${{ inputs.workflow-file }}" \
+            --event workflow_dispatch \
+            --branch "${{ inputs.ref }}" \
+            --limit 1 \
+            --json url,name \
+            --jq '[.[] | select(.name | contains("${{ inputs.run-name }}"))] | .[].url' | \
+            head -n 1)
+
+          if [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; then
+            echo "::notice::Retry $RETRY_COUNT/$MAX_RETRIES: ${{ inputs.release-type }} workflow not found. Retrying in 5 seconds..."
+            sleep 5
+          fi
+        done
+
         echo "::notice::Found ${{ inputs.release-type }} workflow run: $WORKFLOW_URL"
         echo "workflow_url=$WORKFLOW_URL" >> $GITHUB_OUTPUT
 
