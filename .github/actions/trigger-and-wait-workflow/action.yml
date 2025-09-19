@@ -89,12 +89,12 @@ runs:
             head -n 1)
 
           if [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; then
-            echo "::notice::Retry $RETRY_COUNT/$MAX_RETRIES: ${{ inputs.release-type }} workflow not found. Retrying in 5 seconds..."
+            echo "::notice::Retry $RETRY_COUNT/$MAX_RETRIES: ${{ inputs.run-name }} workflow not found. Retrying in 5 seconds..."
             sleep 5
           fi
         done
 
-        echo "::notice::Found ${{ inputs.release-type }} workflow run: $WORKFLOW_URL"
+        echo "::notice::Found ${{ inputs.run-name }} workflow run: $WORKFLOW_URL"
         echo "workflow_url=$WORKFLOW_URL" >> $GITHUB_OUTPUT
 
     - name: Extract ${{ inputs.release-type }} Workflow Run ID
