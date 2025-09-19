@@ -29,6 +29,7 @@ runs:
         # Keep only the latest N releases
         KEEP_TAGS=$(echo "$RELEASES" | head -n "$RELEASES_TO_KEEP")
         DELETE_TAGS=$(echo "$RELEASES" | grep -vxFf <(echo "$KEEP_TAGS"))
+        DELETE_COUNT=$(echo "$DELETE_TAGS" | grep -c '^')
         echo "::endgroup::"
         if [[ -z "$DELETE_TAGS" ]]; then
           echo "::notice::No old $RELEASE_TYPE releases to delete."
@@ -39,4 +40,5 @@ runs:
           echo "Deleting release and tag: $TAG"
           gh release delete "$TAG" --cleanup-tag --yes || echo "::warning::Failed to delete $TAG"
         done
+        echo "::notice::$DELETE_COUNT $RELEASE_TYPE releases/tags deleted."
         echo "::endgroup::"
