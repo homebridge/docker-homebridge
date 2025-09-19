@@ -21,7 +21,6 @@ runs:
         RELEASE_TYPE: ${{ inputs.release-type }}
         RELEASES_TO_KEEP: ${{ inputs.releases-to-keep }}
       run: |
-        set -e
         echo "::group::Finding releases for $RELEASE_TYPE"
         # Get all releases for the release type, sorted by creation date (newest first)
         RELEASES=$(gh release list --limit 100 --json tagName,createdAt | jq -r '.[] | select(.tagName | contains("'"$RELEASE_TYPE"'")) | .tagName' | sort -V -r)
