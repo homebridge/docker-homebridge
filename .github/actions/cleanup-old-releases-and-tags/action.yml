@@ -5,7 +5,7 @@ inputs:
     description: "GitHub token with repo permissions"
     required: true
   release-type:
-    description: "Release type (beta or alpha)"
+    description: "Release type (stable, beta or alpha)"
     required: true
   releases-to-keep:
     description: "Number of releases to keep"
@@ -22,13 +22,17 @@ runs:
         RELEASES_TO_KEEP: ${{ inputs.releases-to-keep }}
       run: |
         echo "::group::Finding releases for $RELEASE_TYPE"
-        # Get all releases for the release type, sorted by creation date (newest first)
-        RELEASES=$(gh release list --limit 100 --json tagName,createdAt | jq -r '.[] | select(.tagName | contains("'"$RELEASE_TYPE"'")) | .tagName' | sort -V -r)
+        if [[ "$RELEASE_TYPE" == "stable" ]]; then
+          # Select tags that do NOT contain 'alpha' or 'beta'
+          RELEASES=$(gh release list --limit 100 --json tagName,createdAt | jq -r '.[] | select((.tagName | contains("alpha") | not) and (.tagName | contains("beta") | not)) | .tagName' | sort -V -r)
+        else
+          # Select tags that contain the specified release type
+          RELEASES=$(gh release list --limit 100 --json tagName,createdAt | jq -r '.[] | select(.tagName | contains("'"$RELEASE_TYPE"'")) | .tagName' | sort -V -r)
+        fi
         echo "Found releases:"
         echo "$RELEASES"
-        # Keep only the latest N releases
         KEEP_TAGS=$(echo "$RELEASES" | head -n "$RELEASES_TO_KEEP")
-        DELETE_TAGS=$(echo "$RELEASES" | grep -vxFf <(echo "$KEEP_TAGS"))
+        DELETE_TAGS=$(echo "$RELEASES" | grep -vxFf <(echo "$KEEP_TAGS") || true)
         DELETE_COUNT=$(echo "$DELETE_TAGS" | grep -c '^')
         echo "::endgroup::"
         if [[ -z "$DELETE_TAGS" ]]; then
