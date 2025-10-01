@@ -94,10 +94,17 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
 
 # Fix Docker-Homebridge Update info wrong #645
 
-RUN echo "# Appended by docker-homebridge" >> /opt/homebridge/source.sh \
-  && echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source.sh \
-  && echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source.sh \
-  && echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source.sh
+# Append environment variables to source.sh and source-vm.sh if not already present
+RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh; then \
+  echo "# Appended by docker-homebridge" >> /opt/homebridge/source.sh && \
+  echo "if [ -f '/opt/homebridge/source-docker.sh' ]; then" >> /opt/homebridge/source.sh && \
+  echo "  source /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
+  echo "fi" >> /opt/homebridge/source.sh ; \
+  fi && \
+  echo "export HOMEBRIDGE_VM_IMAGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
+  echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
+  echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
+  chmod 755 /opt/homebridge/source-docker.sh
 
 COPY rootfs /
 
