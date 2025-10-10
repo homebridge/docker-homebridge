@@ -44,7 +44,6 @@ Homebridge requires full access to your local network to function correctly whic
 1. Create the file `docker-compose.yml`
 
 ```yml
-version: '2'
 services:
   homebridge:
     image: homebridge/homebridge:latest
@@ -86,7 +85,37 @@ The parameters are split into two halves, separated by a colon, the left hand si
 
 ##### *Optional Settings:*
 
-* `-e TZ` - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
+* TimeZone TZ - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
+  - In the Docker Compose
+```yml
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    restart: always
+    network_mode: host
+    volumes:
+      - ./volumes/homebridge:/homebridge
+    environment:
+      - TZ=America/Toronto
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '1'
+    healthcheck:
+      test: curl --fail localhost:8581 || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 300s
+      timeout: 2s
+```
+
+  - In the command Line
+
+```bash
+docker run --net=host --name=homebridge -e TZ=Australia/Canberra -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
+```
+
 * `-e ENABLE_AVAHI` - default is `1`; set to `0` to prevent the Avahi mDNS service running in the container
 
 ## Custom Additions
