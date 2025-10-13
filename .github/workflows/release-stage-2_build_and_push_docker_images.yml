@@ -375,3 +375,21 @@ jobs:
     uses: ./.github/workflows/validate-docker-container.yml
     with:
       release_tag: ${{ needs.set-versions.outputs.DOCKER_TAG }}
+
+# stable release should be marked as non-prerelease, and latest
+  stable-release-is-latest:
+    needs: [create-release,set-versions]
+    if: ${{ inputs.release_type == 'stable' }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+
+    # Mark stable release as non-prerelease and latest
+    - name: Mark Stable Release as Non-Prerelease and Latest
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release edit ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} \
+          --prerelease=false \
+          --latest
