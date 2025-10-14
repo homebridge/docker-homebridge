@@ -357,6 +357,7 @@ jobs:
   discord-notification:
     name: Discord Webhooks
     needs: [set-versions, create-release, extract-manifest]
+    if: ${{ inputs.release_type == 'stable' }}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "${{ needs.set-versions.outputs.RELEASE_TITLE }}"
@@ -371,7 +372,7 @@ jobs:
 
   validate-container:
     name: Validate Docker Container
-    needs: [set-versions, create-release, discord-notification]
+    needs: [set-versions, create-release]
     uses: ./.github/workflows/validate-docker-container.yml
     with:
       release_tag: ${{ needs.set-versions.outputs.DOCKER_TAG }}
