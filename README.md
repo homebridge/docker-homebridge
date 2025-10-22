@@ -57,7 +57,7 @@ services:
         max-size: '10m'
         max-file: '1'
     healthcheck:
-      test: curl --fail localhost:8581 || exit 1
+      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
       interval: 60s
       retries: 5
       start_period: 300s
@@ -103,7 +103,7 @@ services:
         max-size: '10m'
         max-file: '1'
     healthcheck:
-      test: curl --fail localhost:8581 || exit 1
+      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
       interval: 60s
       retries: 5
       start_period: 300s
