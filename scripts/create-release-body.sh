@@ -67,7 +67,7 @@ group_end
 log "Adding package manifest section for stream: ${PKG_RELEASE_STREAM}"
 
 # Add current manifest section
-echo -e "\n## Current Package Manifests:\n" >> "$MANIFEST"
+echo -e "\n## Current Package Manifest:\n" >> "$MANIFEST"
 
 for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
 
