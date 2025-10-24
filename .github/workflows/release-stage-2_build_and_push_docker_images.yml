@@ -301,10 +301,6 @@ jobs:
     - name: Display structure of downloaded files
       run: ls -R
 
-    - name: Create metadata file for release
-      run: |
-        echo '${{ needs.build-images.outputs.docker_metadata }}' > docker_metadata.json
-
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -314,8 +310,7 @@ jobs:
         gh release create "${TAG_NAME}" \
           --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
           --notes-file release-body.md \
-          --draft=false \
-          docker_metadata.json
+          --draft=false
 
     - name: Release created
       run: |
