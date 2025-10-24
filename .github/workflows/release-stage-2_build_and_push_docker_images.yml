@@ -211,7 +211,8 @@ jobs:
       id: release_body
       run: |
         ./scripts/create-release-body.sh "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" "${{ inputs.release_type }}"
-        echo "release_body=outputs/release-body.md" >> $GITHUB_OUTPUT
+        echo "release_body=output/release-body.md" >> $GITHUB_OUTPUT
+        echo "docker_manifest=output/Docker.manifest" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ github.token }}
 
@@ -236,7 +237,7 @@ jobs:
           PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
 
           # Extract package versions from current manifest
-          CURRENT_MANIFEST=$(cat outputs/Docker.manifest)
+          CURRENT_MANIFEST=$(cat ${{ steps.release_body.outputs.docker_manifest }})
 
           # Parse package versions from both manifests
           extract_package_version() {
@@ -300,10 +301,6 @@ jobs:
     - name: Display structure of downloaded files
       run: ls -R
 
-    - name: Create metadata file for release
-      run: |
-        echo '${{ needs.build-images.outputs.docker_metadata }}' > docker_metadata.json
-
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -313,8 +310,7 @@ jobs:
         gh release create "${TAG_NAME}" \
           --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
           --notes-file release-body.md \
-          --draft=false \
-          docker_metadata.json
+          --draft=false
 
     - name: Release created
       run: |
