@@ -99,9 +99,9 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
 
 # Append environment variables to source.sh and source-vm.sh if not already present
 RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh; then \
-  echo "# Appended by docker-homebridge" >> /opt/homebridge/source.sh && \
+  echo "\n# Appended by docker-homebridge" >> /opt/homebridge/source.sh && \
   echo "if [ -f '/opt/homebridge/source-docker.sh' ]; then" >> /opt/homebridge/source.sh && \
-  echo "  source /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
+  echo "  . /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
   echo "fi" >> /opt/homebridge/source.sh ; \
   fi && \
   echo "export HOMEBRIDGE_VM_IMAGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
