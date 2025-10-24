@@ -53,12 +53,12 @@ services:
     image: homebridge/homebridge:latest
     restart: always
     network_mode: host
-    hostname: homebridge  # Optional: Set container hostname
+    hostname: docker-desktop  # Optional: Set container hostname
     volumes:
       - ./volumes/homebridge:/homebridge
     environment:
       - TZ=America/Toronto  # Optional: Set your timezone
-      - ENABLE_AVAHI=1      # Optional: Disable AVAHI
+      - ENABLE_AVAHI=1      # Optional: Enable/disable Avahi (1=enabled, 0=disabled)
     logging:
       driver: json-file
       options:
@@ -95,18 +95,18 @@ docker run \
 
 ### Required Parameters
 
-| Parameter | Description |
-|:----------|:------------|
-| `--net=host` | **Required** - Enables host networking for HomeKit discovery |
-| `-v /homebridge` | **Required** - Persistent storage for config and plugins |
+| Parameter | Docker Compose | Docker CLI | Description |
+|:----------|:---------------|:-----------|:------------|
+| Network Mode | `network_mode: host` | `--net=host` | **Required** - Enables host networking for HomeKit discovery |
+| Volume Mount | `volumes:` | `-v /path:/homebridge` | **Required** - Persistent storage for config and plugins |
 
 ### Optional Parameters
 
-| Parameter | Default | Description |
-|:----------|:--------|:------------|
-| `hostname` | Container ID | Set custom hostname for the container (e.g., `homebridge`, `docker-desktop`) |
-| `-e TZ` | `UTC` | Set timezone ([list of timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
-| `-e ENABLE_AVAHI` | `1` | Set to `0` to disable Avahi mDNS service |
+| Parameter | Docker Compose | Docker CLI | Default | Description |
+|:----------|:---------------|:-----------|:--------|:------------|
+| Hostname | `hostname: homebridge` | `--hostname=homebridge` | Container ID | Set custom hostname for the container |
+| Timezone | `environment:`<br/>`- TZ=America/Toronto` | `-e TZ=America/Toronto` | `UTC` | Set timezone ([list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
+| Avahi mDNS | `environment:`<br/>`- ENABLE_AVAHI=1` | `-e ENABLE_AVAHI=1` | `1` | Set to `0` to disable Avahi mDNS service |
 
 ---
 
@@ -189,7 +189,8 @@ Since the `2025-06-25` release, updates to
 - Homebridge core
 - Homebridge UI
 - Node.js runtime
-while be overwritten if the container is updated.
+
+will be overwritten if the container is updated.
 
 ---
 
