@@ -58,6 +58,7 @@ services:
       - ./volumes/homebridge:/homebridge
     environment:
       - TZ=America/Toronto  # Optional: Set your timezone
+      - ENABLE_AVAHI=1      # Optional: Disable AVAHI
     logging:
       driver: json-file
       options:
