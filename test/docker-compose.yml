@@ -1,6 +1,7 @@
 services:
   homebridge:
     image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:beta}
+    hostname: test-homebridge-docker
     restart: always
     network_mode: host
     volumes:

@@ -1,102 +1,63 @@
-[![Donate](https://img.shields.io/badge/donate-paypal-yellowgreen.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZEW8TFQCU2MSJ&source=url)
-[![Build and Push Docker Images](https://github.com/homebridge/docker-homebridge/actions/workflows/build_and_push.yml/badge.svg)](https://github.com/homebridge/docker-homebridge/actions/workflows/build_and_push.yml)
+<div align="center">
+
+# Homebridge Docker
+
+[![Release Stage 2 - Build and Push Docker Images](https://github.com/homebridge/docker-homebridge/actions/workflows/release-stage-2_build_and_push_docker_images.yml/badge.svg)](https://github.com/homebridge/docker-homebridge/actions/workflows/release-stage-2_build_and_push_docker_images.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/homebridge/homebridge.svg)](https://hub.docker.com/r/homebridge/homebridge/)
 [![Discord](https://img.shields.io/discord/432663330281226270?color=728ED5&logo=discord&label=discord)](https://discord.gg/Cmq8a44)
 
-<H1>Important Update</H1>
+**Official Docker image for [Homebridge](https://github.com/homebridge/homebridge)** - Emulate the iOS HomeKit API on your network
 
-We have moved the hosting of the offical homebridge docker image from **oznu/homebridge** to **homebridge/homebridge**.  Please update your environments as needed to pickup the latest image.
+</div>
 
-# Homebridge Docker Image
+---
 
-This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://github.com/nfarina) [Homebridge](https://github.com/homebridge/homebridge) on your home network which emulates the iOS HomeKit API.
+## 📢 Important Update
 
-This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 W, or other Docker-enabled ARMv7/8 devices. Docker will automatically pull the correct image for your system.
+We have migrated the official Homebridge Docker image from **`oznu/homebridge`** to **`homebridge/homebridge`**.  
+Please update your configurations to use the new image location for the latest updates and features.
 
-| Image Tag             | Architectures           | Base Image         | Release Type |
-| :-------------------- | :-----------------------| :----------------- | :----------- |
-| latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Stable       |
-| beta                  | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Beta         |
-| alpha                 | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Alpha        | 
+---
 
-### Release Types
+## 🚀 Quick Start
 
-- **Stable** (`latest`, `ubuntu`): Stable releases using the latest stable versions of Homebridge and plugins
-- **Beta** (`beta`): Pre-release versions with beta versions of Homebridge and the Homebridge UI for testing new features
-- **Alpha** (`alpha`): Early pre-release versions with alpha versions of Homebridge and the Homebridge UI for early testing and development 
+### Prerequisites
+- Docker Engine with networking access
+- Host network mode support (**required for HomeKit**)
 
-## Step-By-Step Guides
+> ⚠️ **Compatibility Note**: This image does **not** work with Docker Desktop for Mac or Windows due to networking limitations ([details](https://github.com/homebridge/docker-homebridge/issues/570)).
 
-- [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)
-- [Running Homebridge on a Synology NAS](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)
-- [Running Homebridge on Unraid](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Unraid)
+---
 
-## Compatibility
+## 📦 Available Images
 
-Homebridge requires full access to your local network to function correctly which can be achieved using the ```--net=host``` flag.
+This is a **multi-architecture** Ubuntu 24.04-based image supporting x86_64, ARM32v7 (Raspberry Pi), and ARM64v8 platforms.
 
-**This image will not work when using [Docker for Mac](https://docs.docker.com/docker-for-mac/) or [Docker for Windows](https://docs.docker.com/docker-for-windows/) due to [this](https://github.com/homebridge/docker-homebridge/issues/570)**.
+| Image Tag | Architectures | Base Image | Release Type | Description |
+|:----------|:--------------|:-----------|:-------------|:------------|
+| `latest`, `ubuntu` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Stable** | Production-ready with latest stable releases |
+| `beta` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Beta** | Pre-release with beta versions for testing |
+| `alpha` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Alpha** | Early access with alpha versions for development |
 
-## Usage
+---
 
-### Using [Docker Compose](https://docs.docker.com/compose/) (recommended):
+## 🛠️ Installation
 
-1. Create the file `docker-compose.yml`
+### Using Docker Compose (Recommended)
 
-```yml
+Create a `docker-compose.yml` file:
+
+```yaml
 services:
   homebridge:
     image: homebridge/homebridge:latest
     restart: always
     network_mode: host
-    volumes:
-      - ./volumes/homebridge:/homebridge
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '1'
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
-      interval: 60s
-      retries: 5
-      start_period: 300s
-      timeout: 2s
-```
-
-2. Start docker with
-
-```bash
-docker compose up
-```
-
-### Or Command Line:
-
-```bash
-docker run --net=host --name=homebridge -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
-```
-
-## Parameters
-
-The parameters are split into two halves, separated by a colon, the left hand side representing the host and the right the container side.
-
-* `--net=host` - Shares host networking with container, **required**
-* `-v /homebridge` - The Homebridge config and plugin location, **required**
-
-##### *Optional Settings:*
-
-* TimeZone TZ - for [timezone information](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) e.g. `-e TZ=Australia/Canberra`
-  - In the Docker Compose
-```yml
-services:
-  homebridge:
-    image: homebridge/homebridge:latest
-    restart: always
-    network_mode: host
+    hostname: homebridge  # Optional: Set container hostname
     volumes:
       - ./volumes/homebridge:/homebridge
     environment:
-      - TZ=America/Toronto
+      - TZ=America/Toronto  # Optional: Set your timezone
     logging:
       driver: json-file
       options:
@@ -110,106 +71,197 @@ services:
       timeout: 2s
 ```
 
-  - In the command Line
+Start the container:
 
 ```bash
-docker run --net=host --name=homebridge -e TZ=Australia/Canberra -v $(pwd)/homebridge:/homebridge homebridge/homebridge:latest
+docker compose up -d
 ```
 
-* `-e ENABLE_AVAHI` - default is `1`; set to `0` to prevent the Avahi mDNS service running in the container
+### Using Docker CLI
 
-## Custom Additions
+```bash
+docker run \
+  --net=host \
+  --name=homebridge \
+  -e TZ=America/Toronto \
+  -v $(pwd)/homebridge:/homebridge \
+  homebridge/homebridge:latest
+```
 
-If you have custom requirements for your Docker installation, the Docker image provides the `startup.sh` script. It can be accessed from the `Startup & Environment` section in `Settings`.
+---
+
+## ⚙️ Configuration
+
+### Required Parameters
+
+| Parameter | Description |
+|:----------|:------------|
+| `--net=host` | **Required** - Enables host networking for HomeKit discovery |
+| `-v /homebridge` | **Required** - Persistent storage for config and plugins |
+
+### Optional Parameters
+
+| Parameter | Default | Description |
+|:----------|:--------|:------------|
+| `hostname` | Container ID | Set custom hostname for the container (e.g., `homebridge`, `docker-desktop`) |
+| `-e TZ` | `UTC` | Set timezone ([list of timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
+| `-e ENABLE_AVAHI` | `1` | Set to `0` to disable Avahi mDNS service |
+
+---
+
+## 🖥️ Homebridge UI
+
+Access the **Homebridge UI** at `http://<your-server-ip>:8581`
+
+The UI allows you to:
+- ✅ Install, update, and remove plugins
+- ✅ Edit Homebridge configuration
+- ✅ View logs and restart Homebridge
+- ✅ Manage accessories and bridges
 
 <p align="center">
-  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/settings-startup-script.png">
+  <img width="700px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png" alt="Homebridge UI Screenshot">
 </p>
 
-The `startup.sh` script survives restarting and recreating Docker containers and runs immediately after the container starts up. It's purpose is to execute custom commands, for example installing NodeJS packages, Python packages, copying files from the host to the container, etc. For example:
+---
+
+## 🔧 Custom Startup Script
+
+For advanced customization, use the **Startup Script** feature in the UI (`Settings` → `Startup & Environment`).
 
 <p align="center">
-  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/sample-startup-script.png">
+  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/settings-startup-script.png" alt="Startup Script Settings">
 </p>
 
-## Homebridge UI
+The `startup.sh` script:
+- Runs on every container start
+- Persists across container recreations
+- Can install packages, copy files, or execute custom commands
 
-This image comes with the [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) pre-installed and is the easiest way to manage all aspects of Homebridge.
+**Example:**
 
-To manage Homebridge go to `http://<ip of server>:8581` in your browser. For example, `http://192.168.1.20:8581`. From here you can install, remove and update plugins, modify the Homebridge config.json and restart Homebridge.
+```bash
+#!/bin/sh
+
+# Install custom Node.js packages
+npm install -g some-custom-package
+
+# Install Python dependencies
+pip3 install some-python-library
+
+# Copy configuration from host
+cp /homebridge/custom-config.json /etc/custom-config.json
+```
 
 <p align="center">
-  <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
+  <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/sample-startup-script.png" alt="Sample Startup Script">
 </p>
 
-## Automated Updates
+---
 
-Automated updates of the Homebridge Docker Image using tools such as Watchtower or similar are strongly discouraged and are done so at your own risk.
+## 📚 Step-by-Step Guides
 
-**NOTE** - Since release `2025-06-25` the version of Homebridge **IS TIED** to the version of the container.  You can update Homebridge, the Homebridge UI and the Node.js runtime from inside the container.
+- [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)
+- [Running Homebridge on Synology NAS](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)
+- [Running Homebridge on Unraid](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Unraid)
 
-## Troubleshooting
+---
 
-#### 1. Need ffmpeg?
+## 🔄 Updates
 
-ffmpeg, with `libfdk-aac` audio support is included in this image.
+### Manual Updates
 
-#### 2. Container will not start on older versions of Raspbian
+Pull the latest image and recreate your container:
 
-If you're seeing errors like the following, your host operating system needs to be updated.
-
-See [#434](https://github.com/homebridge/docker-homebridge/issues/434) and [#441](https://github.com/homebridge/docker-homebridge/issues/441) for potential solutions.
-
-```
-Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
-Aborted (core dumped)
+```bash
+docker compose pull
+docker compose up -d
 ```
 
-```
-homebridge_1  | s6-svscan: warning: unable to iopause: Operation not permitted
-homebridge_1  | s6-svscan: warning: executing into .s6-svscan/crash
-homebridge_1  | s6-svscan crashed. Killing everything and exiting.
-```
+### Automated Updates
 
-```
-homebridge    | # Fatal error in , line 0
-homebridge    | # unreachable code
-```
+> ⚠️ **Not Recommended**: Automated updates using tools like Watchtower are **strongly discouraged** and done at your own risk
 
-#### 3. Ask on Discord
+### In-Container Updates
 
-Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) community and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
+Since the `2025-06-25` release, updates to  
+- Homebridge core
+- Homebridge UI
+- Node.js runtime
+while be overwritten if the container is updated.
 
-## Container Validation
+---
 
-This repository includes automated validation workflows to ensure container builds work correctly:
+## 🎥 FFmpeg Support
 
-### Manual Container Validation
+This image includes **FFmpeg** with `libfdk-aac` audio support for camera streaming and video processing.
 
-To validate a specific release manually, you can trigger the **Validate Docker Container** workflow:
+---
+
+## ✅ Container Validation
+
+This repository includes automated validation to ensure container builds work correctly.
+
+### Manual Validation
+
+To validate a specific release:
 
 1. Go to [Actions](https://github.com/homebridge/docker-homebridge/actions)
-2. Select "Validate Docker Container" workflow
-3. Click "Run workflow"  
-4. Choose the release tag to validate:
+2. Select **"Validate Docker Container"**
+3. Click **"Run workflow"**
+4. Choose the release tag:
    - `latest` - Stable release
-   - `beta` - Beta pre-release  
+   - `beta` - Beta pre-release
    - `alpha` - Alpha early release
 
 The validation workflow will:
-- ✅ Start the container and verify it runs successfully
-- ✅ Check that Homebridge UI is accessible on port 8581
-- ✅ Verify Homebridge service starts properly with version detection
-- ✅ Validate container health checks pass
+- ✅ Start the container and verify it runs
+- ✅ Check Homebridge UI accessibility on port 8581
+- ✅ Verify Homebridge service starts with version detection
+- ✅ Validate container health checks
 - ✅ Extract and validate the Docker manifest
 
-This ensures each release works correctly before users download and run it.
+---
 
-## License
+## 🐛 Troubleshooting
 
-Copyright (C) 2024 homebridge
+### 1. FFmpeg Issues
+
+FFmpeg with `libfdk-aac` audio support is **included** in this image. No additional installation required.
+
+### 2. Container Won't Start on Older Raspbian
+
+If you see errors like:
+
+```
+Node.js[445]: ../src/util.cc:188:double node::GetCurrentTimeInMicroseconds(): Assertion `(0) == (uv_gettimeofday(&tv))' failed.
+```
+
+```
+s6-svscan: warning: unable to iopause: Operation not permitted
+```
+
+Your host OS needs to be updated. See [#434](https://github.com/homebridge/docker-homebridge/issues/434) and [#441](https://github.com/homebridge/docker-homebridge/issues/441) for solutions.
+
+### 3. Get Help on Discord
+
+Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
+
+---
+
+## 📄 License
+
+Copyright (C) 2024 homebridge  
 Copyright (C) 2017-2022 oznu
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the [GNU General Public License](./LICENSE) for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](./LICENSE) for more details.
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Homebridge community**
+
+</div>
