@@ -3,3 +3,6 @@ test-volume
 /volumes
 node_modules
 /test/volumes
+/output
+/.previous
+manifest.md
