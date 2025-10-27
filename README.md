@@ -35,9 +35,11 @@ This is a **multi-architecture** Ubuntu 24.04-based image supporting x86_64, ARM
 
 | Image Tag | Architectures | Base Image | Release Type | Description |
 |:----------|:--------------|:-----------|:-------------|:------------|
-| `latest`, `ubuntu` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Stable** | Production-ready with latest stable releases |
-| `beta` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Beta** | Pre-release with beta versions for testing |
-| `alpha` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Alpha** | Early access with alpha versions for development |
+| `latest`, `ubuntu` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Stable** | Production-ready with latest stable releases (Node.js 22) |
+| `beta` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Beta** | Pre-release with beta versions for testing (Node.js 24) |
+| `alpha` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Alpha** | Early access with alpha versions for development (Node.js 24) |
+
+> ℹ️ **Memory Usage Note**: Beta and alpha releases use Node.js 24, which has higher memory consumption (~1.5GB) compared to stable releases using Node.js 22 (~700-800MB). This is expected behavior due to changes in Node.js 24's memory management and garbage collection.
 
 ---
 
@@ -227,11 +229,22 @@ The validation workflow will:
 
 ## 🐛 Troubleshooting
 
-### 1. FFmpeg Issues
+### 1. High Memory Usage in Beta/Alpha Releases
+
+**Issue**: Beta and alpha releases consume more memory (~1.5GB) compared to stable releases (~700-800MB).
+
+**Cause**: Beta and alpha releases use Node.js 24, which has different memory management characteristics compared to Node.js 22 used in stable releases.
+
+**Solution**: This is expected behavior. If memory is limited on your system:
+- Use the `latest` stable tag instead of `beta` or `alpha`
+- Increase available memory for your Docker environment
+- Monitor your system resources before upgrading to beta/alpha releases
+
+### 2. FFmpeg Issues
 
 FFmpeg with `libfdk-aac` audio support is **included** in this image. No additional installation required.
 
-### 2. Container Won't Start on Older Raspbian
+### 3. Container Won't Start on Older Raspbian
 
 If you see errors like:
 
@@ -245,7 +258,7 @@ s6-svscan: warning: unable to iopause: Operation not permitted
 
 Your host OS needs to be updated. See [#434](https://github.com/homebridge/docker-homebridge/issues/434) and [#441](https://github.com/homebridge/docker-homebridge/issues/441) for solutions.
 
-### 3. Get Help on Discord
+### 4. Get Help on Discord
 
 Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) and ask in the [#docker](https://discord.gg/Cmq8a44) channel.
 
