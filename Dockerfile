@@ -104,7 +104,7 @@ RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/sourc
   echo "  . /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
   echo "fi" >> /opt/homebridge/source.sh ; \
   fi && \
-  echo "export HOMEBRIDGE_VM_IMAGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
+  echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
   echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
   echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
   chmod 755 /opt/homebridge/source-docker.sh
