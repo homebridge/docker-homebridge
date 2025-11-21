@@ -6,8 +6,12 @@ services:
     network_mode: host
     volumes:
       - ./volumes/homebridge:/homebridge
+      - /var/run/dbus:/var/run/dbus  # Mount host D-Bus socket
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket  # Mount avahi socket
     environment:
       - TZ=America/Toronto
+      - ENABLE_AVAHI=0      # Optional: Enable/disable Avahi (1=enabled, 0=disabled)
+      - ENABLE_HOSTNAME_PUBLISH=1  # Optional: Enable/disable hostname publisher (1=enabled, 0=disabled)
     logging:
       driver: json-file
       options:

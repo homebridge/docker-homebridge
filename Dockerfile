@@ -30,7 +30,8 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
   UIX_CUSTOM_PLUGIN_PATH="/var/lib/homebridge/node_modules" \
   PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
   HOME="/home/homebridge" \
-  npm_config_prefix=/opt/homebridge
+  npm_config_prefix=/opt/homebridge \
+  ENABLE_HOSTNAME_PUBLISH=0
 
 RUN set -x \
   && apt-get update \
@@ -40,7 +41,7 @@ RUN set -x \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
   && apt-get install -y python3 python3-pip pipx python3-setuptools git make g++ libnss-mdns \
-  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
+  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev avahi-utils \
   && pipx install tzupdate \
   && chmod 0755 /bin/ping \
   && apt-get clean \

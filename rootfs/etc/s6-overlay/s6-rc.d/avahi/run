@@ -6,6 +6,28 @@ if [ "$ENABLE_AVAHI" = "1" ]; then
   done
   echo "Starting Avahi daemon"
   exec avahi-daemon --no-chroot -f /etc/avahi/avahi-daemon.conf
+elif [ "$ENABLE_HOSTNAME_PUBLISH" = "1" ]; then
+  # Check if host's avahi-daemon socket is available
+  if [ -e /var/run/dbus/system_bus_socket ]; then
+    echo "Avahi daemon disabled, but hostname publishing enabled"
+    
+    # Get the container's hostname and IP address
+    HOSTNAME=$(hostname)
+    IP_ADDRESS=$(hostname -i | awk '{print $1}')
+    
+    if [ -n "$HOSTNAME" ] && [ -n "$IP_ADDRESS" ]; then
+      echo "Publishing hostname: $HOSTNAME -> $IP_ADDRESS"
+      # Use avahi-publish-address to register the hostname
+      # This will keep running and re-publish if needed
+      exec avahi-publish-address "$HOSTNAME.local" "$IP_ADDRESS"
+    else
+      echo "Failed to determine hostname or IP address"
+      exec sleep infinity
+    fi
+  else
+    echo "Avahi socket not available from host, cannot publish hostname"
+    exec sleep infinity
+  fi
 else
   echo "Avahi disabled, not starting avahi-daemon"
   exec sleep infinity
