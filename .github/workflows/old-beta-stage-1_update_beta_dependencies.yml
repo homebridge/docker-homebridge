@@ -22,12 +22,12 @@ jobs:
       user_email: ${{ steps.load-config.outputs.user_email }}
       dirs_length: ${{ steps.load-config.outputs.dirs_length }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 'latest'
 
