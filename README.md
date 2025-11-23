@@ -108,6 +108,14 @@ docker run \
 | Timezone | `environment:`<br/>`- TZ=America/Toronto` | `-e TZ=America/Toronto` | `UTC` | Set timezone ([list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
 | Avahi mDNS | `environment:`<br/>`- ENABLE_AVAHI=1` | `-e ENABLE_AVAHI=1` | `1` | Set to `0` to disable Avahi mDNS service |
 
+> **Note**: When running with `ENABLE_AVAHI=0`, you can mount the host's mDNS service to enable HomeKit discovery:
+> ```yaml
+> volumes:
+>   - ./volumes/homebridge:/homebridge
+>   - /var/run/dbus:/var/run/dbus  # Mount host D-Bus socket
+>   - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket  # Mount host Avahi socket
+> ```
+
 ---
 
 ## 🖥️ Homebridge UI
