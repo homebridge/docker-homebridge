@@ -281,12 +281,12 @@ jobs:
           echo 'EOF'
         } >> $GITHUB_OUTPUT
 
-    - name: Upload manifest artifact
+    - name: Upload outputs as artifacts
       uses: actions/upload-artifact@v5
       with:
         name: release-body
-        path: ${{ steps.release_body.outputs.release_body }}
-        
+        path: output/*
+
   create-release:
     runs-on: ubuntu-latest
     needs: [set-versions, extract-manifest, build-images]
@@ -294,11 +294,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
 
-    - name: Download manifest artifact
+    - name: Download artifacts
       uses: actions/download-artifact@v6
       with:
-        name: release-body
-        path: .
+        merge-multiple: true
+        path: output
 
     - name: Display structure of downloaded files
       run: ls -R
@@ -307,12 +307,16 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        TAG_NAME=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        # Copy manifest for release asset with proper name
-        gh release create "${TAG_NAME}" \
+        gh release create "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
           --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
-          --notes-file release-body.md \
+          --notes-file output/release-body.md \
           --draft=false
+
+    - name: Create GitHub Release - Upload Assets
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release upload "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" "output/Docker.manifest" --clobber
 
     - name: Release created
       run: |
