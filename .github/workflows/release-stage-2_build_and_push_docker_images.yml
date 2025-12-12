@@ -284,7 +284,7 @@ jobs:
     - name: Upload outputs as artifacts
       uses: actions/upload-artifact@v5
       with:
-        name: release-body
+        name: output
         path: output/*
 
   create-release:
@@ -298,6 +298,7 @@ jobs:
       uses: actions/download-artifact@v6
       with:
         merge-multiple: true
+        name: output
         path: output
 
     - name: Display structure of downloaded files
