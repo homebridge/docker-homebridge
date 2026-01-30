@@ -115,4 +115,7 @@ EXPOSE 8581/tcp
 VOLUME /homebridge
 WORKDIR /homebridge
 
+HEALTHCHECK --interval=60s --retries=5 --start-period=300s --timeout=2s \
+  CMD curl --fail http://localhost:8581 || exit 1
+
 ENTRYPOINT [ "/init" ]
