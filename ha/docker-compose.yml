@@ -1,0 +1,71 @@
+# Homebridge HA Pair – Docker Compose Template
+# ------------------------------------------------
+# Deploy this same file on BOTH the primary and secondary hosts.
+# Each node's role is controlled by HA_NODE_ROLE in the .env file.
+#
+# Quick start:
+#   1. Copy this directory to both hosts.
+#   2. Create a .env file from .env.example on each host and fill in values.
+#   3. Set up SSH key-based auth between the nodes (see ha/README.md).
+#   4. Run: docker compose up -d
+#
+# See ha/README.md for full instructions.
+
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    container_name: homebridge
+    # "unless-stopped" lets the HA companion start/stop the container
+    # without Docker automatically restarting it.
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./volumes/homebridge:/homebridge
+    environment:
+      - TZ=${TZ:-UTC}
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '1'
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
+      interval: 60s
+      retries: 5
+      start_period: 300s
+      timeout: 2s
+
+  ha-companion:
+    # docker:cli provides the Docker CLI; curl/rsync/openssh-client are added
+    # at container start so no custom image build is required.
+    image: docker:cli
+    container_name: ha-companion
+    restart: always
+    network_mode: host
+    volumes:
+      # Share the Homebridge config volume so the companion can sync it
+      - ./volumes/homebridge:/homebridge
+      # Docker socket – required for container start/stop on the secondary
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The HA companion script
+      - ./ha-companion.sh:/ha-companion.sh:ro
+      # SSH private key for rsync (generate once, share public key with peer)
+      - ${HA_SSH_KEY_PATH:-./ha-ssh-key}:/root/.ssh/id_rsa:ro
+    environment:
+      - HA_NODE_ROLE=${HA_NODE_ROLE:-primary}
+      - HA_PEER_IP=${HA_PEER_IP:-}
+      - HA_PEER_PORT=${HA_PEER_PORT:-8581}
+      - HA_CHECK_INTERVAL=${HA_CHECK_INTERVAL:-30}
+      - HA_FAILOVER_TIMEOUT=${HA_FAILOVER_TIMEOUT:-90}
+      - HA_SYNC_INTERVAL=${HA_SYNC_INTERVAL:-300}
+      - HA_SYNC_USER=${HA_SYNC_USER:-root}
+      - HA_SYNC_PATH=${HA_SYNC_PATH:-/homebridge}
+      - HA_SSH_KEY=/root/.ssh/id_rsa
+      - HA_CONTAINER_NAME=homebridge
+    # Install required tools then run the companion script
+    entrypoint: >
+      sh -c "apk add --no-cache curl rsync openssh-client &&
+             chmod 600 /root/.ssh/id_rsa &&
+             sh /ha-companion.sh"
+    depends_on:
+      - homebridge

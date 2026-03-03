@@ -202,6 +202,19 @@ will be overwritten if the container is updated.
 
 ---
 
+## 🔁 High-Availability (Fault-Tolerant Pair)
+
+Run two Homebridge containers on separate hosts as an **active/standby pair**:
+
+- Only the **primary** is active at any time.
+- The **secondary** monitors the primary's health and automatically takes over if it fails.
+- Configuration is kept in sync between both nodes via rsync over SSH.
+- Roles can be swapped at any time for planned maintenance.
+
+See **[ha/README.md](ha/README.md)** for the complete setup guide.
+
+---
+
 ## 🎥 FFmpeg Support
 
 This image includes **FFmpeg** with `libfdk-aac` audio support for camera streaming and video processing.
