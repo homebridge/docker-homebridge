@@ -5,6 +5,6 @@
   "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge for the 'alpha' release stream of the Docker image",
   "dependencies": {
     "@homebridge/homebridge-apt-pkg": "1.8.19-alpha.20260323",
-    "ffmpeg-for-homebridge": "2.2.1"
+    "ffmpeg-for-homebridge": "2.2.2"
   }
 }
