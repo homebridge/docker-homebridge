@@ -9,6 +9,12 @@
 # Exit on error
 set -e
 
+# Require Bash 4.0+ for associative array support
+if ((BASH_VERSINFO[0] < 4)); then
+  echo "ERROR: Bash 4.0 or higher is required (found ${BASH_VERSION})" >&2
+  exit 1
+fi
+
 # Logging functions
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -63,6 +69,14 @@ docker cp temp-homebridge:/opt/homebridge/Docker.manifest ${DOCKER_MANIFEST}
 docker rm temp-homebridge
 
 group_end
+
+# Regex that matches manifest data rows (package/version pairs).
+# Lines start with optional whitespace then '|' followed by a non-colon, non-space char,
+# which excludes the header row ('| Package |') and the separator row ('|:-------:|').
+readonly MANIFEST_DATA_ROW='^\s*\|[^: ]'
+
+# Trim leading and trailing whitespace from a string.
+trim() { echo "$1" | xargs; }
 
 # Get the latest tag to compare against, filtered by release type
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
@@ -134,12 +148,12 @@ write_manifest_table_current() {
   echo "| Package | Version (${release}) |" >> "$out"
   echo "|:--------|:-----------------:|" >> "$out"
   while IFS='|' read -r _ package version _; do
-    package=$(echo "$package" | xargs)
-    version=$(echo "$version" | xargs)
+    package=$(trim "$package")
+    version=$(trim "$version")
     if [[ -n "$package" && -n "$version" ]]; then
       echo "| ${package} | ${version} |" >> "$out"
     fi
-  done < <(grep -E "^\s*\|[^: ]" "$src")
+  done < <(grep -E "$MANIFEST_DATA_ROW" "$src")
 }
 
 # Write a two-column manifest table: Package | Previous Version | Current Version.
@@ -154,21 +168,20 @@ write_manifest_table_comparison() {
   # Pre-load previous manifest versions into an associative array for O(1) lookup.
   declare -A prev_versions
   while IFS='|' read -r _ pkg ver _; do
-    pkg=$(echo "$pkg" | xargs)
-    ver=$(echo "$ver" | xargs)
+    pkg=$(trim "$pkg")
+    ver=$(trim "$ver")
     if [[ -n "$pkg" && -n "$ver" ]]; then
       prev_versions["$pkg"]="$ver"
     fi
-  done < <(grep -E "^\s*\|[^: ]" "$previous_src")
+  done < <(grep -E "$MANIFEST_DATA_ROW" "$previous_src")
 
   log "Creating combined manifest table: ${prev_release} → ${current_release}"
   echo "| Package | Previous Version (${prev_release}) | Current Version (${current_release}) |" >> "$out"
   echo "|:--------|:-----------------:|:----------------:|" >> "$out"
 
-  # Data rows start with optional whitespace then '|' followed by a non-colon, non-space char.
   while IFS='|' read -r _ package version _; do
-    package=$(echo "$package" | xargs)
-    version=$(echo "$version" | xargs)
+    package=$(trim "$package")
+    version=$(trim "$version")
     if [[ -n "$package" && -n "$version" ]]; then
       prev_version="${prev_versions[$package]:-N/A}"
       if [[ "$prev_version" != "$version" ]]; then
@@ -177,7 +190,7 @@ write_manifest_table_comparison() {
         echo "| ${package} | ${version} | ${version} |" >> "$out"
       fi
     fi
-  done < <(grep -E "^\s*\|[^: ]" "$current_src")
+  done < <(grep -E "$MANIFEST_DATA_ROW" "$current_src")
 }
 
 # Build the Package Manifest section.
