@@ -76,7 +76,7 @@ group_end
 readonly MANIFEST_DATA_ROW='^\s*\|[^: ]'
 
 # Trim leading and trailing whitespace from a string.
-trim() { echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
+trim() { printf '%s\n' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
 
 # Get the latest tag to compare against, filtered by release type
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
@@ -165,7 +165,7 @@ write_manifest_table_comparison() {
   current_release=$(manifest_release_version "$current_src")
   prev_release=$(manifest_release_version "$previous_src")
 
-  # Pre-load previous manifest versions into an associative array for O(1) lookup.
+  # Maps package names → their versions from the previous release for O(1) lookup.
   declare -A prev_versions
   while IFS='|' read -r _ pkg ver _; do
     pkg=$(trim "$pkg")
@@ -183,7 +183,7 @@ write_manifest_table_comparison() {
     package=$(trim "$package")
     version=$(trim "$version")
     if [[ -n "$package" && -n "$version" ]]; then
-      prev_version="${prev_versions[$package]:-N/A}"
+      prev_version="${prev_versions[$package]:-new}"
       if [[ "$prev_version" != "$version" ]]; then
         echo "| **${package}** | ${prev_version} | **${version}** |" >> "$out"
       else
