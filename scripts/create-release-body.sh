@@ -71,12 +71,12 @@ docker rm temp-homebridge
 group_end
 
 # Regex that matches manifest data rows (package/version pairs).
-# Lines start with optional whitespace then '|' followed by a non-colon, non-space char,
-# which excludes the header row ('| Package |') and the separator row ('|:-------:|').
+# The character immediately after '|' must not be ':' (excludes separator rows like '|:-------:|')
+# or ' ' (excludes the header row '| Package | Version |').
 readonly MANIFEST_DATA_ROW='^\s*\|[^: ]'
 
 # Trim leading and trailing whitespace from a string.
-trim() { echo "$1" | xargs; }
+trim() { echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'; }
 
 # Get the latest tag to compare against, filtered by release type
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
