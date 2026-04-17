@@ -64,32 +64,6 @@ docker rm temp-homebridge
 
 group_end
 
-log "Adding package manifest section for stream: ${PKG_RELEASE_STREAM}"
-
-# Add current manifest section
-echo -e "\n## Current Package Manifest:\n" >> "$MANIFEST"
-
-for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
-
-# Extract the base name of the manifest file
-  MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
-
-# Create this line based on the manifest name - ### AMD64 Manifest
-  if [[ "$MANIFEST_NAME" == *"amd64.manifest" ]]; then
-    MANIFEST_HEADER="AMD64 Manifest"
-  elif [[ "$MANIFEST_NAME" == *"arm64.manifest" ]]; then
-    MANIFEST_HEADER="ARM64 Manifest"
-  else
-    MANIFEST_HEADER="$MANIFEST_NAME"
-  fi
-
-  log "Including manifest: $MANIFEST_NAME"
-  echo "### ${MANIFEST_HEADER}" >> "$MANIFEST"
-  echo >> "$MANIFEST"
-  cat "$OUTPUT_MANIFEST" >> "$MANIFEST"
-  echo >> "$MANIFEST"
-done
-
 # Get the latest tag to compare against, filtered by release type
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
   # For beta releases, only look at beta tags
@@ -104,35 +78,18 @@ fi
 
 log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
 
-# Check for package manifest changes if we have a previous tag
+# Check for package.json dependency changes and collect them for later output
 HAS_PACKAGE_CHANGES=false
+PACKAGE_CHANGES_TEXT=""
 if [ -n "$LATEST_TAG" ]; then
   # Get the previous package.json for comparison
   PACKAGE_JSON_PATH=""
   case "${PKG_RELEASE_STREAM:-stable}" in
-    beta)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="beta/package.json"
-      else
-        PACKAGE_JSON_PATH="beta/package.json"
-      fi
-      ;;
-    alpha)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="alpha/package.json"
-      else
-        PACKAGE_JSON_PATH="alpha/package.json"
-      fi
-      ;;
-    *)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="package.json"
-      else
-        PACKAGE_JSON_PATH="package.json"
-      fi
-      ;;
+    beta)  PACKAGE_JSON_PATH="beta/package.json" ;;
+    alpha) PACKAGE_JSON_PATH="alpha/package.json" ;;
+    *)     PACKAGE_JSON_PATH="package.json" ;;
   esac
-  
+
   log "Previous package.json path for comparison: ${PACKAGE_JSON_PATH:-none}"
 
   # Compare package versions with previous tag
@@ -151,17 +108,11 @@ if [ -n "$LATEST_TAG" ]; then
       # Get the current version of the dependency from the current package.json
       CURR_VERSION=$(jq -r ".dependencies[\"$DEP\"] // \"unknown\"" "${REPO_ROOT}/${PACKAGE_JSON_PATH}")
 
-      # Check if the version has changed and add it to the changelog
+      # Check if the version has changed and collect it
       if [[ "$PREV_VERSION" != "$CURR_VERSION" && "$CURR_VERSION" != "unknown" ]]; then
-        log "Dependency ${DEP} changed from ${PREV_VERSION} to ${CURR_VERSION}, ${HAS_PACKAGE_CHANGES}"
-        if [ "$HAS_PACKAGE_CHANGES" = false ]; then
-
-          log "Adding Package Manifest Changes section to release body"
-          echo -e "## Docker Build Instruction Changes" >> "$MANIFEST"
-          echo >> "$MANIFEST"
-          HAS_PACKAGE_CHANGES=true
-        fi
-        echo "* **${DEP}**: Updated from $PREV_VERSION to $CURR_VERSION" >> "$MANIFEST"
+        log "Dependency ${DEP} changed from ${PREV_VERSION} to ${CURR_VERSION}"
+        HAS_PACKAGE_CHANGES=true
+        PACKAGE_CHANGES_TEXT+="* **${DEP}**: Updated from $PREV_VERSION to $CURR_VERSION\n"
       fi
     done
   else
@@ -169,59 +120,108 @@ if [ -n "$LATEST_TAG" ]; then
   fi
 fi
 
+# Extract a release version string from a manifest file.
+manifest_release_version() {
+  grep "Release Version:" "$1" | sed 's/.*Release Version:[[:space:]]*//' | tr -d '\r\n '
+}
 
-
-if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR} 2>/dev/null; then
-  echo -e "\n## Changes Since Previous Release ($LATEST_TAG):\n" >> "$MANIFEST"
-  
-  # Iterate through all manifest files in ${OUTPUT_DIR}
-  for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
-    # Extract the base name of the manifest file
-    MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
-    log "Processing manifest for changes: $MANIFEST_NAME"
-    # Check if a corresponding file exists in ${PREVIOUS_DIR}
-    PREVIOUS_MANIFEST="${PREVIOUS_DIR}/${MANIFEST_NAME}"
-    if [[ -f "$PREVIOUS_MANIFEST" ]]; then
-      TMP_DIFF="/tmp/manifest.diff.$$"
-      # Compare the manifests and capture differences
-      info "diff -u \"$PREVIOUS_MANIFEST\" \"$OUTPUT_MANIFEST\" "
-      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > ${TMP_DIFF} 2>/dev/null; then
-        # Check if there are any meaningful changes in the diff
-        if grep -qE "^[+-] \|" ${TMP_DIFF}; then
-          echo "### Changes in ${MANIFEST_NAME}" >> "$MANIFEST"
-          echo "\`\`\`diff" >> "$MANIFEST"
-          # Include the diff output, sorted for readability
-          grep -E "^[+-] \|" ${TMP_DIFF} | sort -k2 | head -20 >> "$MANIFEST"
-          echo "\`\`\`" >> "$MANIFEST"
-        else
-          warn "No meaningful changes detected in ${MANIFEST_NAME}."
-          echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
-          cat ${TMP_DIFF}
-        fi
-        rm -f ${TMP_DIFF} || true
-      else
-        warn "No changes detected in ${MANIFEST_NAME}."
-        echo "No changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
-      fi
-    else
-      # If no corresponding file exists in ${PREVIOUS_DIR}, note it in the manifest
-      echo "No previous manifest found for ${MANIFEST_NAME}." >> "$MANIFEST"
+# Write a single-column manifest table: Package | Version (release).
+# Usage: write_manifest_table_current <manifest_file> <output_file>
+write_manifest_table_current() {
+  local src="$1" out="$2"
+  local release
+  release=$(manifest_release_version "$src")
+  echo "| Package | Version (${release}) |" >> "$out"
+  echo "|:--------|:-----------------:|" >> "$out"
+  while IFS='|' read -r _ package version _; do
+    package=$(echo "$package" | xargs)
+    version=$(echo "$version" | xargs)
+    if [[ -n "$package" && -n "$version" ]]; then
+      echo "| ${package} | ${version} |" >> "$out"
     fi
-  done
-  
-  # Show Docker image specific changes
+  done < <(grep -E "^\s*\|[^: ]" "$src")
+}
 
-  # echo "See [commit history](https://github.com/homebridge/homebridge-vm-image/compare/$LATEST_TAG...${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}) for Docker-specific changes." >> "$MANIFEST"
+# Write a two-column manifest table: Package | Previous Version | Current Version.
+# Changed packages are highlighted in bold.
+# Usage: write_manifest_table_comparison <current_manifest> <previous_manifest> <output_file>
+write_manifest_table_comparison() {
+  local current_src="$1" previous_src="$2" out="$3"
+  local current_release prev_release
+  current_release=$(manifest_release_version "$current_src")
+  prev_release=$(manifest_release_version "$previous_src")
+
+  # Pre-load previous manifest versions into an associative array for O(1) lookup.
+  declare -A prev_versions
+  while IFS='|' read -r _ pkg ver _; do
+    pkg=$(echo "$pkg" | xargs)
+    ver=$(echo "$ver" | xargs)
+    if [[ -n "$pkg" && -n "$ver" ]]; then
+      prev_versions["$pkg"]="$ver"
+    fi
+  done < <(grep -E "^\s*\|[^: ]" "$previous_src")
+
+  log "Creating combined manifest table: ${prev_release} → ${current_release}"
+  echo "| Package | Previous Version (${prev_release}) | Current Version (${current_release}) |" >> "$out"
+  echo "|:--------|:-----------------:|:----------------:|" >> "$out"
+
+  # Data rows start with optional whitespace then '|' followed by a non-colon, non-space char.
+  while IFS='|' read -r _ package version _; do
+    package=$(echo "$package" | xargs)
+    version=$(echo "$version" | xargs)
+    if [[ -n "$package" && -n "$version" ]]; then
+      prev_version="${prev_versions[$package]:-N/A}"
+      if [[ "$prev_version" != "$version" ]]; then
+        echo "| **${package}** | ${prev_version} | **${version}** |" >> "$out"
+      else
+        echo "| ${package} | ${version} | ${version} |" >> "$out"
+      fi
+    fi
+  done < <(grep -E "^\s*\|[^: ]" "$current_src")
+}
+
+# Build the Package Manifest section.
+# If a previous release manifest is available, produce a side-by-side
+# "Previous Version | Current Version" table.  Otherwise show current only.
+log "Building package manifest section"
+echo -e "\n## Package Manifest\n" >> "$MANIFEST"
+
+if [ -n "$LATEST_TAG" ] && gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR} 2>/dev/null; then
+  log "Previous manifests downloaded from tag ${LATEST_TAG}"
+
+  for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
+    MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
+    PREVIOUS_MANIFEST="${PREVIOUS_DIR}/${MANIFEST_NAME}"
+
+    if [[ -f "$PREVIOUS_MANIFEST" ]]; then
+      write_manifest_table_comparison "$OUTPUT_MANIFEST" "$PREVIOUS_MANIFEST" "$MANIFEST"
+    else
+      log "No previous manifest found for ${MANIFEST_NAME}, showing current only"
+      write_manifest_table_current "$OUTPUT_MANIFEST" "$MANIFEST"
+    fi
+    echo >> "$MANIFEST"
+  done
 else
-  echo -e "\n## Changes Since Previous Release\n" >> "$MANIFEST"
-  echo "Previous release manifest not available for comparison." >> "$MANIFEST"
+  # No previous release available — show current versions only
+  log "No previous manifests available, showing current versions only"
+
+  for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
+    write_manifest_table_current "$OUTPUT_MANIFEST" "$MANIFEST"
+    echo >> "$MANIFEST"
+  done
+fi
+
+# Docker Build Instruction Changes (package.json dependency changes)
+if [ "$HAS_PACKAGE_CHANGES" = true ]; then
+  echo -e "\n## Docker Build Instruction Changes\n" >> "$MANIFEST"
+  echo -e "$PACKAGE_CHANGES_TEXT" >> "$MANIFEST"
 fi
 
 echo -e "\n### Docker Homebridge Changes" >> "$MANIFEST"
 if [ -n "$LATEST_TAG" ]; then
   # Get commits since the latest tag of the same type
   CHANGELOG_COMMITS=$(git log --oneline --no-merges "$LATEST_TAG"..HEAD 2>/dev/null)
-  
+
   if [ -n "$CHANGELOG_COMMITS" ]; then
     # Add code changes section header
     if [ "$HAS_PACKAGE_CHANGES" = true ]; then
