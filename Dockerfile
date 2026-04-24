@@ -43,8 +43,6 @@ RUN set -x \
   avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
   && pipx install tzupdate \
   && chmod 0755 /bin/ping \
-  && apt-get clean \
-  && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* \
   && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
 
 RUN case "$(uname -m)" in \
@@ -80,7 +78,9 @@ RUN case "$(uname -m)" in \
   && apt-get install -y /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && rm -rf /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && chown -R root:root /opt/homebridge \
-  && rm -rf /var/lib/homebridge
+  && rm -rf /var/lib/homebridge \
+  && apt-get clean \
+  && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
 RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
   echo "Homebridge Docker Package Manifest\n\n" \
