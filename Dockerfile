@@ -77,7 +77,7 @@ RUN case "$(uname -m)" in \
   esac \
   && set -x \
   && curl -sSLf -o /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_APT_PKG_VERSION}/homebridge_${HOMEBRIDGE_APT_PKG_FILE}_${DEB_ARCH}.deb \
-  && dpkg -i /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
+  && apt-get install -y /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && rm -rf /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
   && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge
