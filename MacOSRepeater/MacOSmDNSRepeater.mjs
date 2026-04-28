@@ -324,19 +324,20 @@ async function main() {
   const sockets = new Map(); // ip → { sock, iface }
 
   // ── Announcement cache ─────────────────────────────────────────────────
-  // Stores the last rewritten mDNS announcement per container instance.
-  // Keyed by the source virtual IP (e.g. 192.168.64.2, 192.168.64.3) so
-  // each Homebridge instance has its own independent entry.  A single object
-  // was used previously, which caused the second instance to overwrite the
-  // first — only one service would ever be answered or re-announced on the LAN.
+  // Stores the last rewritten mDNS announcement per advertised service.
+  // Keyed by the service instance key returned by extractServiceKey(pkt),
+  // rather than by source virtual IP, so each Homebridge service instance
+  // has its own independent cached entry. A single object was used previously,
+  // which caused later announcements to overwrite earlier ones — only one
+  // service would ever be answered or re-announced on the LAN.
   //
   // When the relay receives a query on the LAN, instead of only forwarding it
   // to the container and *hoping* the container responds in time (it may not,
   // due to RFC 6762 duplicate-suppression), the relay immediately re-sends
-  // every cached announcement.  This is what dns-sd / mDNSResponder does: it
+  // every cached announcement. This is what dns-sd / mDNSResponder does: it
   // is always the authoritative responder for all registered services and
   // answers queries instantly from its local registration state.
-  const announcementCache = new Map(); // virtualIP → { pkt: Buffer, ts: number }
+  const announcementCache = new Map(); // serviceKey → { pkt: Buffer, ts: number }
 
   // Periodically re-announce all cached services on LAN so caches don't expire.
   const reannounceTimer = setInterval(() => {
