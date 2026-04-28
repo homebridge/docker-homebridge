@@ -5,6 +5,17 @@ const MDNS_ADDR = '224.0.0.251';
 const MDNS_PORT = 5353;
 
 // ── Logging ────────────────────────────────────────────────────────────────
+//
+// Controlled by the LOG_LEVEL environment variable (case-insensitive).
+// Levels in ascending order: debug < info < warn < error
+//
+//   LOG_LEVEL=debug  node MacOSmDNSRepeater.mjs   — show all output
+//   LOG_LEVEL=info   node MacOSmDNSRepeater.mjs   — default (omits debug)
+//   LOG_LEVEL=warn   node MacOSmDNSRepeater.mjs   — warnings and errors only
+//   LOG_LEVEL=error  node MacOSmDNSRepeater.mjs   — errors only
+
+const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
+const LEVEL  = LEVELS[(process.env.LOG_LEVEL || 'info').toLowerCase()] ?? LEVELS.info;
 
 const DNS_TYPES = {
   1: 'A', 2: 'NS', 5: 'CNAME', 12: 'PTR', 15: 'MX',
@@ -15,11 +26,15 @@ function ts() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
 
-function log(level, ...args)  { console.log( `[${ts()}] [${level}]`, ...args); }
-function info(...args)        { log('INFO ', ...args); }
-function debug(...args)       { log('DEBUG', ...args); }
-function warn(...args)        { console.warn(`[${ts()}] [WARN ]`, ...args); }
-function error(...args)       { console.error(`[${ts()}] [ERROR]`, ...args); }
+function log(level, num, ...args) {
+  if (num < LEVEL) return;
+  console.log(`[${ts()}] [${level}]`, ...args);
+}
+
+function debug(...args) { log('DEBUG', LEVELS.debug, ...args); }
+function info(...args)  { log('INFO ', LEVELS.info,  ...args); }
+function warn(...args)  { if (LEVELS.warn  >= LEVEL) console.warn( `[${ts()}] [WARN ]`, ...args); }
+function error(...args) { if (LEVELS.error >= LEVEL) console.error(`[${ts()}] [ERROR]`, ...args); }
 
 
 function readName(buf, offset) {
@@ -284,6 +299,8 @@ function isQuery(buf) {
 
 async function main() {
   const { lan, virtual } = getInterfaces();
+
+  info(`Log level: ${(process.env.LOG_LEVEL || 'info').toUpperCase()}  (set LOG_LEVEL=debug for packet-level output)`);
 
   if (!lan.length) { error('No LAN interface found'); process.exit(1); }
 
