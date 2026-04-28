@@ -313,16 +313,24 @@ async function main() {
 
   if (!lan.length) { error('No LAN interface found'); process.exit(1); }
 
-  // Use the first LAN IP as the rewrite target
-  const LAN_IP = lan[0].ip;
+  // Use the first LAN IP as the rewrite target; ignore any additional LAN interfaces.
+  const primaryLan = lan[0];
+  const LAN_IP = primaryLan.ip;
 
-  info('LAN interfaces:    ', lan.map(i => `${i.name}=${i.ip}`).join(', '));
+  info('Primary LAN interface:', `${primaryLan.name}=${primaryLan.ip}`);
+
+  if (lan.length > 1) {
+    for (const extra of lan.slice(1)) {
+      warn(`Additional LAN interface found — ignoring: ${extra.name}=${extra.ip}`);
+    }
+  }
+
   info('Virtual interfaces:', virtual.length
     ? virtual.map(i => `${i.name}=${i.ip}`).join(', ')
     : '(none detected yet)');
   info('Rewriting A records to:', LAN_IP);
 
-  const allIfaces = [...lan, ...virtual];
+  const allIfaces = [primaryLan, ...virtual];
   const sockets = new Map(); // ip → { sock, iface }
 
   // ── Announcement cache ─────────────────────────────────────────────────
