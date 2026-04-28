@@ -408,7 +408,7 @@ async function main() {
               for (const [key, entry] of announcementCache.entries()) {
                 for (const [ip, { sock: targetSock, iface: targetIface }] of sockets.entries()) {
                   const isLan = !VIRTUAL_SUBNETS.some(s => ip.startsWith(s));
-                  if (!isLan || ip === sourceIface.ip) continue;
+                  if (!isLan) continue;
                   targetSock.send(entry.pkt, MDNS_PORT, MDNS_ADDR, err => {
                     if (err) error(`Cache-reply error → ${ip}:`, err.message);
                     else debug(`[${targetIface.name}] cache-reply sent for "${key}"`);
