@@ -300,6 +300,8 @@ const REANNOUNCE_INTERVAL_MS = 60_000; // 60 s
 const CACHE_MAX_AGE_MS = 5 * 60_000;  // 5 min
 
 function isQuery(buf) {
+  // Ignore malformed/truncated packets that do not contain a full DNS header.
+  if (buf.length < 12) return false;
   // DNS header flags word: bit 15 = QR (0 = query, 1 = response)
   return (buf.readUInt16BE(2) & 0x8000) === 0;
 }
