@@ -438,6 +438,16 @@ async function main() {
     }
   }
 
+  if (sockets.size === 0) {
+    error('Failed to bind any mDNS sockets; exiting.');
+    process.exit(1);
+  }
+
+  const hasLanSocket = lan.some(iface => sockets.has(iface.ip));
+  if (!hasLanSocket) {
+    error('Failed to bind any LAN interface sockets; exiting.');
+    process.exit(1);
+  }
   info(`mDNS proxy running — ${sockets.size} interface(s): [${[...sockets.keys()].join(', ')}]`);
   info(`Cache re-announce interval: ${REANNOUNCE_INTERVAL_MS / 1000}s  |  Max cache age: ${CACHE_MAX_AGE_MS / 1000}s`);
 }
