@@ -264,7 +264,14 @@ function createSocket(iface, onMessage) {
 
     sock.on('message', (msg, rinfo) => {
       if (rinfo.address === iface.ip) return; // ignore own packets
-      onMessage(msg, rinfo, iface);
+      try {
+        onMessage(msg, rinfo, iface);
+      } catch (err) {
+        warn(
+          `[${iface.name}] dropped invalid packet from ${rinfo.address}:${rinfo.port}:`,
+          err?.message || err
+        );
+      }
     });
 
     sock.bind(MDNS_PORT, () => {
