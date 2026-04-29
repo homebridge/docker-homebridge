@@ -254,6 +254,122 @@ function getInterfaces() {
   return { lan, virtual };
 }
 
+// ── UDP Broadcast Relay ────────────────────────────────────────────────────
+//
+// Relays UDP broadcast packets on configured ports between virtual and LAN
+// interfaces.  This is needed for plugins that use UDP broadcast discovery —
+// e.g. the Balboa BWG spa controller which sends to 255.255.255.255:30303.
+//
+// Discovery flow (container → LAN):
+//   1. Container broadcasts to 255.255.255.255:<port>
+//   2. Relay receives it on the virtual interface socket
+//   3. Relay re-broadcasts it on the LAN interface so LAN devices can hear it
+//
+// Response flow (LAN → container):
+//   1. LAN device replies unicast to the Mac's LAN IP (since that's where the
+//      re-broadcast appeared to come from)
+//   2. Relay receives the reply on the LAN socket
+//   3. Relay forwards it to every virtual IP that recently sent a discovery
+//      broadcast on this port (tracked for BROADCAST_PENDING_TTL_MS)
+//
+// Configuration:
+//   BROADCAST_RELAY_PORTS=30303,<other>  comma-separated list (default: 30303)
+
+const BROADCAST_RELAY_PORTS = (process.env.BROADCAST_RELAY_PORTS ?? '30303')
+  .split(',').map(p => Number(p.trim())).filter(p => p > 0);
+
+// How long to remember that a virtual IP is waiting for a broadcast response.
+const BROADCAST_PENDING_TTL_MS = 30_000; // 30 s
+
+/**
+ * Start a UDP broadcast relay for a single port.
+ * @param {number}   port        - UDP port to relay
+ * @param {object[]} lanIfaces   - array of { name, ip } for LAN interfaces
+ * @param {object[]} virtIfaces  - array of { name, ip } for virtual interfaces
+ */
+function startBroadcastRelay(port, lanIfaces, virtIfaces) {
+  // pending: virtualIP → last-seen timestamp (ms)
+  const pending = new Map();
+
+  function prunePending() {
+    const cutoff = Date.now() - BROADCAST_PENDING_TTL_MS;
+    for (const [ip, ts] of pending.entries()) {
+      if (ts < cutoff) pending.delete(ip);
+    }
+  }
+
+  // One socket per interface, all bound to the same port with reuseAddr so
+  // the container's own socket and our relay socket can coexist.
+  const socks = new Map(); // ip → dgram.Socket
+
+  function createBroadcastSocket(bindIp, onMessage) {
+    return new Promise((resolve, reject) => {
+      const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+      sock.on('error', err => error(`[broadcast:${bindIp}:${port}]`, err.message));
+      sock.on('message', onMessage);
+      sock.bind(port, () => {
+        try {
+          sock.setBroadcast(true);
+          info(`[broadcast:${port}] listening on ${bindIp}:${port}`);
+          resolve(sock);
+        } catch (err) { reject(err); }
+      });
+      sock.once('error', reject);
+    });
+  }
+
+  // ── Sockets on virtual interfaces ──────────────────────────────────────
+  // When we hear a broadcast from a container, record the sender and relay
+  // it out of every LAN interface.
+  for (const vIface of virtIfaces) {
+    createBroadcastSocket(vIface.ip, (msg, rinfo) => {
+      if (rinfo.address === vIface.ip) return; // ignore own traffic
+
+      const isBroadcast = rinfo.address === '255.255.255.255' ||
+        rinfo.address.endsWith('.255');
+      if (!isBroadcast && !VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
+
+      prunePending();
+      pending.set(rinfo.address, Date.now());
+      debug(`[broadcast:${port}] VIRTUAL→LAN from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
+
+      for (const [ip, sock] of socks.entries()) {
+        const isLan = !VIRTUAL_SUBNETS.some(s => ip.startsWith(s));
+        if (!isLan) continue;
+        sock.send(msg, 0, msg.length, port, '255.255.255.255', err => {
+          if (err) error(`[broadcast:${port}] relay to LAN ${ip} failed:`, err.message);
+        });
+      }
+    }).then(sock => socks.set(vIface.ip, sock))
+      .catch(err => warn(`[broadcast:${port}] failed to bind ${vIface.ip}: ${err.message}`));
+  }
+
+  // ── Sockets on LAN interfaces ───────────────────────────────────────────
+  // When we hear a reply from a LAN device, forward it to every virtual IP
+  // that recently sent a discovery broadcast.
+  for (const lIface of lanIfaces) {
+    createBroadcastSocket(lIface.ip, (msg, rinfo) => {
+      if (rinfo.address === lIface.ip) return; // ignore own traffic
+      // Ignore traffic from virtual subnets
+      if (VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
+
+      prunePending();
+      if (pending.size === 0) return; // no containers waiting
+
+      debug(`[broadcast:${port}] LAN→VIRTUAL from ${rinfo.address}:${rinfo.port}  ${msg.length}b → ${pending.size} pending virtual IP(s)`);
+      for (const [vip] of pending.entries()) {
+        const sock = socks.get(vip);
+        if (!sock) continue;
+        sock.send(msg, 0, msg.length, rinfo.port, vip, err => {
+          if (err) error(`[broadcast:${port}] relay to virtual ${vip} failed:`, err.message);
+          else debug(`[broadcast:${port}] forwarded LAN response to ${vip}`);
+        });
+      }
+    }).then(sock => socks.set(lIface.ip, sock))
+      .catch(err => warn(`[broadcast:${port}] failed to bind ${lIface.ip}: ${err.message}`));
+  }
+}
+
 // ── Socket Setup ───────────────────────────────────────────────────────────
 
 function createSocket(iface, onMessage) {
@@ -460,6 +576,14 @@ async function main() {
   }
   info(`mDNS proxy running — ${sockets.size} interface(s): [${[...sockets.keys()].join(', ')}]`);
   info(`Cache re-announce interval: ${REANNOUNCE_INTERVAL_MS / 1000}s  |  Max cache age: ${CACHE_MAX_AGE_MS / 1000}s`);
+
+  // ── UDP broadcast relay ────────────────────────────────────────────────
+  if (BROADCAST_RELAY_PORTS.length > 0) {
+    info(`UDP broadcast relay ports: [${BROADCAST_RELAY_PORTS.join(', ')}]  (set BROADCAST_RELAY_PORTS=<ports> to override)`);
+    for (const port of BROADCAST_RELAY_PORTS) {
+      startBroadcastRelay(port, lan, virtual);
+    }
+  }
 }
 
 main().catch(console.error);
