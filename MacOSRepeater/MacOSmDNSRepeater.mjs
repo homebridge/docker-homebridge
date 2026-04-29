@@ -581,7 +581,7 @@ async function main() {
   if (BROADCAST_RELAY_PORTS.length > 0) {
     info(`UDP broadcast relay ports: [${BROADCAST_RELAY_PORTS.join(', ')}]  (set BROADCAST_RELAY_PORTS=<ports> to override)`);
     for (const port of BROADCAST_RELAY_PORTS) {
-      startBroadcastRelay(port, lan, virtual);
+      startBroadcastRelay(port, [lan[0]], virtual);
     }
   }
 }
