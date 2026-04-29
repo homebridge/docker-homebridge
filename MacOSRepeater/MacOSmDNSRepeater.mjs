@@ -330,8 +330,17 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
   let virtSock = null;
 
   createBroadcastSocket('0.0.0.0', (msg, rinfo) => {
-    // Only process packets originating from a virtual subnet
-    if (!VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
+    // Log every packet at debug so we can see what's arriving regardless of filters
+    debug(`[broadcast:${port}] recv on 0.0.0.0 from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
+
+    // The container sends to 255.255.255.255; on macOS the source address in
+    // rinfo is the actual container IP (192.168.6x.x), but guard against the
+    // edge case where it appears as a broadcast address itself.
+    const fromVirtual = VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s));
+    if (!fromVirtual) {
+      debug(`[broadcast:${port}] ignoring — source ${rinfo.address} is not a virtual subnet`);
+      return;
+    }
 
     prunePending();
     const isNew = !seenContainers.has(rinfo.address);
@@ -357,6 +366,7 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
 
   for (const lIface of lanIfaces) {
     createBroadcastSocket(lIface.ip, (msg, rinfo) => {
+      debug(`[broadcast:${port}] recv on ${lIface.ip} from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
       if (rinfo.address === lIface.ip) return; // ignore own traffic
       // Ignore traffic from virtual subnets
       if (VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
