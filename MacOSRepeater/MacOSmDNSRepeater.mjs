@@ -288,7 +288,7 @@ const BROADCAST_PENDING_TTL_MS = 30_000; // 30 s
  * @param {object[]} virtIfaces  - array of { name, ip } for virtual interfaces
  */
 function startBroadcastRelay(port, lanIfaces, virtIfaces) {
-  // pending: virtualIP → last-seen timestamp (ms)
+  // pending: containerIP → last-seen timestamp (ms)
   const pending = new Map();
 
   function prunePending() {
@@ -298,16 +298,13 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
     }
   }
 
-  // One socket per interface, all bound to the same port with reuseAddr so
-  // the container's own socket and our relay socket can coexist.
-  const socks = new Map(); // ip → dgram.Socket
-
   function createBroadcastSocket(bindIp, onMessage) {
     return new Promise((resolve, reject) => {
       const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-      sock.on('error', err => error(`[broadcast:${bindIp}:${port}]`, err.message));
+      sock.on('error', err => error(`[broadcast:${port}:${bindIp}]`, err.message));
       sock.on('message', onMessage);
-      sock.bind(port, () => {
+      // bind without an address when using 0.0.0.0 so Node picks the right default
+      sock.bind(port, bindIp === '0.0.0.0' ? undefined : bindIp, () => {
         try {
           sock.setBroadcast(true);
           info(`[broadcast:${port}] listening on ${bindIp}:${port}`);
@@ -318,35 +315,34 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
     });
   }
 
-  // ── Sockets on virtual interfaces ──────────────────────────────────────
-  // When we hear a broadcast from a container, record the sender and relay
-  // it out of every LAN interface.
-  for (const vIface of virtIfaces) {
-    createBroadcastSocket(vIface.ip, (msg, rinfo) => {
-      if (rinfo.address === vIface.ip) return; // ignore own traffic
+  // ── Single socket on 0.0.0.0 for all virtual interfaces ────────────────
+  // Binding to 0.0.0.0 catches broadcasts from BOTH virtual subnets
+  // (192.168.64.x and 192.168.65.x) with one socket.  It is also used to
+  // send unicast replies back to individual container IPs.
+  let virtSock = null;
 
-      const isBroadcast = rinfo.address === '255.255.255.255' ||
-        rinfo.address.endsWith('.255');
-      if (!isBroadcast && !VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
+  createBroadcastSocket('0.0.0.0', (msg, rinfo) => {
+    // Only process packets originating from a virtual subnet
+    if (!VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
 
-      prunePending();
-      pending.set(rinfo.address, Date.now());
-      debug(`[broadcast:${port}] VIRTUAL→LAN from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
+    prunePending();
+    pending.set(rinfo.address, Date.now());
+    debug(`[broadcast:${port}] VIRTUAL→LAN from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
 
-      for (const [ip, sock] of socks.entries()) {
-        const isLan = !VIRTUAL_SUBNETS.some(s => ip.startsWith(s));
-        if (!isLan) continue;
-        sock.send(msg, 0, msg.length, port, '255.255.255.255', err => {
-          if (err) error(`[broadcast:${port}] relay to LAN ${ip} failed:`, err.message);
-        });
-      }
-    }).then(sock => socks.set(vIface.ip, sock))
-      .catch(err => warn(`[broadcast:${port}] failed to bind ${vIface.ip}: ${err.message}`));
-  }
+    for (const { sock, ip } of lanSocks) {
+      sock.send(msg, 0, msg.length, port, '255.255.255.255', err => {
+        if (err) error(`[broadcast:${port}] relay to LAN ${ip} failed:`, err.message);
+      });
+    }
+  }).then(sock => { virtSock = sock; })
+    .catch(err => warn(`[broadcast:${port}] failed to bind 0.0.0.0: ${err.message}`));
 
   // ── Sockets on LAN interfaces ───────────────────────────────────────────
-  // When we hear a reply from a LAN device, forward it to every virtual IP
-  // that recently sent a discovery broadcast.
+  // When we hear a reply from a LAN device, forward it unicast to every
+  // container IP that recently sent a discovery broadcast.  We use virtSock
+  // (bound to 0.0.0.0) to send, so it works for both virtual subnets.
+  const lanSocks = [];
+
   for (const lIface of lanIfaces) {
     createBroadcastSocket(lIface.ip, (msg, rinfo) => {
       if (rinfo.address === lIface.ip) return; // ignore own traffic
@@ -354,18 +350,16 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
       if (VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
 
       prunePending();
-      if (pending.size === 0) return; // no containers waiting
+      if (pending.size === 0 || !virtSock) return;
 
-      debug(`[broadcast:${port}] LAN→VIRTUAL from ${rinfo.address}:${rinfo.port}  ${msg.length}b → ${pending.size} pending virtual IP(s)`);
-      for (const [vip] of pending.entries()) {
-        const sock = socks.get(vip);
-        if (!sock) continue;
-        sock.send(msg, 0, msg.length, rinfo.port, vip, err => {
-          if (err) error(`[broadcast:${port}] relay to virtual ${vip} failed:`, err.message);
-          else debug(`[broadcast:${port}] forwarded LAN response to ${vip}`);
+      debug(`[broadcast:${port}] LAN→VIRTUAL from ${rinfo.address}:${rinfo.port}  ${msg.length}b → ${pending.size} pending container(s)`);
+      for (const [containerIp] of pending.entries()) {
+        virtSock.send(msg, 0, msg.length, rinfo.port, containerIp, err => {
+          if (err) error(`[broadcast:${port}] relay to container ${containerIp} failed:`, err.message);
+          else debug(`[broadcast:${port}] forwarded LAN response → ${containerIp}`);
         });
       }
-    }).then(sock => socks.set(lIface.ip, sock))
+    }).then(sock => lanSocks.push({ sock, ip: lIface.ip }))
       .catch(err => warn(`[broadcast:${port}] failed to bind ${lIface.ip}: ${err.message}`));
   }
 }
