@@ -291,10 +291,18 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
   // pending: containerIP → last-seen timestamp (ms)
   const pending = new Map();
 
+  // Track first-seen container IPs and LAN responders so we log at info level
+  // on first occurrence and debug for repeats — avoids flooding the log.
+  const seenContainers = new Set();
+  const seenResponders = new Set();
+
   function prunePending() {
     const cutoff = Date.now() - BROADCAST_PENDING_TTL_MS;
     for (const [ip, ts] of pending.entries()) {
-      if (ts < cutoff) pending.delete(ip);
+      if (ts < cutoff) {
+        pending.delete(ip);
+        seenContainers.delete(ip);
+      }
     }
   }
 
@@ -326,8 +334,12 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
     if (!VIRTUAL_SUBNETS.some(s => rinfo.address.startsWith(s))) return;
 
     prunePending();
+    const isNew = !seenContainers.has(rinfo.address);
+    seenContainers.add(rinfo.address);
     pending.set(rinfo.address, Date.now());
-    debug(`[broadcast:${port}] VIRTUAL→LAN from ${rinfo.address}:${rinfo.port}  ${msg.length}b`);
+
+    const logFn = isNew ? info : debug;
+    logFn(`[broadcast:${port}] VIRTUAL→LAN  ${rinfo.address}:${rinfo.port} → 255.255.255.255:${port}  ${msg.length}b${isNew ? '  (new container)' : ''}`);
 
     for (const { sock, ip } of lanSocks) {
       sock.send(msg, 0, msg.length, port, '255.255.255.255', err => {
@@ -352,7 +364,11 @@ function startBroadcastRelay(port, lanIfaces, virtIfaces) {
       prunePending();
       if (pending.size === 0 || !virtSock) return;
 
-      debug(`[broadcast:${port}] LAN→VIRTUAL from ${rinfo.address}:${rinfo.port}  ${msg.length}b → ${pending.size} pending container(s)`);
+      const isNew = !seenResponders.has(rinfo.address);
+      seenResponders.add(rinfo.address);
+      const logFn = isNew ? info : debug;
+      logFn(`[broadcast:${port}] LAN→VIRTUAL  ${rinfo.address}:${rinfo.port} → ${pending.size} container(s)  ${msg.length}b${isNew ? '  (new responder)' : ''}`);
+
       for (const [containerIp] of pending.entries()) {
         virtSock.send(msg, 0, msg.length, rinfo.port, containerIp, err => {
           if (err) error(`[broadcast:${port}] relay to container ${containerIp} failed:`, err.message);
