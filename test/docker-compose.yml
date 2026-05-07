@@ -1,6 +1,6 @@
 services:
   homebridge:
-    image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:beta}
+    image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:legacy}
     hostname: test-homebridge-docker
     restart: always
     network_mode: host

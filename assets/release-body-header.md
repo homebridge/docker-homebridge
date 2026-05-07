@@ -9,9 +9,11 @@ This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 
 | latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Stable       |
 | beta                  | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Beta         |
 | alpha                 | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Alpha        | 
+| legacy                | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Legacy       | 
 
 ### Release Types
 
 - **Stable** (`latest`, `ubuntu`): Stable releases using the latest stable versions of Homebridge and plugins
+- **Legacy** (`legacy`, `legacy`): Stable releases using the latest stable versions of Homebridge 1.x and plugins
 - **Beta** (`beta`): Pre-release versions with beta versions of Homebridge and the Homebridge UI for testing new features
 - **Alpha** (`alpha`): Early pre-release versions with alpha versions of Homebridge and the Homebridge UI for early testing and development 
