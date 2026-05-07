@@ -230,11 +230,21 @@ jobs:
         echo "Comparing with latest release: $LATEST_RELEASE"
 
         if [[ -n "$LATEST_RELEASE" ]]; then
-          PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
+          # Download the clean Docker.manifest asset from the previous release to avoid
+          # false matches against diff lines (+/-) embedded in the release body markdown.
+          PREV_MANIFEST_DIR=$(mktemp -d)
+          if gh release download "$LATEST_RELEASE" --pattern "Docker.manifest" --dir "$PREV_MANIFEST_DIR" 2>/dev/null; then
+            PREV_MANIFEST=$(cat "$PREV_MANIFEST_DIR/Docker.manifest")
+          else
+            # Fallback: use release body, but this may contain diff lines for older releases
+            PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
+          fi
+          rm -rf "$PREV_MANIFEST_DIR"
           CURRENT_MANIFEST=$(cat ${{ steps.release_body.outputs.docker_manifest }})
 
           extract_package_version() {
-            echo "$1" | grep "|$2|" | awk -F'|' '{print $3}' | tr -d ' '
+            # Anchor with ^ so diff lines starting with "- |" or "+ |" are excluded
+            echo "$1" | grep "^|$2|" | awk -F'|' '{print $3}' | tr -d ' '
           }
 
           PACKAGE_CHANGES=""
