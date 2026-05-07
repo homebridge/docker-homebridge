@@ -1,27 +1,28 @@
 name: Release Stage 2 - Build and Push Docker Images
-run-name: Release Stage 2 - ${{ github.event.inputs.Scheduled}} - Build and Push ${{ inputs.release_type }} Docker Images
+run-name: Release Stage 2 - ${{ github.event.inputs.Scheduled }} - Build and Push ${{ inputs.release_type }} Docker Images
 
 on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Choose release type: "stable" (builds latest version), "beta" (builds beta version with beta-YYYY-MM-DD tag), or "alpha" (builds alpha version with alpha-YYYY-MM-DD tag).'
+        description: 'Choose release type: stable, beta, alpha, or legacy.'
         required: true
         type: choice
         options:
           - stable
           - beta
           - alpha
+          - legacy
         default: beta
       Scheduled:
-          description: 'Whether this is a scheduled run'
-          required: false
-          type: choice
-          options:
-            - Scheduled
-            - Manual
-            - Testing
-          default: Manual
+        description: 'Whether this is a scheduled run'
+        required: false
+        type: choice
+        options:
+          - Scheduled
+          - Manual
+          - Testing
+        default: Manual
 
 concurrency:
   group: stage-2-build-and-push
@@ -31,104 +32,71 @@ jobs:
   set-versions:
     runs-on: ubuntu-latest
     outputs:
-      DOCKER_HOMEBRIDGE_VERSION: ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-      IS_BETA: ${{ steps.check_beta.outputs.IS_BETA }}
-      IS_ALPHA: ${{ steps.check_alpha.outputs.IS_ALPHA }}
-      HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-      HOMEBRIDGE_APT_PKG_FILE: ${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}
-      FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-      RELEASE_TITLE: ${{ steps.set_title.outputs.RELEASE_TITLE }}
-      DOCKER_TAG: ${{ steps.pkg_version.outputs.DOCKER_TAG }}
+      DOCKER_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+      HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+      HOMEBRIDGE_APT_PKG_FILE: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
+      FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+      RELEASE_TITLE: ${{ steps.versions.outputs.RELEASE_TITLE }}
+      DOCKER_TAG: ${{ steps.versions.outputs.DOCKER_TAG }}
+      IS_STABLE: ${{ steps.versions.outputs.IS_STABLE }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v6
 
-    - name: Set Docker Homebridge version
-      id: docker_version
+    - name: Set Versions
+      id: versions
       run: |
-        if [[ "${{ inputs.release_type }}" == "beta" ]]; then
-          export DOCKER_HOMEBRIDGE_VERSION="beta-$(date +%Y-%m-%d)"
-        elif [[ "${{ inputs.release_type }}" == "alpha" ]]; then
-          export DOCKER_HOMEBRIDGE_VERSION="alpha-$(date +%Y-%m-%d)"
-        else
-          export DOCKER_HOMEBRIDGE_VERSION="$(date +%Y-%m-%d)"
-        fi
-        echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
+        RELEASE_TYPE="${{ inputs.release_type }}"
+        DATE_TAG="$(date +%Y-%m-%d)"
 
-    - name: Check for beta release
-      id: check_beta
-      run: |
-        if [[ "${{ inputs.release_type }}" == "beta" ]]; then
-          if [[ -f beta/package.json ]]; then
-            echo "IS_BETA=true" >> $GITHUB_OUTPUT
-          else
-            echo "Error: beta/package.json is missing for beta release"
-            exit 1
-          fi
+        if [[ "$RELEASE_TYPE" == "stable" ]]; then
+          PKG_FILE="package.json"
+          DOCKER_TAG="latest"
+          DOCKER_HOMEBRIDGE_VERSION="${DATE_TAG}"
+          RELEASE_TITLE="Homebridge Docker Release ${DATE_TAG}"
+          IS_STABLE="true"
         else
-          echo "IS_BETA=false" >> $GITHUB_OUTPUT
+          PKG_FILE="${RELEASE_TYPE}/package.json"
+          DOCKER_TAG="${RELEASE_TYPE}"
+          DOCKER_HOMEBRIDGE_VERSION="${RELEASE_TYPE}-${DATE_TAG}"
+          RELEASE_TITLE="${RELEASE_TYPE^^}: Homebridge Docker Release ${RELEASE_TYPE}-${DATE_TAG}"
+          IS_STABLE="false"
         fi
 
-    - name: Check for alpha release
-      id: check_alpha
-      run: |
-        if [[ "${{ inputs.release_type }}" == "alpha" ]]; then
-          if [[ -f alpha/package.json ]]; then
-            echo "IS_ALPHA=true" >> $GITHUB_OUTPUT
-          else
-            echo "Error: alpha/package.json is missing for alpha release"
-            exit 1
-          fi
-        else
-          echo "IS_ALPHA=false" >> $GITHUB_OUTPUT
+        if [[ ! -f "$PKG_FILE" ]]; then
+          echo "Error: $PKG_FILE not found for release type '$RELEASE_TYPE'"
+          exit 1
         fi
 
-    - name: Set Package Versions
-      id: pkg_version
-      run: |
-        if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
-          export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
-          export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
-          export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
+        HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "$PKG_FILE" | sed 's/\^//')
+        FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' "$PKG_FILE" | sed 's/\^//')
+
+        # For pre-release types, transform the apt pkg filename (e.g. 1.0.0-beta.1 → 1.0.0.beta.1)
+        if [[ "$IS_STABLE" == "false" ]]; then
+          HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed "s/\([0-9]*\.[0-9]*\.[0-9]*\)-${DOCKER_TAG}\(\.[0-9]*\)/\1.${DOCKER_TAG}\2/")
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
-          echo "DOCKER_TAG=beta" >> $GITHUB_OUTPUT
-        elif [[ "${{ steps.check_alpha.outputs.IS_ALPHA }}" == "true" ]]; then
-          export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' alpha/package.json | sed 's/\^//')
-          export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-alpha\(\.[0-9][0-9]*\)/\1.alpha\2/')
-          export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' alpha/package.json | sed 's/\^//')
-          echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}" >> $GITHUB_OUTPUT
-          echo "DOCKER_TAG=alpha" >> $GITHUB_OUTPUT
-        else
-          export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
-          export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
-          echo "DOCKER_TAG=latest" >> $GITHUB_OUTPUT
         fi
-        echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
-        echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
 
-    - name: Set Release Title
-      id: set_title
-      run: |
-        if [[ "${{ steps.check_beta.outputs.IS_BETA }}" == "true" ]]; then
-          echo "RELEASE_TITLE=BETA: Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
-        elif [[ "${{ steps.check_alpha.outputs.IS_ALPHA }}" == "true" ]]; then
-          echo "RELEASE_TITLE=ALPHA: Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
-        else
-          echo "RELEASE_TITLE=Homebridge Docker Release ${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}" >> $GITHUB_OUTPUT
-        fi
+        {
+          echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}"
+          echo "DOCKER_TAG=${DOCKER_TAG}"
+          echo "RELEASE_TITLE=${RELEASE_TITLE}"
+          echo "IS_STABLE=${IS_STABLE}"
+          echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}"
+          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}"
+        } >> $GITHUB_OUTPUT
 
     - name: Output versions
       run: |
         echo "::group::Version Information"
-        echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.docker_version.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
-        echo "IS_BETA=${{ steps.check_beta.outputs.IS_BETA }}"
-        echo "IS_ALPHA=${{ steps.check_alpha.outputs.IS_ALPHA }}"
-        echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
-        echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.pkg_version.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
-        echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.pkg_version.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
-        echo "RELEASE_TITLE=${{ steps.set_title.outputs.RELEASE_TITLE }}"
-        echo "DOCKER_TAG=${{ steps.pkg_version.outputs.DOCKER_TAG }}"
+        echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        echo "DOCKER_TAG=${{ steps.versions.outputs.DOCKER_TAG }}"
+        echo "IS_STABLE=${{ steps.versions.outputs.IS_STABLE }}"
+        echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
+        echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
+        echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+        echo "RELEASE_TITLE=${{ steps.versions.outputs.RELEASE_TITLE }}"
         echo "::endgroup::"
 
   build-images:
@@ -146,29 +114,50 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4
 
-    - name: Log into GitHub Container registry
+    - name: Set build args
+      id: build_args
+      run: |
+        ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+        FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+        DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+
+        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "false" ]]; then
+          ARGS="$ARGS
+        HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
+        fi
+        echo "args<<EOF" >> $GITHUB_OUTPUT
+        echo "$ARGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Set image tags (GHCR)
+      id: ghcr_tags
+      run: |
+        TAGS="ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
+        ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "true" ]]; then
+          TAGS="$TAGS
+        ghcr.io/homebridge/homebridge:ubuntu"
+        fi
+        echo "tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Log into GitHub Container Registry
       uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and Push Image to GitHub Container Registry
+    - name: Build and Push to GHCR
       uses: docker/build-push-action@v7
       with:
         context: .
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'ghcr.io/homebridge/homebridge:ubuntu' || '' }}
-          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
-          ghcr.io/homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        build-args: ${{ steps.build_args.outputs.args }}
+        tags: ${{ steps.ghcr_tags.outputs.tags }}
 
     - name: Log into Docker Hub
       uses: docker/login-action@v4
@@ -178,7 +167,21 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and Push Image to Docker Hub
+    - name: Set image tags (Docker Hub)
+      id: hub_tags
+      if: github.repository == 'homebridge/docker-homebridge'
+      run: |
+        TAGS="homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
+        homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "true" ]]; then
+          TAGS="$TAGS
+        homebridge/homebridge:ubuntu"
+        fi
+        echo "tags<<EOF" >> $GITHUB_OUTPUT
+        echo "$TAGS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Build and Push to Docker Hub
       if: github.repository == 'homebridge/docker-homebridge'
       id: docker_hub_build_and_push
       uses: docker/build-push-action@v7
@@ -187,15 +190,8 @@ jobs:
         file: ./Dockerfile
         platforms: linux/amd64,linux/arm/v7,linux/arm64
         push: true
-        build-args: |
-          HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-          ${{ (needs.set-versions.outputs.IS_BETA == 'true' || needs.set-versions.outputs.IS_ALPHA == 'true') && format('HOMEBRIDGE_APT_PKG_FILE={0}', needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE) || '' }}
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-          DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-        tags: |
-          ${{ (needs.set-versions.outputs.IS_BETA == 'false' && needs.set-versions.outputs.IS_ALPHA == 'false') && 'homebridge/homebridge:ubuntu' || '' }}
-          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
-          homebridge/homebridge:${{ needs.set-versions.outputs.DOCKER_TAG }}
+        build-args: ${{ steps.build_args.outputs.args }}
+        tags: ${{ steps.hub_tags.outputs.tags }}
 
   extract-manifest:
     runs-on: ubuntu-latest
@@ -223,58 +219,41 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Get the latest release to compare against (excluding the current one being created)
-        if [[ "${{ needs.set-versions.outputs.IS_BETA }}" == "true" ]]; then
-          # For beta releases, compare with the latest beta release
-          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r '.[] | select(.tagName | startswith("beta-")) | .tagName' | head -1)
+        DOCKER_TAG="${{ needs.set-versions.outputs.DOCKER_TAG }}"
+
+        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "true" ]]; then
+          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r '.[] | select(.tagName | test("^[0-9]{4}-")) | .tagName' | head -1)
         else
-          # For stable releases, compare with the latest stable release (no beta prefix)
-          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r '.[] | select(.tagName | startswith("beta-") | not) | .tagName' | head -1)
+          LATEST_RELEASE=$(gh release list --limit 50 --json tagName | jq -r --arg prefix "${DOCKER_TAG}-" '.[] | select(.tagName | startswith($prefix)) | .tagName' | head -1)
         fi
 
         echo "Comparing with latest release: $LATEST_RELEASE"
 
         if [[ -n "$LATEST_RELEASE" ]]; then
-          # Get the previous release manifest
           PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
-
-          # Extract package versions from current manifest
           CURRENT_MANIFEST=$(cat ${{ steps.release_body.outputs.docker_manifest }})
 
-          # Parse package versions from both manifests
           extract_package_version() {
-            local manifest="$1"
-            local package="$2"
-            echo "$manifest" | grep "|$package|" | awk -F'|' '{print $3}' | tr -d ' '
+            echo "$1" | grep "|$2|" | awk -F'|' '{print $3}' | tr -d ' '
           }
 
-          # Compare packages and build changes summary
           PACKAGE_CHANGES=""
           packages=("Ubuntu" "ffmpeg for homebridge" "Homebridge APT Package" "NodeJS" "Homebridge UI" "Homebridge")
 
           for package in "${packages[@]}"; do
             current_version=$(extract_package_version "$CURRENT_MANIFEST" "$package")
             prev_version=$(extract_package_version "$PREV_MANIFEST" "$package")
-
             if [[ "$current_version" != "$prev_version" && -n "$current_version" && -n "$prev_version" ]]; then
-              if [[ -n "$PACKAGE_CHANGES" ]]; then
-                PACKAGE_CHANGES="$PACKAGE_CHANGES\n"
-              fi
+              [[ -n "$PACKAGE_CHANGES" ]] && PACKAGE_CHANGES="$PACKAGE_CHANGES\n"
               PACKAGE_CHANGES="${PACKAGE_CHANGES}• **$package**: $prev_version → $current_version"
             fi
           done
 
-          if [[ -z "$PACKAGE_CHANGES" ]]; then
-            PACKAGE_CHANGES="• No package version changes detected"
-          fi
+          [[ -z "$PACKAGE_CHANGES" ]] && PACKAGE_CHANGES="• No package version changes detected"
         else
           PACKAGE_CHANGES="• Initial release - no previous version to compare"
         fi
 
-        echo "Package changes:"
-        echo -e "$PACKAGE_CHANGES"
-
-        # Set output using multiline string
         {
           echo 'package_changes<<EOF'
           echo -e "$PACKAGE_CHANGES"
@@ -297,12 +276,8 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v8
       with:
-        merge-multiple: true
         name: output
         path: output
-
-    - name: Display structure of downloaded files
-      run: ls -R
 
     - name: Create GitHub Release
       env:
@@ -313,7 +288,7 @@ jobs:
           --notes-file output/release-body.md \
           --draft=false
 
-    - name: Create GitHub Release - Upload Assets
+    - name: Upload Release Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -321,7 +296,7 @@ jobs:
 
     - name: Release created
       run: |
-        echo "::notice::Release ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} - ${{ needs.set-versions.outputs.RELEASE_TITLE }} created successfully." 
+        echo "::notice::Release ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} - ${{ needs.set-versions.outputs.RELEASE_TITLE }} created successfully."
 
   discord-notification:
     name: Discord Webhooks
@@ -346,16 +321,14 @@ jobs:
     with:
       release_tag: ${{ needs.set-versions.outputs.DOCKER_TAG }}
 
-# stable release should be marked as non-prerelease, and latest
   stable-release-is-latest:
-    needs: [create-release,set-versions]
+    needs: [create-release, set-versions]
     if: ${{ inputs.release_type == 'stable' }}
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v6
 
-    # Mark stable release as non-prerelease and latest
     - name: Mark Stable Release as Non-Prerelease and Latest
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
