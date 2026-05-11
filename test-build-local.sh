@@ -16,6 +16,7 @@ docker build -f ./Dockerfile \
   --build-arg HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION} \
   --build-arg FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION} \
   --build-arg DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION} \
+  --build-arg BASE_IMAGE=22.04 \
   -t ${HOMEBRIDGE_IMAGE} .
 
 # Start container using docker-compose

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Choose release type: stable, beta, alpha, or legacy.'
+        description: 'Choose release type: stable, beta, alpha, synology or legacy.'
         required: true
         type: choice
         options:
@@ -13,6 +13,7 @@ on:
           - beta
           - alpha
           - legacy
+          - synology
         default: beta
       Scheduled:
         description: 'Whether this is a scheduled run'
@@ -120,6 +121,12 @@ jobs:
         ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+
+        // If a synology release, we need to pass BASE_IMAGE=22.04 to build args, and if it's a stable release we need to pass the apt pkg file name
+         if [[ "${{ inputs.release_type }}" == "synology" ]]; then
+          ARGS="$ARGS
+        BASE_IMAGE=22.04"
+        fi
 
         if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "false" ]]; then
           ARGS="$ARGS
