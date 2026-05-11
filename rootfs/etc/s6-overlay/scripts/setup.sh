@@ -67,30 +67,40 @@ fi
 
 # setup initial package.json with homebridge
 if [ -e /opt/homebridge/package.json ]; then
+  echo "Found package.json in /opt/homebridge, retrieving Homebridge version from dependencies"
   HOMEBRIDGE_VERSION=$(jq -r '.dependencies["homebridge"]' /opt/homebridge/package.json | sed 's/\^//')
 fi
 
 if [ -z "$HOMEBRIDGE_VERSION" ]; then
+  echo "Homebridge version not found in /opt/homebridge/package.json, retrieving latest version from npm registry"
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
 fi
 
+echo "Homebridge version to install: ${HOMEBRIDGE_VERSION}"
+
 if [ -f /homebridge/homebridgeContainer.json ]; then
+  echo "Found homebridgeContainer.json, retrieving installed Docker Homebridge version"
   export INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag' /homebridge/homebridgeContainer.json)
 else
+  echo "No homebridgeContainer.json found, assuming initial install"
   export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Initial Install"
 fi
 
+echo "Installed Docker Homebridge version: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}"
 if [ ! -e /homebridge/package.json ]; then
+  echo "No package.json found in /homebridge, creating one with Homebridge version ${HOMEBRIDGE_VERSION}"
   echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
 else
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
     # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
+    echo "Updating Homebridge version in package.json to ${HOMEBRIDGE_VERSION}"
     packageJson="$(jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json)"
     printf '%s' "$packageJson" > /homebridge/package.json
   fi
 fi
 
 if [ ! -z "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+  echo "Checking if Docker Homebridge version has changed. Current: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}, New: ${DOCKER_HOMEBRIDGE_VERSION}"
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
     printf "${GREEN}Docker version was updated from ${RED}${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}${GREEN} to ${RED}${DOCKER_HOMEBRIDGE_VERSION}${NC}\n"
     if [ -f /homebridge/homebridgeContainer.json ]; then
@@ -104,7 +114,9 @@ fi
 
 # remove homebridge-config-ui-x from the package.json
 if [ -e /homebridge/package.json ]; then
+  echo "Checking for homebridge-config-ui-x in package.json"
   if [ "$(cat /homebridge/package.json | jq -r '.dependencies."homebridge-config-ui-x"')" != "null" ]; then
+    echo "Found homebridge-config-ui-x in package.json"
     packageJson="$(cat /homebridge/package.json | jq -rM 'del(."dependencies"."homebridge-config-ui-x")')"
     if [ "$?" = "0" ]; then
       printf "$packageJson" > /homebridge/package.json
@@ -113,13 +125,16 @@ if [ -e /homebridge/package.json ]; then
   fi
 fi
 
+
 # source the setup script
 if [ -f /opt/homebridge/source.sh ]; then
+  echo "Sourcing /opt/homebridge/source.sh"
   . "/opt/homebridge/source.sh"
 fi
 
 # install plugins
 echo "Installing Homebridge and user plugins, please wait..."
+cat /homebridge/package.json
 npm --prefix /homebridge install --omit=dev
 
 exit 0

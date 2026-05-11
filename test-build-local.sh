@@ -21,3 +21,5 @@ docker build -f ./Dockerfile \
 # Start container using docker-compose
 cd test
 docker compose up
+echo "Container started. Press Ctrl+C to stop."
+echo "To rerun the container, use 'cd test &&   HOMEBRIDGE_IMAGE=\"docker-homebridge\" docker compose up' again."
