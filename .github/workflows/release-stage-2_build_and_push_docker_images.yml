@@ -122,12 +122,13 @@ jobs:
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
 
-        // If a synology release, we need to pass BASE_IMAGE=22.04 to build args, and if it's a stable release we need to pass the apt pkg file name
-         if [[ "${{ inputs.release_type }}" == "synology" ]]; then
+        # If a synology release, we need to pass BASE_IMAGE=22.04 to build args
+        if [[ "${{ inputs.release_type }}" == "synology" ]]; then
           ARGS="$ARGS
         BASE_IMAGE=22.04"
         fi
 
+        # If a pre-release, we need to pass the apt pkg file name
         if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "false" ]]; then
           ARGS="$ARGS
         HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
