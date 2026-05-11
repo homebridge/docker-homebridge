@@ -50,6 +50,13 @@ fi
 
 cd /homebridge
 
+# test jq is functioning correctly
+if ! echo '{}' | jq . > /dev/null 2>&1; then
+  echo "WARNING: jq is not functioning correctly - this may cause issues with Homebridge setup"
+  else
+  echo "jq is functioning correctly"
+fi
+
 # set the .npmrc file
 cp /defaults/.npmrc /homebridge/.npmrc
 
