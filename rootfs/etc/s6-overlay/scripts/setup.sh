@@ -52,9 +52,12 @@ cd /homebridge
 
 
 # test jq is functioning correctly
-if ! echo '{}' | jq . > /dev/null 2>&1; then
-  echo "ERROR: Issue detected with Host Kernel Version - see https://github.com/homebridge/docker-homebridge/issues/960 for details."
-  echo "ERROR: Stopping setup script to prevent potential issues with Homebridge setup. Please see the above link for details and a resolution."
+if ! JQ_TEST_ERROR="$(echo '{}' | jq . 2>&1 >/dev/null)"; then
+  echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-unknown jq error}"
+  if echo "$JQ_TEST_ERROR" | grep -qi "cannot get entropy for arc4random"; then
+    echo "ERROR: Detected the Synology kernel entropy issue from #960. See https://github.com/homebridge/docker-homebridge/issues/960 for details."
+  fi
+  echo "ERROR: Stopping setup script to prevent potential issues with Homebridge setup."
   exit 1
 else
   echo "jq is functioning correctly, proceeding with setup"
