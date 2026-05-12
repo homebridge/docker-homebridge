@@ -118,6 +118,7 @@ jobs:
       id: build_args
       run: |
         ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+        HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
 
@@ -127,11 +128,6 @@ jobs:
         BASE_IMAGE=22.04"
         fi
 
-        # If a pre-release, we need to pass the apt pkg file name
-        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" == "false" ]]; then
-          ARGS="$ARGS
-        HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
-        fi
         echo "args<<EOF" >> $GITHUB_OUTPUT
         echo "$ARGS" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
