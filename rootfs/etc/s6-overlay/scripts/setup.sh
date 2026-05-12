@@ -53,7 +53,7 @@ cd /homebridge
 
 # test jq is functioning correctly
 if ! JQ_TEST_ERROR="$(jq -n '{}' 2>&1 >/dev/null)"; then
-  echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-jq test failed with no error output}"
+  echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-jq test failed with no error output. This may indicate a system compatibility issue.}"
   if echo "$JQ_TEST_ERROR" | grep -qi "cannot get entropy for arc4random"; then
     echo "ERROR: Detected the Synology kernel entropy issue from #960. See https://github.com/homebridge/docker-homebridge/issues/960 for details."
   fi
