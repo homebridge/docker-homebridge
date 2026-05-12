@@ -52,7 +52,7 @@ cd /homebridge
 
 
 # test jq is functioning correctly
-JQ_TEST_ERROR="$(echo '{}' | jq . 2>&1 >/dev/null)"
+JQ_TEST_ERROR="$(echo '{}' | jq . 2>&1 1>/dev/null)"
 JQ_EXIT_CODE=$?
 if [ "$JQ_EXIT_CODE" -ne 0 ]; then
   echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-no error details captured}"
