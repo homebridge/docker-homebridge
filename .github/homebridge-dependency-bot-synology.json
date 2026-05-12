@@ -6,7 +6,7 @@
   },
   "directories": [
     {
-      "directory": ".",
+      "directory": "synology",
       "packages": [
         {
           "name": "@homebridge/homebridge-apt-pkg",
