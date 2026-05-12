@@ -50,11 +50,14 @@ fi
 
 cd /homebridge
 
+
 # test jq is functioning correctly
 if ! echo '{}' | jq . > /dev/null 2>&1; then
-  echo "WARNING: jq is not functioning correctly - this may cause issues with Homebridge setup"
-  else
-  echo "jq is functioning correctly"
+  echo "ERROR: Issue detected with Host Kernel Version - see https://github.com/homebridge/docker-homebridge/issues/960 for details."
+  echo "ERROR: Stopping setup script to prevent potential issues with Homebridge setup. Please see the above link for details and a resolution."
+  exit 1
+else
+  echo "jq is functioning correctly, proceeding with setup"
 fi
 
 # set the .npmrc file
