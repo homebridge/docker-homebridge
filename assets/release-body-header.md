@@ -7,6 +7,7 @@ This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 
 | Image Tag             | Architectures           | Base Image         | Release Type |
 | :-------------------- | :-----------------------| :----------------- | :----------- |
 | latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Stable       |
+| synology              | amd64, arm32v7, arm64v8 | Ubuntu 22.04       | Stable       |
 | beta                  | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Beta         |
 | alpha                 | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Alpha        | 
 | legacy                | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Legacy       | 

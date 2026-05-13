@@ -1,4 +1,8 @@
-FROM ubuntu:24.04
+ARG BASE_IMAGE=24.04
+FROM ubuntu:${BASE_IMAGE}
+
+# Re-declare ARG after FROM to make it available in RUN steps
+ARG BASE_IMAGE=24.04
 
 LABEL org.opencontainers.image.title="Homebridge in Docker"
 LABEL org.opencontainers.image.description="Official Homebridge Docker Image"
@@ -87,7 +91,7 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
   "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
   "| Package | Version |\n" \
   "|:-------:|:-------:|\n" \
-  "|Ubuntu|24.04|\n" \
+  "|Ubuntu|${BASE_IMAGE}|\n" \
   "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|\n" \
   "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|\n" \
   "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|\n" \

@@ -31,12 +31,13 @@ Please update your configurations to use the new image location for the latest u
 
 ## 📦 Available Images
 
-This is a **multi-architecture** Ubuntu 24.04-based image supporting x86_64, ARM32v7 (Raspberry Pi), and ARM64v8 platforms.
+This is a **multi-architecture** image supporting x86_64, ARM32v7 (Raspberry Pi), and ARM64v8 platforms. Images are available with Ubuntu 24.04 (default) and Ubuntu 22.04 (for Synology compatibility) base images.
 
 | Image Tag | Architectures | Base Image | Release Type | Description |
 |:----------|:--------------|:-----------|:-------------|:------------|
 | `latest`, `ubuntu` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Stable** | Production-ready with latest stable releases |
 | `legacy` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Legacy** | Production-ready with Homebridge 1.x stable releases |
+| `synology` | amd64, arm32v7, arm64v8 | Ubuntu 22.04 | **Stable** | Production-ready with latest stable releases |
 | `beta` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Beta** | Pre-release with beta versions for testing |
 | `alpha` | amd64, arm32v7, arm64v8 | Ubuntu 24.04 | **Alpha** | Early access with alpha versions for development |
 

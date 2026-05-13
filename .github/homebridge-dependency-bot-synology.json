@@ -1,0 +1,22 @@
+{
+  "auto_merge": true,
+  "git_user": {
+    "name": "Homebridge Dependency Bot",
+    "email": "actions@github.com"
+  },
+  "directories": [
+    {
+      "directory": "synology",
+      "packages": [
+        {
+          "name": "@homebridge/homebridge-apt-pkg",
+          "tag": "latest"
+        },
+        {
+          "name": "ffmpeg-for-homebridge",
+          "tag": "latest"
+        }
+      ]
+    }
+  ]
+}

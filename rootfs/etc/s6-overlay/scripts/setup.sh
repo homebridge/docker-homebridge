@@ -50,11 +50,17 @@ fi
 
 cd /homebridge
 
+
 # test jq is functioning correctly
-if ! echo '{}' | jq . > /dev/null 2>&1; then
-  echo "WARNING: jq is not functioning correctly - this may cause issues with Homebridge setup"
-  else
-  echo "jq is functioning correctly"
+JQ_TEST_ERROR="$(echo '{}' | jq . )"
+JQ_EXIT_CODE=$?
+if [ "$JQ_EXIT_CODE" -ne 0 ]; then
+  echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-no error details captured}"
+  echo "ERROR: See https://github.com/homebridge/docker-homebridge/issues/960 for details."
+  echo "ERROR: Stopping setup script to prevent potential issues with Homebridge setup."
+  exit 1
+else
+  echo "jq is functioning correctly, proceeding with setup"
 fi
 
 # set the .npmrc file

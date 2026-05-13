@@ -16,6 +16,7 @@ on:
           - beta
           - alpha
           - legacy
+          - synology
           - all
         default: all
       skip_build:
@@ -46,13 +47,13 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.release_stream }}" == "all" ]]; then
-              echo 'matrix={"stream":["stable","beta","alpha","legacy"]}' >> $GITHUB_OUTPUT
+              echo 'matrix={"stream":["stable","beta","alpha","legacy","synology"]}' >> $GITHUB_OUTPUT
             else
               echo "matrix={\"stream\":[\"${{ github.event.inputs.release_stream }}\"]}" >> $GITHUB_OUTPUT
             fi
           else
-            # Scheduled run - process stable, beta, and alpha streams
-            echo 'matrix={"stream":["stable","beta","alpha","legacy"]}' >> $GITHUB_OUTPUT
+            # Scheduled run - process stable, beta, legacy, synology and alpha streams
+            echo 'matrix={"stream":["stable","beta","alpha","legacy","synology"]}' >> $GITHUB_OUTPUT
           fi
 
       - name: Output matrix for debugging

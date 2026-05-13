@@ -97,9 +97,15 @@ if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
 elif [[ "${PKG_RELEASE_STREAM:-stable}" == "alpha" ]]; then
   # For alpha releases, only look at alpha tags
   LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -1 2>/dev/null || echo "")
+elif [[ "${PKG_RELEASE_STREAM:-stable}" == "legacy" ]]; then
+  # For legacy releases, only look at legacy tags
+  LATEST_TAG=$(git tag -l | grep -E "legacy" | sort -V | tail -1 2>/dev/null || echo "")
+elif [[ "${PKG_RELEASE_STREAM:-stable}" == "synology" ]]; then
+  # For synology releases, only look at synology tags
+  LATEST_TAG=$(git tag -l | grep -E "synology" | sort -V | tail -1 2>/dev/null || echo "")
 else
-  # For stable releases, only look at stable tags (no beta or alpha in name)
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha|v)" | sort -V | tail -1 2>/dev/null || echo "")
+  # For stable releases, only look at stable tags (no beta, alpha, legacy, or synology in name)
+  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha|legacy|synology)" | sort -V | tail -1 2>/dev/null || echo "")
 fi
 
 log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
@@ -111,25 +117,19 @@ if [ -n "$LATEST_TAG" ]; then
   PACKAGE_JSON_PATH=""
   case "${PKG_RELEASE_STREAM:-stable}" in
     beta)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="beta/package.json"
-      else
-        PACKAGE_JSON_PATH="beta/package.json"
-      fi
+      PACKAGE_JSON_PATH="beta/package.json"
       ;;
     alpha)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="alpha/package.json"
-      else
-        PACKAGE_JSON_PATH="alpha/package.json"
-      fi
+      PACKAGE_JSON_PATH="alpha/package.json"
+      ;;
+    legacy)
+      PACKAGE_JSON_PATH="legacy/package.json"
+      ;;
+    synology)
+      PACKAGE_JSON_PATH="synology/package.json"
       ;;
     *)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="package.json"
-      else
-        PACKAGE_JSON_PATH="package.json"
-      fi
+      PACKAGE_JSON_PATH="package.json"
       ;;
   esac
   
