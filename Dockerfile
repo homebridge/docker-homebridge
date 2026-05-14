@@ -44,7 +44,7 @@ RUN set -x \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
   && apt-get install -y python3 python3-pip pipx python3-setuptools git make g++ libnss-mdns \
-  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev \
+  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev vim \
   && pipx install tzupdate \
   && chmod 0755 /bin/ping \
   && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
