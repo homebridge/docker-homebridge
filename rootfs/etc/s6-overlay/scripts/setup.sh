@@ -78,6 +78,12 @@ if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/package-lock.json
 fi
 
+# source the setup script
+if [ -f /opt/homebridge/source-docker.sh ]; then
+  echo "Sourcing /opt/homebridge/source-docker.sh"
+  . "/opt/homebridge/source-docker.sh"
+fi
+
 # setup initial package.json with homebridge
 if [ -e /opt/homebridge/package.json ]; then
   echo "Found package.json in /opt/homebridge, retrieving Homebridge version from dependencies"
@@ -89,7 +95,7 @@ if [ -z "$HOMEBRIDGE_VERSION" ]; then
   HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
 fi
 
-echo "Homebridge version to install: ${HOMEBRIDGE_VERSION}"
+echo "Manifest Homebridge version: ${HOMEBRIDGE_VERSION}"
 
 if [ -f /homebridge/homebridgeContainer.json ]; then
   echo "Found homebridgeContainer.json, retrieving installed Docker Homebridge version"
