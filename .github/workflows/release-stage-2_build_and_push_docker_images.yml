@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Set Versions
       id: versions
@@ -106,7 +106,7 @@ jobs:
       docker_metadata: ${{ steps.docker_hub_build_and_push.outputs.metadata }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
@@ -204,7 +204,7 @@ jobs:
       package_changes: ${{ steps.extract_changes.outputs.package_changes }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -274,7 +274,7 @@ jobs:
     needs: [set-versions, extract-manifest, build-images]
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Download artifacts
       uses: actions/download-artifact@v8
@@ -330,7 +330,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Mark Stable Release as Non-Prerelease and Latest
       env:

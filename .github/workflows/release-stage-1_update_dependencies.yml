@@ -85,7 +85,7 @@ jobs:
   
       - name: Checkout repository (for trigger step)
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Trigger and Wait for ${{ matrix.stream }} Stage 2 Workflow
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
