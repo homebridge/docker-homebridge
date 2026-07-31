@@ -146,7 +146,7 @@ jobs:
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Log into GitHub Container Registry
-      uses: docker/login-action@v4
+      uses: docker/login-action@v4.5.2
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -163,7 +163,7 @@ jobs:
         tags: ${{ steps.ghcr_tags.outputs.tags }}
 
     - name: Log into Docker Hub
-      uses: docker/login-action@v4
+      uses: docker/login-action@v4.5.2
       if: github.repository == 'homebridge/docker-homebridge'
       with:
         registry: docker.io
