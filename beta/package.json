@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge for the beta release stream",
   "dependencies": {
-    "@homebridge/homebridge-apt-pkg": "2.0.16-beta.20260812",
+    "@homebridge/homebridge-apt-pkg": "2.0.16-beta.20260814",
     "ffmpeg-for-homebridge": "2.2.2"
   }
 }
