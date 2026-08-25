@@ -1,11 +1,43 @@
 #!/command/with-contenv sh
 
+. /etc/s6-overlay/scripts/service-user.sh
+
 export HOME=/home/homebridge
 export USER=root
 export HOMEBRIDGE_CONFIG_UI=1
 
 # this is not necessarily the ui version, it's now used as a feature compatibility indicator 
 export CONFIG_UI_VERSION=4.44.2
+
+# returns non-zero if the UI is configured to listen on a privileged port,
+# which requires Homebridge to run as root
+ui_port_check() {
+  [ -f /var/lib/homebridge/config.json ] || return 0
+
+  ui_port=$(jq -rM '.platforms[]? | select(.platform == "config") | .port' /var/lib/homebridge/config.json 2> /dev/null) || return 0
+
+  # no port configured, or not a number
+  case "$ui_port" in
+    '' | *[!0-9]*) return 0 ;;
+  esac
+
+  if [ "$ui_port" -le 1024 ]; then
+    echo "The Homebridge UI has been configured to run on a privileged port ($ui_port); the Homebridge service will run as root."
+    return 1
+  fi
+}
+
+if hb_resolve_service_user; then
+  # the ownership is re-applied here, after the setup and userdata scripts have
+  # run, because both of them write to these paths as root
+  if ! hb_fix_permissions /homebridge /opt/homebridge /home/homebridge; then
+    echo "Failed to set ownership of /homebridge to ${HB_SERVICE_UID}:${HB_SERVICE_GID}; the Homebridge service will run as root."
+  elif ui_port_check; then
+    export USER=homebridge
+    echo "Starting Homebridge as the homebridge user (uid ${HB_SERVICE_UID}, gid ${HB_SERVICE_GID})"
+    exec /command/s6-setuidgid homebridge /opt/homebridge/start.sh
+  fi
+fi
 
 # start homebridge
 exec /opt/homebridge/start.sh --allow-root
