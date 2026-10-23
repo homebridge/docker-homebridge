@@ -1,5 +1,11 @@
 #!/command/with-contenv sh
 
+. /etc/s6-overlay/scripts/service-user.sh
+
 [ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
+
+if hb_resolve_service_user && hb_fix_permissions /homebridge/homebridge.log; then
+  exec /command/s6-setuidgid homebridge tail -f --follow=name /homebridge/homebridge.log
+fi
 
 exec tail -f --follow=name /homebridge/homebridge.log

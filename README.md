@@ -109,6 +109,7 @@ docker run \
 | Hostname | `hostname: homebridge` | `--hostname=homebridge` | Container ID | Set custom hostname for the container |
 | Timezone | `environment:`<br/>`- TZ=America/Toronto` | `-e TZ=America/Toronto` | `UTC` | Set timezone ([list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
 | Avahi mDNS | `environment:`<br/>`- ENABLE_AVAHI=1` | `-e ENABLE_AVAHI=1` | `1` | Set to `0` to disable Avahi mDNS service |
+| User / Group | `environment:`<br/>`- PUID=1000`<br/>`- PGID=1000` | `-e PUID=1000 -e PGID=1000` | unset (`root`) | Run the Homebridge service as this user id / group id instead of `root` ([details](#user--group-identifiers-puid--pgid)) |
 
 > **Note**: When running with `ENABLE_AVAHI=0`, you can mount the host's mDNS service to enable mDNS usage in the container:
 > ```yaml
@@ -117,6 +118,53 @@ docker run \
 >   - /var/run/dbus:/var/run/dbus  # Mount host D-Bus socket
 >   - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket  # Mount host Avahi socket
 > ```
+
+---
+
+### User / Group Identifiers (PUID / PGID)
+
+By default the Homebridge service runs as `root`. Set `PUID` and `PGID` to run it as an
+unprivileged user instead - this also avoids the permissions issues that can arise between
+the host OS and the container when using data volumes (`-v` flags).
+
+```yaml
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+```
+
+Ensure the data volume directory on the host is owned by the same user you specify. To find
+your ids, use `id <user>`:
+
+```
+$ id dockeruser
+uid=1000(dockeruser) gid=1000(dockergroup) groups=1000(dockergroup)
+```
+
+When `PUID` / `PGID` are set:
+
+* `/homebridge`, `/opt/homebridge` and `/home/homebridge` are chowned to `PUID:PGID` on every start
+* Homebridge, the Homebridge UI and the plugin install performed on start-up all run as that user
+* Setting only one of the two applies the same value to both
+* Setting either to `0` keeps Homebridge running as `root`
+
+Homebridge falls back to running as `root` if:
+
+* the ownership of `/homebridge` or `/opt/homebridge` cannot be changed (for example an NFS
+  volume mounted with `root_squash`)
+* the Homebridge UI is configured to listen on a privileged port (`1024` or lower)
+
+> **Note**: while running as the `homebridge` user, that user is granted passwordless `sudo`
+> (via `/etc/sudoers.d/010_homebridge-nopasswd`), which the Homebridge UI needs in order to
+> restart the container and to update Homebridge, the UI and Node.js. Remove it from your
+> [startup script](#-custom-startup-script) with
+> `rm -f /etc/sudoers.d/010_homebridge-nopasswd` if you would rather not have it.
+
+> **Note**: the custom startup script (`/homebridge/startup.sh`) always runs as `root`. Anything
+> it writes into `/homebridge` should be chowned to `PUID:PGID` by the script itself.
 
 ---
 
