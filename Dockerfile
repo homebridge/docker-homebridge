@@ -1,8 +1,8 @@
-ARG BASE_IMAGE=24.04
-FROM ubuntu:${BASE_IMAGE}
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
 
 # Re-declare ARG after FROM to make it available in RUN steps
-ARG BASE_IMAGE=24.04
+ARG BASE_IMAGE
 
 LABEL org.opencontainers.image.title="Homebridge in Docker"
 LABEL org.opencontainers.image.description="Official Homebridge Docker Image"

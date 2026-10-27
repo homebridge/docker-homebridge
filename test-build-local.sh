@@ -7,8 +7,8 @@ export DOCKER_HOMEBRIDGE_VERSION=$(date +'%Y-%m-%d')
 
 export HOMEBRIDGE_IMAGE='docker-homebridge'
 
-# Allow BASE_IMAGE to be overridden via environment variable (defaults to 24.04)
-export BASE_IMAGE=${BASE_IMAGE:-24.04}
+# Read base image from package.json; allow environment override
+export BASE_IMAGE=${BASE_IMAGE:-$(jq -r '.docker.baseImage // "ubuntu:24.04"' package.json)}
 
 echo HOMEBRIDGE_APT_PKG_VERSION ${HOMEBRIDGE_APT_PKG_VERSION}
 echo FFMPEG_FOR_HOMEBRIDGE_VERSION ${FFMPEG_FOR_HOMEBRIDGE_VERSION}

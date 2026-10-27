@@ -37,6 +37,8 @@ jobs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       HOMEBRIDGE_APT_PKG_FILE: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+      BASE_IMAGE: ${{ steps.versions.outputs.BASE_IMAGE }}
+      PLATFORMS: ${{ steps.versions.outputs.PLATFORMS }}
       RELEASE_TITLE: ${{ steps.versions.outputs.RELEASE_TITLE }}
       DOCKER_TAG: ${{ steps.versions.outputs.DOCKER_TAG }}
       IS_STABLE: ${{ steps.versions.outputs.IS_STABLE }}
@@ -72,6 +74,14 @@ jobs:
 
         HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "$PKG_FILE" | sed 's/\^//')
         FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' "$PKG_FILE" | sed 's/\^//')
+        BASE_IMAGE=$(jq -r '.docker.baseImage // "ubuntu:24.04"' "$PKG_FILE" | sed 's/\^//')
+
+        # Keep ARMv7 while using Ubuntu 24.04; drop it for Ubuntu 26.04.
+        if [[ "$BASE_IMAGE" =~ (^|/)ubuntu:26\.04(@.*)?$ ]]; then
+          PLATFORMS="linux/amd64,linux/arm64"
+        else
+          PLATFORMS="linux/amd64,linux/arm/v7,linux/arm64"
+        fi
 
         # Transform apt pkg filename: X.Y.Z-prerelease.N → X.Y.Z.prerelease.N (Debian naming)
         # Stable versions (e.g. 2.0.2) pass through unchanged
@@ -85,7 +95,9 @@ jobs:
           echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}"
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}"
           echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}"
-        } >> $GITHUB_OUTPUT
+          echo "BASE_IMAGE=${BASE_IMAGE}"
+          echo "PLATFORMS=${PLATFORMS}"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Output versions
       run: |
@@ -93,6 +105,8 @@ jobs:
         echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
         echo "DOCKER_TAG=${{ steps.versions.outputs.DOCKER_TAG }}"
         echo "IS_STABLE=${{ steps.versions.outputs.IS_STABLE }}"
+        echo "BASE_IMAGE=${{ steps.versions.outputs.BASE_IMAGE }}"
+        echo "PLATFORMS=${{ steps.versions.outputs.PLATFORMS }}"
         echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
         echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
@@ -120,17 +134,12 @@ jobs:
         ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
         HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-        DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
+        DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        BASE_IMAGE=${{ needs.set-versions.outputs.BASE_IMAGE }}"
 
-        # If a synology release, we need to pass BASE_IMAGE=22.04 to build args
-        if [[ "${{ inputs.release_type }}" == "synology" ]]; then
-          ARGS="$ARGS
-        BASE_IMAGE=22.04"
-        fi
-
-        echo "args<<EOF" >> $GITHUB_OUTPUT
-        echo "$ARGS" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        echo "args<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$ARGS" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
 
     - name: Set image tags (GHCR)
       id: ghcr_tags
@@ -141,9 +150,9 @@ jobs:
           TAGS="$TAGS
         ghcr.io/homebridge/homebridge:ubuntu"
         fi
-        echo "tags<<EOF" >> $GITHUB_OUTPUT
-        echo "$TAGS" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$TAGS" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
 
     - name: Log into GitHub Container Registry
       uses: docker/login-action@v4
@@ -157,7 +166,7 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        platforms: ${{ needs.set-versions.outputs.PLATFORMS }}
         push: true
         build-args: ${{ steps.build_args.outputs.args }}
         tags: ${{ steps.ghcr_tags.outputs.tags }}
@@ -180,9 +189,9 @@ jobs:
           TAGS="$TAGS
         homebridge/homebridge:ubuntu"
         fi
-        echo "tags<<EOF" >> $GITHUB_OUTPUT
-        echo "$TAGS" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$TAGS" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
 
     - name: Build and Push to Docker Hub
       if: github.repository == 'homebridge/docker-homebridge'
@@ -191,7 +200,7 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
-        platforms: linux/amd64,linux/arm/v7,linux/arm64
+        platforms: ${{ needs.set-versions.outputs.PLATFORMS }}
         push: true
         build-args: ${{ steps.build_args.outputs.args }}
         tags: ${{ steps.hub_tags.outputs.tags }}
@@ -212,8 +221,8 @@ jobs:
       id: release_body
       run: |
         ./scripts/create-release-body.sh "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" "${{ inputs.release_type }}"
-        echo "release_body=output/release-body.md" >> $GITHUB_OUTPUT
-        echo "docker_manifest=output/Docker.manifest" >> $GITHUB_OUTPUT
+        echo "release_body=output/release-body.md" >> "$GITHUB_OUTPUT"
+        echo "docker_manifest=output/Docker.manifest" >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
 
@@ -234,7 +243,7 @@ jobs:
 
         if [[ -n "$LATEST_RELEASE" ]]; then
           PREV_MANIFEST=$(gh release view "$LATEST_RELEASE" --json body | jq -r '.body')
-          CURRENT_MANIFEST=$(cat ${{ steps.release_body.outputs.docker_manifest }})
+          CURRENT_MANIFEST=$(cat "${{ steps.release_body.outputs.docker_manifest }}")
 
           extract_package_version() {
             echo "$1" | grep "|$2|" | awk -F'|' '{print $3}' | tr -d ' '
@@ -261,7 +270,7 @@ jobs:
           echo 'package_changes<<EOF'
           echo -e "$PACKAGE_CHANGES"
           echo 'EOF'
-        } >> $GITHUB_OUTPUT
+        } >> "$GITHUB_OUTPUT"
 
     - name: Upload outputs as artifacts
       uses: actions/upload-artifact@v7
@@ -336,6 +345,6 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release edit ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }} \
+        gh release edit "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
           --prerelease=false \
           --latest
