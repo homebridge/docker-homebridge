@@ -4,13 +4,13 @@ This Ubuntu Linux based Docker image allows you to run [Nfarina's](https://githu
 
 This is a multi-arch image and will run on x86_64, Raspberry Pi 2, 3, 4, Zero 2 W, or other Docker-enabled ARMv7/8 devices. Docker will automatically pull the correct image for your system.
 
-| Image Tag             | Architectures           | Base Image         | Release Type |
-| :-------------------- | :-----------------------| :----------------- | :----------- |
-| latest, ubuntu        | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Stable       |
-| synology              | amd64, arm32v7, arm64v8 | Ubuntu 22.04       | Stable       |
-| beta                  | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Beta         |
-| alpha                 | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Alpha        | 
-| legacy                | amd64, arm32v7, arm64v8 | Ubuntu 24.04       | Legacy       | 
+| Image Tag             | Architectures           | Release Type |
+| :-------------------- | :-----------------------| :----------- |
+| latest, ubuntu        | amd64, arm32v7, arm64v8 | Stable       |
+| synology              | amd64, arm32v7, arm64v8 | Stable       |
+| beta                  | amd64, arm32v7, arm64v8 | Beta         |
+| alpha                 | amd64, arm32v7, arm64v8 | Alpha        | 
+| legacy                | amd64, arm32v7, arm64v8 | Legacy       | 
 
 ### Release Types
 

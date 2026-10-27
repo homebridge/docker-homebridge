@@ -37,6 +37,7 @@ jobs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       HOMEBRIDGE_APT_PKG_FILE: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+      BASE_IMAGE: ${{ steps.versions.outputs.BASE_IMAGE }}
       RELEASE_TITLE: ${{ steps.versions.outputs.RELEASE_TITLE }}
       DOCKER_TAG: ${{ steps.versions.outputs.DOCKER_TAG }}
       IS_STABLE: ${{ steps.versions.outputs.IS_STABLE }}
@@ -72,6 +73,7 @@ jobs:
 
         HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "$PKG_FILE" | sed 's/\^//')
         FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' "$PKG_FILE" | sed 's/\^//')
+        BASE_IMAGE=$(jq -r '.docker.baseImage // "ubuntu:24.04"' "$PKG_FILE" | sed 's/\^//')
 
         # Transform apt pkg filename: X.Y.Z-prerelease.N → X.Y.Z.prerelease.N (Debian naming)
         # Stable versions (e.g. 2.0.2) pass through unchanged
@@ -85,6 +87,7 @@ jobs:
           echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}"
           echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}"
           echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}"
+          echo "BASE_IMAGE=${BASE_IMAGE}"
         } >> $GITHUB_OUTPUT
 
     - name: Output versions
@@ -93,6 +96,7 @@ jobs:
         echo "DOCKER_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
         echo "DOCKER_TAG=${{ steps.versions.outputs.DOCKER_TAG }}"
         echo "IS_STABLE=${{ steps.versions.outputs.IS_STABLE }}"
+        echo "BASE_IMAGE=${{ steps.versions.outputs.BASE_IMAGE }}"
         echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
         echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
@@ -120,13 +124,8 @@ jobs:
         ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
         HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-        DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}"
-
-        # If a synology release, we need to pass BASE_IMAGE=22.04 to build args
-        if [[ "${{ inputs.release_type }}" == "synology" ]]; then
-          ARGS="$ARGS
-        BASE_IMAGE=22.04"
-        fi
+        DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        BASE_IMAGE=${{ needs.set-versions.outputs.BASE_IMAGE }}"
 
         echo "args<<EOF" >> $GITHUB_OUTPUT
         echo "$ARGS" >> $GITHUB_OUTPUT

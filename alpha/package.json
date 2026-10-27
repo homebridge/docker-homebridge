@@ -6,5 +6,8 @@
   "dependencies": {
     "@homebridge/homebridge-apt-pkg": "2.0.22-alpha.20261026",
     "ffmpeg-for-homebridge": "2.2.2"
+  },
+  "docker": {
+    "baseImage": "ubuntu:26.04"
   }
 }
