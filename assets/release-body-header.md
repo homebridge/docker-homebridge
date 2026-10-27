@@ -4,17 +4,17 @@ This Ubuntu Linux-based Docker image allows you to run [Homebridge](https://gith
 
 The image supports multiple CPU architectures. Docker automatically pulls a compatible image for your system when one is available.
 
-**Ubuntu 26.04 rollout:** During fall 2026, Ubuntu 26.04 will be rolled out across all Homebridge Docker images except Synology. Images based on Ubuntu 26.04 and later will no longer provide the `arm32v7` (32-bit ARM) architecture.
+**Ubuntu 26.04 rollout and 32-bit ARM:** During fall 2026, every Homebridge Docker image except `synology` moves to Ubuntu 26.04, one release stream at a time. Node.js no longer publishes 32-bit builds, so images based on Ubuntu 26.04 no longer include the `arm32v7` (32-bit ARM) architecture. If you run Homebridge in Docker on a 32-bit ARM device, move to a 64-bit (`arm64v8`) OS to keep receiving updates. Images already published stay available under their dated tags (for example `2026-10-23`).
 
 | Image Tag | Architectures | Release Type |
 | :--- | :--- | :--- |
 | `latest`, `ubuntu` | `amd64`, `arm32v7`*, `arm64v8` | Stable |
 | `synology` | `amd64`, `arm32v7`, `arm64v8` | Stable |
 | `beta` | `amd64`, `arm32v7`*, `arm64v8` | Beta |
-| `alpha` | `amd64`, `arm32v7`*, `arm64v8` | Alpha |
+| `alpha` | `amd64`, `arm64v8` | Alpha |
 | `legacy` | `amd64`, `arm32v7`*, `arm64v8` | Legacy |
 
-\* The `arm32v7` architecture will no longer be provided as each release stream moves to Ubuntu 26.04. Synology is excluded from this rollout.
+\* `arm32v7` is dropped when that release stream moves to Ubuntu 26.04. `synology` stays on Ubuntu 22.04 and is not part of this rollout.
 
 ### Release Types
 
