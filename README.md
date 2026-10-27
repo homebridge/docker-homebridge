@@ -33,13 +33,18 @@ Please update your configurations to use the new image location for the latest u
 
 This is a **multi-architecture** image supporting x86_64, ARM32v7 (Raspberry Pi), and ARM64v8 platforms. Images are available with Ubuntu 24.04 (default) and Ubuntu 22.04 (for Synology compatibility) base images.
 
-| Image Tag | Architectures | Release Type | Description |
-|:----------|:--------------|:-------------|:------------|
-| `latest`, `ubuntu` | amd64, arm32v7, arm64v8 | **Stable** | Production-ready with latest stable releases |
-| `legacy` | amd64, arm32v7, arm64v8 | **Legacy** | Production-ready with Homebridge 1.x stable releases |
-| `synology` | amd64, arm32v7, arm64v8 | **Stable** | Production-ready with latest stable releases |
-| `beta` | amd64, arm32v7, arm64v8 | **Beta** | Pre-release with beta versions for testing |
-| `alpha` | amd64, arm32v7, arm64v8 | **Alpha** | Early access with alpha versions for development |
+**Ubuntu 26.04 rollout:** During fall 2026, Ubuntu 26.04 will be rolled out across all Homebridge Docker images except Synology. Images based on Ubuntu 26.04 and later will no longer provide the `arm32v7` (32-bit ARM) architecture.
+
+| Image Tag | Architectures | Release Type |
+| :--- | :--- | :--- |
+| `latest`, `ubuntu` | `amd64`, `arm32v7`*, `arm64v8` | Stable |
+| `synology` | `amd64`, `arm32v7`, `arm64v8` | Stable |
+| `beta` | `amd64`, `arm32v7`*, `arm64v8` | Beta |
+| `alpha` | `amd64`, `arm32v7`*, `arm64v8` | Alpha |
+| `legacy` | `amd64`, `arm32v7`*, `arm64v8` | Legacy |
+
+\* The `arm32v7` architecture will no longer be provided as each release stream moves to Ubuntu 26.04. Synology is excluded from this rollout.
+
 
 ---
 
