@@ -2,10 +2,10 @@
 
 set -e
 # Extract versions from package.json
-export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' beta/package.json | sed 's/\^//')
-export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-beta\(\.[0-9][0-9]*\)/\1.beta\2/')
-export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' beta/package.json | sed 's/\^//')
-export DOCKER_HOMEBRIDGE_VERSION=beta-$(date +'%Y-%m-%d')
+export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' synology/package.json | sed 's/\^//')
+export HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-synology\(\.[0-9][0-9]*\)/\1.synology\2/')
+export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' synology/package.json | sed 's/\^//')
+export DOCKER_HOMEBRIDGE_VERSION=synology-$(date +'%Y-%m-%d')
 
 # Read base image from package.json; allow environment override
 export BASE_IMAGE=${BASE_IMAGE:-$(jq -r '.docker.baseImage // "ubuntu:24.04"' synology/package.json)}
