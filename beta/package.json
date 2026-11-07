@@ -8,6 +8,6 @@
     "ffmpeg-for-homebridge": "2.2.2"
   },
   "docker": {
-    "baseImage": "ubuntu:24.04"
+    "baseImage": "ubuntu:26.04"
   }
 }
