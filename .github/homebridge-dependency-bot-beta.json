@@ -1,5 +1,6 @@
 {
   "auto_merge": true,
+  "update_method": "push",
   "git_user": {
     "name": "Homebridge Dependency Bot",
     "email": "actions@github.com"
