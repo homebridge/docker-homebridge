@@ -2,8 +2,8 @@
   "auto_merge": true,
   "update_method": "push",
   "git_user": {
-    "name": "Homebridge Dependency Bot",
-    "email": "actions@github.com"
+    "name": "homebridge-dependency-bot[bot]",
+    "email": "354207881+homebridge-dependency-bot[bot]@users.noreply.github.com"
   },
   "directories": [
     {
