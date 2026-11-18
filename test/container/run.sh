@@ -155,6 +155,10 @@ scenario_fresh_volume() {
   assert_eq "$(docker exec "$C" readlink /var/lib/homebridge)" "/homebridge" "/var/lib/homebridge link"
   assert_eq "$(docker exec "$C" sh -c 'test -e /homebridge/homebridge; echo $?')" "1" "no link loop inside the volume"
   assert_eq "$(docker exec "$C" sh -c 'test -s /homebridge/node_modules/homebridge/package.json; echo $?')" "0" "Homebridge is installed"
+  # the time zone from TZ, and the zone file for GMT is not overwritten
+  assert_eq "$(docker exec "$C" readlink /etc/localtime)" "/usr/share/zoneinfo/America/Toronto" "/etc/localtime link"
+  assert_match "$(docker exec "$C" date +%Z)" '^E[SD]T$' "local time zone name"
+  assert_eq "$(docker exec -e TZ=Etc/GMT "$C" date +%z)" "+0000" "the zone Etc/GMT is still GMT"
   if wait_health "$C" healthy 120; then ok; else fail "health state is '$(docker inspect -f '{{.State.Health.Status}}' "$C")', expected healthy"; fi
 }
 
@@ -241,6 +245,8 @@ scenario_image_settings() {
   assert_match "$(docker image inspect -f '{{.Config.Env}}' "$IMAGE")" "S6_BEHAVIOUR_IF_STAGE2_FAILS=2" "image environment"
   assert_eq "$(image_sh 'ls /etc/apt/sources.list.d/ | grep -c homebridge')" "0" "the homebridge apt repository is not left in the image"
   assert_match "$(image_sh 'dpkg-query -W -f "\${Status}" homebridge')" "install ok installed" "homebridge package state"
+  assert_eq "$(image_sh 'command -v tzupdate pipx; ls /home/homebridge/.local/bin/tzupdate 2> /dev/null' | wc -l | tr -d ' ')" "0" "tzupdate and pipx are not in the image"
+  assert_eq "$(image_sh 'readlink /etc/localtime')" "/usr/share/zoneinfo/Etc/GMT" "default time zone of the image"
 }
 
 scenario_update_from_previous_image() {
