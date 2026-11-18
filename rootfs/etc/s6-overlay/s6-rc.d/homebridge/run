@@ -1,5 +1,6 @@
 #!/command/with-contenv sh
 
+. /etc/s6-overlay/scripts/safe-path.sh
 . /etc/s6-overlay/scripts/service-user.sh
 
 export HOME=/home/homebridge

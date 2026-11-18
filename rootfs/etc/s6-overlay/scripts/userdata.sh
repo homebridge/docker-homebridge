@@ -3,6 +3,8 @@
 if [ -f /opt/homebridge/source.sh ]; then
   . "/opt/homebridge/source.sh"
 fi
+# the startup script runs as root: system tools first, then node_modules/.bin
+. /etc/s6-overlay/scripts/safe-path.sh
 
 # run user defined custom startup script
 if [ -f /homebridge/startup.sh ]; then
