@@ -161,51 +161,62 @@ echo "Manifest Homebridge version: ${HOMEBRIDGE_VERSION}"
 
 if [ -f /homebridge/homebridgeContainer.json ]; then
   echo "Found homebridgeContainer.json, retrieving installed Docker Homebridge version"
-  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag' /homebridge/homebridgeContainer.json)
+  INSTALLED_DOCKER_HOMEBRIDGE_VERSION=$(jq -r '.docker_tag // empty' /homebridge/homebridgeContainer.json 2> /dev/null)
+  INSTALLED_DOCKER_HOMEBRIDGE_BUILD=$(jq -r '.docker_build // empty' /homebridge/homebridgeContainer.json 2> /dev/null)
 else
   echo "No homebridgeContainer.json found, assuming initial install"
-  export INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Initial Install"
+  INSTALLED_DOCKER_HOMEBRIDGE_VERSION="Initial Install"
+  INSTALLED_DOCKER_HOMEBRIDGE_BUILD=""
+fi
+export INSTALLED_DOCKER_HOMEBRIDGE_VERSION
+
+# Is this the first start with a new image? The version is only a date, so two
+# images built on the same day share it. The build id tells them apart.
+IMAGE_UPDATED=0
+if [ -n "$DOCKER_HOMEBRIDGE_VERSION" ] && [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
+  IMAGE_UPDATED=1
+elif [ -n "$DOCKER_HOMEBRIDGE_BUILD" ] && [ "$INSTALLED_DOCKER_HOMEBRIDGE_BUILD" != "$DOCKER_HOMEBRIDGE_BUILD" ]; then
+  IMAGE_UPDATED=1
 fi
 
-echo "Installed Docker Homebridge version: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}"
+echo "Installed Docker Homebridge version: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION:-unknown} (build ${INSTALLED_DOCKER_HOMEBRIDGE_BUILD:-unknown})"
+echo "Image Docker Homebridge version: ${DOCKER_HOMEBRIDGE_VERSION:-unknown} (build ${DOCKER_HOMEBRIDGE_BUILD:-unknown})"
+
 if [ ! -e /homebridge/package.json ]; then
   echo "No package.json found in /homebridge, creating one with Homebridge version ${HOMEBRIDGE_VERSION}"
   jq -n --arg version "$HOMEBRIDGE_VERSION" '{dependencies: {homebridge: $version}}' | hb_write_json /homebridge/package.json
-else
-  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
-    # The image was updated. The Homebridge version of the image is only
-    # written into the volume when it is newer than the one in the volume, or
-    # when the release stream changed (for example from beta to latest). So an
-    # image update never moves Homebridge down by accident.
-    VOLUME_HOMEBRIDGE_VERSION=$(jq -r '.dependencies."homebridge" // empty' /homebridge/package.json)
-    . /etc/s6-overlay/scripts/image-update.sh
-    if ! hb_semver_valid "$HOMEBRIDGE_VERSION"; then
-      echo "WARNING: the image does not hold a usable Homebridge version (${HOMEBRIDGE_VERSION:-none}); keeping Homebridge ${VOLUME_HOMEBRIDGE_VERSION:-as it is} in the volume."
+elif [ "$IMAGE_UPDATED" = "1" ]; then
+  # The image was updated. The Homebridge version of the image is only
+  # written into the volume when it is newer than the one in the volume, or
+  # when the release stream changed (for example from beta to latest). So an
+  # image update never moves Homebridge down by accident.
+  VOLUME_HOMEBRIDGE_VERSION=$(jq -r '.dependencies."homebridge" // empty' /homebridge/package.json)
+  . /etc/s6-overlay/scripts/image-update.sh
+  if ! hb_semver_valid "$HOMEBRIDGE_VERSION"; then
+    echo "WARNING: the image does not hold a usable Homebridge version (${HOMEBRIDGE_VERSION:-none}); keeping Homebridge ${VOLUME_HOMEBRIDGE_VERSION:-as it is} in the volume."
+  else
+    UPDATE_DECISION=$(hb_update_decision "$HOMEBRIDGE_VERSION" "$VOLUME_HOMEBRIDGE_VERSION" "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" "$DOCKER_HOMEBRIDGE_VERSION")
+    UPDATE_REASON=$(printf '%s\n' "$UPDATE_DECISION" | sed -n 2p)
+    if [ "$(printf '%s\n' "$UPDATE_DECISION" | sed -n 1p)" = "image" ]; then
+      echo "Docker Container updated, setting the Homebridge version in package.json to ${HOMEBRIDGE_VERSION}: ${UPDATE_REASON}"
+      jq -M --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json \
+        | hb_write_json /homebridge/package.json \
+        || echo "WARNING: could not update the Homebridge version in /homebridge/package.json; the file was left as it was."
     else
-      UPDATE_DECISION=$(hb_update_decision "$HOMEBRIDGE_VERSION" "$VOLUME_HOMEBRIDGE_VERSION" "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" "$DOCKER_HOMEBRIDGE_VERSION")
-      UPDATE_REASON=$(printf '%s\n' "$UPDATE_DECISION" | sed -n 2p)
-      if [ "$(printf '%s\n' "$UPDATE_DECISION" | sed -n 1p)" = "image" ]; then
-        echo "Docker Container updated, setting the Homebridge version in package.json to ${HOMEBRIDGE_VERSION}: ${UPDATE_REASON}"
-        jq -M --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json \
-          | hb_write_json /homebridge/package.json \
-          || echo "WARNING: could not update the Homebridge version in /homebridge/package.json; the file was left as it was."
-      else
-        echo "Docker Container updated, keeping the Homebridge version in package.json: ${UPDATE_REASON}"
-      fi
+      echo "Docker Container updated, keeping the Homebridge version in package.json: ${UPDATE_REASON}"
     fi
   fi
 fi
 
-if [ ! -z "$DOCKER_HOMEBRIDGE_VERSION" ]; then
-  echo "Checking if Docker Homebridge version has changed. Current: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}, New: ${DOCKER_HOMEBRIDGE_VERSION}"
-  if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
-    printf "${GREEN}Docker version was updated from ${RED}${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}${GREEN} to ${RED}${DOCKER_HOMEBRIDGE_VERSION}${NC}\n"
-    if [ -f /homebridge/homebridgeContainer.json ]; then
-      homebridgeContainerJson=$(jq -rM --arg version "$DOCKER_HOMEBRIDGE_VERSION" '.docker_tag = $version' /homebridge/homebridgeContainer.json 2>/dev/null) || homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
-    else
-      homebridgeContainerJson='{"docker_tag": "'"$DOCKER_HOMEBRIDGE_VERSION"'"}'
-    fi
-    printf '%s' "$homebridgeContainerJson" > /homebridge/homebridgeContainer.json
+if [ "$IMAGE_UPDATED" = "1" ]; then
+  printf '%bDocker version was updated from %b%s%b to %b%s%b\n' \
+    "$GREEN" "$RED" "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" "$GREEN" "$RED" "$DOCKER_HOMEBRIDGE_VERSION" "$NC"
+  # remember which image this volume was last started with
+  if ! jq -M --arg version "$DOCKER_HOMEBRIDGE_VERSION" --arg build "$DOCKER_HOMEBRIDGE_BUILD" \
+    '.docker_tag = $version | .docker_build = $build' /homebridge/homebridgeContainer.json 2> /dev/null \
+    | hb_write_json /homebridge/homebridgeContainer.json; then
+    jq -n --arg version "$DOCKER_HOMEBRIDGE_VERSION" --arg build "$DOCKER_HOMEBRIDGE_BUILD" \
+      '{docker_tag: $version, docker_build: $build}' | hb_write_json /homebridge/homebridgeContainer.json
   fi
 fi
 

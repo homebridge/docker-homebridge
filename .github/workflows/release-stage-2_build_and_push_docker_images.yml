@@ -24,6 +24,11 @@ on:
           - Manual
           - Testing
         default: Manual
+      replace_existing:
+        description: 'Build again when a release with today''s tag already exists (the images and the release are replaced)'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: stage-2-build-and-push
@@ -111,6 +116,23 @@ jobs:
           echo "PLATFORMS=${PLATFORMS}"
         } >> "$GITHUB_OUTPUT"
 
+    # The version is only the date. A second build on the same day would push
+    # new images over the tags of the first one, so it has to be asked for.
+    - name: Stop when this release already exists
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        REPLACE_EXISTING: ${{ inputs.replace_existing }}
+      run: |
+        if gh release view "$RELEASE_TAG" --json tagName > /dev/null 2>&1; then
+          if [[ "$REPLACE_EXISTING" == "true" ]]; then
+            echo "::warning::Release ${RELEASE_TAG} already exists and will be replaced (replace_existing is on)"
+          else
+            echo "::error::Release ${RELEASE_TAG} already exists. A second build on the same day replaces its images. Run this workflow by hand with replace_existing ticked if that is what you want."
+            exit 1
+          fi
+        fi
+
     - name: Output versions
       run: |
         echo "::group::Version Information"
@@ -147,6 +169,7 @@ jobs:
         HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
+        DOCKER_HOMEBRIDGE_BUILD=${{ github.run_id }}.${{ github.run_attempt }}
         BASE_IMAGE=${{ needs.set-versions.outputs.BASE_IMAGE }}"
 
         echo "args<<EOF" >> "$GITHUB_OUTPUT"
@@ -324,6 +347,11 @@ jobs:
         fi
         if [[ "${{ inputs.release_type }}" == "beta" || "${{ inputs.release_type }}" == "alpha" ]]; then
           PRERELEASE_FLAGS+=(--prerelease)
+        fi
+        # set-versions only lets a build get this far with an existing release
+        # when replace_existing is on
+        if gh release view "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" --json tagName > /dev/null 2>&1; then
+          gh release delete "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" --cleanup-tag --yes
         fi
         gh release create "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
           --target "${GITHUB_SHA}" \

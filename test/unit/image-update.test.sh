@@ -153,3 +153,50 @@ ubuntu -
 2026-11 -
 TAGS
 }
+
+test_second_build_on_the_same_day_is_an_update() {
+  # two images built on one day share the version, only the build id differs
+  IMAGE_HB=2.5.1 IMAGE_TAG=2026-11-15 IMAGE_BUILD=200.1 new_sandbox upd-same-day
+  echo '{"docker_tag":"2026-11-15","docker_build":"100.1"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"2.5.0"}}' > "$SB/homebridge/package.json"
+  run_setup
+  assert_eq "$(hb_version)" "2.5.1" "Homebridge version in the volume"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_build' "200.1" "build id saved"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_tag' "2026-11-15" "docker_tag kept"
+}
+
+test_same_build_is_not_an_update() {
+  IMAGE_HB=2.5.1 IMAGE_TAG=2026-11-15 IMAGE_BUILD=200.1 new_sandbox upd-same-build
+  echo '{"docker_tag":"2026-11-15","docker_build":"200.1"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"2.5.0"}}' > "$SB/homebridge/package.json"
+  run_setup
+  assert_eq "$(hb_version)" "2.5.0" "Homebridge version in the volume"
+  assert_not_contains "$SB/setup.sh.out" "Docker version was updated"
+}
+
+test_container_json_is_written_on_first_start() {
+  IMAGE_TAG=2026-11-15 IMAGE_BUILD=200.1 new_sandbox upd-first
+  run_setup
+  assert_valid_json "$SB/homebridge/homebridgeContainer.json"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_tag' "2026-11-15"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_build' "200.1"
+  assert_contains "$SB/setup.sh.out" "Docker version was updated from"
+  assert_not_contains "$SB/setup.sh.out" '\033' "colour codes are printed, not shown as text"
+}
+
+test_container_json_broken_is_replaced() {
+  IMAGE_TAG=2026-11-15 new_sandbox upd-broken-json
+  printf '{"docker_tag":"2026-1' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"2.5.0"}}' > "$SB/homebridge/package.json"
+  run_setup
+  assert_valid_json "$SB/homebridge/homebridgeContainer.json"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_tag' "2026-11-15"
+}
+
+test_container_json_keeps_other_fields() {
+  IMAGE_TAG=2026-11-20 new_sandbox upd-other-fields
+  echo '{"docker_tag":"2026-11-15","other":"keep"}' > "$SB/homebridge/homebridgeContainer.json"
+  run_setup
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.other' "keep"
+  assert_json "$SB/homebridge/homebridgeContainer.json" '.docker_tag' "2026-11-20"
+}
