@@ -99,3 +99,65 @@ test_default_npmrc_has_no_old_settings() {
   assert_not_contains "$REPO/rootfs/defaults/.npmrc" "auto-install-peers"
   assert_not_contains "$REPO/rootfs/defaults/.npmrc" "global-style"
 }
+
+test_jq_failure_shows_the_real_error() {
+  new_sandbox jq-fail
+  fake jq 'echo "jq: error: cannot allocate memory" >&2
+exit 5'
+  run_setup
+  assert_eq "$RC" 1 "setup.sh exit code"
+  assert_contains "$SB/setup.sh.out" "ERROR: jq failed during setup check (exit code 5): jq: error: cannot allocate memory"
+  assert_not_contains "$FAKELOG" "npm" "nothing was installed"
+}
+
+test_npm_failure_is_reported() {
+  new_sandbox npm-fail
+  fake npm 'echo "npm $*" >> "$FAKELOG"
+exit 7'
+  run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_contains "$SB/setup.sh.out" "WARNING: 'npm install' failed with exit code 7"
+}
+
+test_npm_success_prints_no_warning() {
+  new_sandbox npm-ok
+  run_setup
+  assert_not_contains "$SB/setup.sh.out" "npm install' failed"
+}
+
+test_image_without_version_never_asks_npm_for_latest() {
+  new_sandbox no-version
+  echo '{"dependencies":{"node":"24.11.1"}}' > "$SB/opt/package.json"
+  run_setup
+  assert_eq "$RC" 1 "setup.sh exit code on a new volume"
+  assert_not_contains "$FAKELOG" "curl" "no look-up of the latest version"
+  assert_no_file "$SB/homebridge/package.json"
+  assert_contains "$SB/setup.sh.out" "does not say which Homebridge version to install"
+}
+
+test_image_without_version_keeps_an_existing_volume() {
+  IMAGE_TAG=2026-11-20 new_sandbox no-version-existing
+  echo '{"dependencies":{"homebridge":null}}' > "$SB/opt/package.json"
+  echo '{"docker_tag":"2026-11-15"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"1.11.4","homebridge-foo":"^1.0.0"}}' > "$SB/homebridge/package.json"
+  run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_json "$SB/homebridge/package.json" '.dependencies.homebridge' "1.11.4" "Homebridge version in the volume"
+  assert_not_contains "$FAKELOG" "curl" "no look-up of the latest version"
+}
+
+test_startup_script_failure_is_reported() {
+  new_sandbox startup-fail
+  printf '#!/bin/sh\necho "my startup script"\nexit 3\n' > "$SB/homebridge/startup.sh"
+  run_script userdata.sh
+  assert_eq "$RC" 0 "userdata.sh exit code"
+  assert_contains "$SB/userdata.sh.out" "my startup script"
+  assert_contains "$SB/userdata.sh.out" "WARNING: the startup script $SB/homebridge/startup.sh ended with exit code 3"
+}
+
+test_startup_script_success_prints_no_warning() {
+  new_sandbox startup-ok
+  printf '#!/bin/sh\nexit 0\n' > "$SB/homebridge/startup.sh"
+  run_script userdata.sh
+  assert_not_contains "$SB/userdata.sh.out" "WARNING"
+}
