@@ -128,7 +128,8 @@ jobs:
           release-type: ${{ matrix.stream }}
           scheduled: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
           github-token: ${{ secrets.GH_TOKEN }}
-          timeout-minutes: '30'
+          # Stage 2 builds, tests on two CPU types and only then publishes
+          timeout-minutes: '90'
           run-name: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} - Build and Push ${{ matrix.stream }}
 
       - name: Cleanup older beta and alpha release and tags
