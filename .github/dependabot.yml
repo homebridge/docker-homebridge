@@ -1,6 +1,8 @@
-# Hybrid dependency management configuration
-# - npm dependencies: Managed by NorthernMan54/Homebridge-Dependency-Bot (see .github/homebridge-dependency-bot-*.json)
-# - Docker base images: Managed by GitHub Dependabot (configured below)
+# Who updates what:
+# - The package versions in package.json and <stream>/package.json: homebridge/dependency-bot
+#   (config in .github/homebridge-dependency-bot-*.json, run by the Stage 1 workflow)
+# - The Docker base image: the "docker.baseImage" field in those same files, changed by hand
+# - GitHub Actions in the workflows: Dependabot (configured below)
 
 version: 2
 updates:
