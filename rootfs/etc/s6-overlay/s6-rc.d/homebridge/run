@@ -12,8 +12,9 @@ export HOMEBRIDGE_CONFIG_UI=1
 # update" mode for Docker. 4.44.2 keeps that mode off. Do not remove it.
 export CONFIG_UI_VERSION=4.44.2
 
-# returns non-zero if the UI is configured to listen on a privileged port,
-# which requires Homebridge to run as root
+# returns non-zero if the UI is configured to listen on a privileged port and
+# the homebridge user can not be given the right to use one. Homebridge then
+# has to run as root.
 ui_port_check() {
   [ -f /var/lib/homebridge/config.json ] || return 0
 
@@ -25,6 +26,9 @@ ui_port_check() {
   esac
 
   if [ "$ui_port" -lt 1024 ]; then
+    case "$HB_CAPABILITIES" in
+      *net_bind_service*) return 0 ;;
+    esac
     echo "The Homebridge UI has been configured to run on a privileged port ($ui_port); the Homebridge service will run as root."
     return 1
   fi
@@ -49,13 +53,24 @@ hb_package_json_repair /homebridge
 hb_package_json_backup /homebridge
 
 if hb_resolve_service_user; then
+  HB_CAPABILITIES=$(hb_network_capabilities)
+
   # the ownership is re-applied here, after the setup and userdata scripts have
   # run, because both of them write to these paths as root
   if ! hb_fix_permissions /homebridge /opt/homebridge /home/homebridge; then
     echo "Failed to set ownership of /homebridge to ${HB_SERVICE_UID}:${HB_SERVICE_GID}; the Homebridge service will run as root."
   elif ui_port_check; then
     export USER=homebridge
+    # setpriv changes to the homebridge user and hands over the network rights.
+    # It is tried with a harmless command first.
+    if [ -n "$HB_CAPABILITIES" ] && setpriv --reuid "$HB_SERVICE_UID" --regid "$HB_SERVICE_GID" --init-groups \
+      --inh-caps "$HB_CAPABILITIES" --ambient-caps "$HB_CAPABILITIES" true 2> /dev/null; then
+      echo "Starting Homebridge as the homebridge user (uid ${HB_SERVICE_UID}, gid ${HB_SERVICE_GID}) with the network rights ${HB_CAPABILITIES}"
+      exec setpriv --reuid "$HB_SERVICE_UID" --regid "$HB_SERVICE_GID" --init-groups \
+        --inh-caps "$HB_CAPABILITIES" --ambient-caps "$HB_CAPABILITIES" /opt/homebridge/start.sh
+    fi
     echo "Starting Homebridge as the homebridge user (uid ${HB_SERVICE_UID}, gid ${HB_SERVICE_GID})"
+    echo "NOTE: no network rights could be handed to the homebridge user. Plugins that use a port below 1024 or raw network packets (ping) will not work in this mode."
     exec /command/s6-setuidgid homebridge /opt/homebridge/start.sh
   fi
 fi
