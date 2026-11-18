@@ -81,22 +81,22 @@ start() {
   C="$name"
 }
 
-# wait_ui <container> [seconds]: waits until the Homebridge UI answers
+# wait_ui <container> [seconds] [port]: waits until the Homebridge UI answers
 wait_ui() {
-  local i
+  local i port="${3:-8581}"
   for ((i = 0; i < ${2:-180}; i += 3)); do
     if [ "$(docker inspect -f '{{.State.Running}}' "$1" 2> /dev/null)" != "true" ]; then
       fail "$1 stopped while waiting for the UI"
       docker logs --tail 30 "$1" 2>&1 | sed 's/^/      | /'
       return 1
     fi
-    if docker exec "$1" curl -fs -o /dev/null http://localhost:8581/ 2> /dev/null; then
+    if docker exec "$1" curl -fs -o /dev/null "http://localhost:${port}/" 2> /dev/null; then
       ok
       return 0
     fi
     sleep 3
   done
-  fail "$1: the UI did not answer within ${2:-180} seconds"
+  fail "$1: the UI did not answer on port ${port} within ${2:-180} seconds"
   docker logs --tail 30 "$1" 2>&1 | sed 's/^/      | /'
   return 1
 }
@@ -119,6 +119,21 @@ wait_health() {
     sleep 3
   done
   return 1
+}
+
+# node_processes <container> <field>: prints one field of /proc/<pid>/status
+# (Uid, Gid or CapAmb) for the Homebridge processes, without repeats. They are
+# found by their process name: hb-service (the supervisor and the UI) and
+# homebridge.
+node_processes() {
+  docker exec "$1" sh -c '
+    for p in /proc/[0-9]*; do
+      case "$(cat "$p/comm" 2> /dev/null)" in
+        hb-service | homebridge | homebridge-*)
+          awk -v field="$1:" "\$1 == field { print \$2 }" "$p/status"
+          ;;
+      esac
+    done | sort -u | tr "\n" " "' sh "$2"
 }
 
 # setup_only <volume> [docker run arguments ...]: runs only setup.sh with the
@@ -298,6 +313,54 @@ scenario_hb_service_commands() {
   sleep 10
   wait_ui "$C" 90 || return
   assert_eq "$(docker logs "$C" 2>&1 | grep -c "is listening on")" "$((starts + 1))" "number of UI starts after 'sudo hb-service restart'"
+}
+
+scenario_non_root_with_puid_and_pgid() {
+  # PUID 1234 and PGID 100. Group 100 already exists in the image ("users"):
+  # the usual NAS value. The UI is put on port 80, which needs a network right.
+  new_volume nonroot
+  vol_sh "$VOL" 'echo "{\"bridge\":{\"name\":\"Homebridge Test\",\"username\":\"0E:11:22:33:44:55\",\"port\":51826,\"pin\":\"031-45-154\"},\"platforms\":[{\"platform\":\"config\",\"name\":\"Config\",\"port\":80}]}" > /homebridge/config.json'
+  start nonroot -v "$VOL:/homebridge" -e HOMEBRIDGE_RUN_AS_USER=1 -e PUID=1234 -e PGID=100
+  wait_ui "$C" 180 80 || return
+  assert_eq "$(node_processes "$C" Uid)" "1234 " "user id of the Homebridge processes"
+  assert_eq "$(node_processes "$C" Gid)" "100 " "group id of the Homebridge processes"
+  # 0x2400 = net_bind_service (bit 10) + net_raw (bit 13)
+  assert_eq "$(node_processes "$C" CapAmb)" "0000000000002400 " "network rights of the Homebridge processes"
+  assert_eq "$(docker exec "$C" sh -c 'stat -c %u:%g /homebridge /homebridge/config.json /homebridge/package.json /homebridge/node_modules /homebridge/homebridge.log /homebridge/.npmrc | sort -u')" "1234:100" "owner of the files in the volume"
+  assert_eq "$(docker exec "$C" sh -c 'find /homebridge ! -user 1234 -o ! -group 100 | wc -l')" "0" "files in the volume with another owner"
+  assert_log "$C" "Starting Homebridge as the homebridge user (uid 1234, gid 100) with the network rights +net_bind_service,+net_raw"
+  assert_no_log "$C" "will run as root"
+  if wait_health "$C" healthy 120; then ok; else fail "health state is '$(docker inspect -f '{{.State.Health.Status}}' "$C")' with the UI on port 80"; fi
+
+  # a restart of the container keeps working, and Homebridge is still not root
+  docker restart "$C" > /dev/null
+  sleep 5
+  wait_ui "$C" 180 80 || return
+  assert_eq "$(node_processes "$C" Uid)" "1234 " "user id after a restart"
+}
+
+scenario_non_root_default_ids() {
+  new_volume nonrootdefault
+  start nonrootdefault -v "$VOL:/homebridge" -e HOMEBRIDGE_RUN_AS_USER=1
+  wait_ui "$C" || return
+  assert_eq "$(node_processes "$C" Uid)" "858 " "user id of the Homebridge processes"
+  assert_eq "$(node_processes "$C" Gid)" "858 " "group id of the Homebridge processes"
+  assert_eq "$(docker exec "$C" sh -c 'stat -c %u:%g /homebridge/config.json /homebridge/package.json | sort -u')" "858:858" "owner of the files in the volume"
+  # /opt/homebridge already belongs to the user in the image, so its files are
+  # not changed and Docker does not copy them into the container
+  assert_eq "$(docker diff "$C" | grep -c -E '^C /opt/homebridge/(bin/node|lib/node_modules/npm/package.json)$')" "0" "image files changed in the container"
+  assert_no_log "$C" "will run as root"
+}
+
+scenario_non_root_without_network_rights() {
+  # the container was started without the two network rights: Homebridge still runs as the user
+  new_volume nonrootcap
+  vol_sh "$VOL" 'echo "{\"bridge\":{\"name\":\"Homebridge Test\",\"username\":\"0E:11:22:33:44:56\",\"port\":51826,\"pin\":\"031-45-154\"},\"platforms\":[{\"platform\":\"config\",\"name\":\"Config\",\"port\":8581}]}" > /homebridge/config.json'
+  start nonrootcap -v "$VOL:/homebridge" -e HOMEBRIDGE_RUN_AS_USER=1 --cap-drop NET_BIND_SERVICE --cap-drop NET_RAW
+  wait_ui "$C" || return
+  assert_eq "$(node_processes "$C" Uid)" "858 " "user id of the Homebridge processes"
+  assert_eq "$(node_processes "$C" CapAmb)" "0000000000000000 " "network rights when the container has none"
+  assert_log "$C" "NOTE: no network rights could be handed to the homebridge user"
 }
 
 scenario_update_from_previous_image() {
