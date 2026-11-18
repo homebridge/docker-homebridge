@@ -308,6 +308,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         DOCKER_HOMEBRIDGE_VERSION: ${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         RELEASE_TYPE: ${{ inputs.release_type }}
+        HOMEBRIDGE_IMAGE_REPO: ${{ needs.set-versions.outputs.GHCR_IMAGE }}
       run: |
         ./scripts/create-release-body.sh "$DOCKER_HOMEBRIDGE_VERSION" "$RELEASE_TYPE" "$GITHUB_REF_NAME"
 
