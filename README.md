@@ -144,7 +144,7 @@ docker run -d \
 ### Running as a non-root user
 
 By default the Homebridge service runs as `root`. Set `HOMEBRIDGE_RUN_AS_USER=1` to run it
-as the `homebridge` user created by the Homebridge package instead.
+as the `homebridge` user instead.
 
 Optionally set `PUID` / `PGID` to change that user's uid / gid, so files in the data volume
 (`-v` flags) are owned by a matching user on the host:
@@ -166,29 +166,38 @@ $ id dockeruser
 uid=1000(dockeruser) gid=1000(dockergroup) groups=1000(dockergroup)
 ```
 
-When `HOMEBRIDGE_RUN_AS_USER` is enabled:
+On Unraid the usual values are `PUID=99` and `PGID=100`. On Synology, use the ids of the user that owns the shared folder.
 
-* `/homebridge`, `/opt/homebridge` and `/home/homebridge` are chowned to the `homebridge` user on every start
-* Homebridge, the Homebridge UI and the plugin install performed on start-up all run as that user
-* `PUID` and `PGID` are applied independently; a value that is `0`, not numeric, or already
-  used by another account or group inside the container is ignored with a warning
+**What this mode is for**
 
-`PUID` / `PGID` are ignored when `HOMEBRIDGE_RUN_AS_USER` is not enabled.
+* The files that Homebridge and its plugins write into the volume belong to the user and group you choose, not to `root`.
+* Homebridge, the Homebridge UI, the plugins and the plugin install at start-up do not run as `root`.
+
+**What this mode is not**
+
+* It is **not a security wall** between a plugin and `root`. The `homebridge` user may use `sudo` without a password (the Homebridge UI needs that to restart Homebridge and to update Homebridge, the UI and Node.js). It also owns `/opt/homebridge`, which holds Node.js, the UI and scripts that the start-up of the container runs as `root`.
+* Removing the `sudo` rule does not change this. Only install plugins you trust, as on any Homebridge install.
+
+**Details**
+
+* Without `PUID` / `PGID` the `homebridge` user is uid `858` and gid `858`, in every image.
+* `PUID` and `PGID` are applied independently. A value that is `0` or not a number is ignored with a warning. A `PUID` that another account inside the container already has is ignored with a warning.
+* A `PGID` that already belongs to a group inside the container is fine: that group becomes the main group of the `homebridge` user. Group `100` (`users`) is such a group.
+* `PUID` / `PGID` are ignored when `HOMEBRIDGE_RUN_AS_USER` is not enabled.
+* On each start of the container, files in `/homebridge`, `/opt/homebridge` and `/home/homebridge` that have another owner are given to the `homebridge` user. Files that are already right are not touched, so this is quick after the first start.
+* Homebridge keeps the network rights it has on a normal (apt) install, as far as the container has them: ports below `1024` and raw network packets (ping). Docker gives a container these two by default. A plugin that changes network settings also needs `--cap-add NET_ADMIN` (Compose: `cap_add: [NET_ADMIN]`).
 
 Homebridge falls back to running as `root` if:
 
-* the ownership of `/homebridge` or `/opt/homebridge` cannot be changed (for example an NFS
+* the owner of files in `/homebridge` or `/opt/homebridge` cannot be changed (for example an NFS
   volume mounted with `root_squash`)
-* the Homebridge UI is configured to listen on a privileged port (below `1024`)
+* the Homebridge UI is configured to listen on a port below `1024` and the container may not use such ports (`--cap-drop NET_BIND_SERVICE` or `--cap-drop ALL`)
 
-> **Note**: while running as the `homebridge` user, that user is granted passwordless `sudo`
-> (via `/etc/sudoers.d/010_homebridge-nopasswd`), which the Homebridge UI needs in order to
-> restart the container and to update Homebridge, the UI and Node.js. Remove it from your
-> [startup script](#-custom-startup-script) with
-> `rm -f /etc/sudoers.d/010_homebridge-nopasswd` if you would rather not have it.
+The container log says which user Homebridge was started as, and why.
 
-> **Note**: the custom startup script (`/homebridge/startup.sh`) always runs as `root`. Anything
-> it writes into `/homebridge` should be chowned to the `homebridge` user by the script itself.
+> **Note**: the custom startup script (`/homebridge/startup.sh`) always runs as `root`. Files it
+> writes into `/homebridge` are given to the `homebridge` user when the container starts. Files it
+> writes later (for example from a background job) should be chowned by the script itself.
 
 ---
 
