@@ -42,21 +42,17 @@ jobs:
     steps:
       - name: Set matrix based on trigger
         id: set-matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_STREAM: ${{ github.event.inputs.release_stream }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.event.inputs.release_stream }}" == "all" ]]; then
-              echo 'matrix={"stream":["stable","beta","alpha","legacy","synology"]}' >> $GITHUB_OUTPUT
-            else
-              echo "matrix={\"stream\":[\"${{ github.event.inputs.release_stream }}\"]}" >> $GITHUB_OUTPUT
-            fi
-          else
-            # Scheduled run - process stable, beta, legacy, synology and alpha streams
-            echo 'matrix={"stream":["stable","beta","alpha","legacy","synology"]}' >> $GITHUB_OUTPUT
+          # A scheduled run and "all" process every stream
+          MATRIX='{"stream":["stable","beta","alpha","legacy","synology"]}'
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$RELEASE_STREAM" != "all" ]]; then
+            MATRIX=$(jq -cn --arg stream "$RELEASE_STREAM" '{stream: [$stream]}')
           fi
-
-      - name: Output matrix for debugging
-        run: |
-          echo "::notice::Dependencies Matrix: ${{ steps.set-matrix.outputs.matrix }}"
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Dependencies Matrix: ${MATRIX}"
 
   update-dependencies:
     name: Update ${{ matrix.stream }} Dependencies
@@ -71,25 +67,19 @@ jobs:
       matrix:
         stream: ${{ fromJson(needs.define-matrix.outputs.matrix).stream }}
     steps:
+      - name: Checkout the workflow scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # Beta and alpha build from the newest <stream>-YYYY.M.D branch when one exists
       # (e.g. beta-2026.11.18), so unreleased features can ship to that stream without
       # touching latest. Every other stream, and beta/alpha without such a branch, uses latest.
+      # The script warns when such a branch is missing changes that are on latest.
       - name: Resolve ${{ matrix.stream }} Branch
         id: resolve-branch
         env:
           GH_TOKEN: ${{ github.token }}
           STREAM: ${{ matrix.stream }}
-        run: |
-          BRANCH="latest"
-          if [[ "$STREAM" == "beta" || "$STREAM" == "alpha" ]]; then
-            CANDIDATE=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/${STREAM}-" \
-              --jq '.[].ref | sub("^refs/heads/"; "")' \
-              | grep -E "^${STREAM}-[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$" \
-              | sort -V | tail -n 1 || true)
-            [[ -n "$CANDIDATE" ]] && BRANCH="$CANDIDATE"
-          fi
-          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "::notice::${STREAM} stream builds from branch ${BRANCH}"
+        run: .github/scripts/resolve-stream-branch.sh "$STREAM"
 
       - name: Create Dependency Bot App Token
         id: dependency-bot-token
