@@ -88,6 +88,34 @@ hb_apply_requested_ids() {
   fi
 }
 
+# Prints the network rights (Linux capabilities) that can be handed to the
+# homebridge user, in the form that setpriv wants: "+net_bind_service,+net_raw".
+#
+# On an apt install, systemd gives the Homebridge service three rights:
+# ports below 1024 (net_bind_service), raw network packets such as ping
+# (net_raw) and changing network settings (net_admin). Without them a plugin
+# that works as root fails as the homebridge user.
+#
+# Only the rights the container itself has can be handed over. Docker gives a
+# container the first two by default, and net_admin only with
+# "--cap-add NET_ADMIN". They are read from the bounding set of this process.
+hb_network_capabilities() {
+  hb_capbnd=$(sed -n 's/^CapBnd:[[:space:]]*//p' /proc/self/status 2> /dev/null)
+  hb_caps=""
+  case "$hb_capbnd" in
+    '' | *[!0-9a-fA-F]*) ;;
+    *)
+      # the number after each name is its bit in the capability mask
+      for hb_cap in net_bind_service:10 net_admin:12 net_raw:13; do
+        if [ $(((0x$hb_capbnd >> ${hb_cap#*:}) & 1)) -eq 1 ]; then
+          hb_caps="${hb_caps:+$hb_caps,}+${hb_cap%:*}"
+        fi
+      done
+      ;;
+  esac
+  printf '%s' "$hb_caps"
+}
+
 # Takes ownership of the paths passed as arguments so the Homebridge service
 # can write to them. A no-op when running as root. Returns non-zero if the
 # ownership could not be changed, in which case the caller should fall back to
