@@ -231,6 +231,23 @@ cp /homebridge/custom-config.json /etc/custom-config.json
 
 ---
 
+## ⌨️ Commands Inside the Container
+
+Open a shell in the container with `docker exec -it homebridge bash`, or use the terminal in the Homebridge UI.
+
+| What you want | Command |
+|:--------------|:--------|
+| Is Homebridge running? | `hb-service status` |
+| Show the log | `hb-service logs` |
+| Restart Homebridge | Use **Restart** in the Homebridge UI, or `docker restart homebridge` on the host, or `sudo hb-service restart` in the container |
+| Stop / start Homebridge and keep the container | `sudo hb-service stop` / `sudo hb-service start` |
+| Install or remove a plugin by hand | `sudo hb-service add homebridge-example` / `sudo hb-service remove homebridge-example` |
+
+- `hb-service` (without `sudo`) is the program of the Homebridge UI. `sudo hb-service` is the wrapper of the Homebridge package. Use them as shown in the table.
+- There is no systemd in the container. `systemctl` commands do not work here.
+
+---
+
 ## 📚 Step-by-Step Guides
 
 - [Running Homebridge with Docker on Linux](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker)

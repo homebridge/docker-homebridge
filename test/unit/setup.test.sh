@@ -193,3 +193,42 @@ test_plugin_commands_do_not_replace_system_tools_in_startup_script() {
   assert_eq "$(cat "$SB/jq-result" 2> /dev/null)" "{}" "the startup script got the real jq"
   assert_eq "$(cat "$SB/plugin-tool" 2> /dev/null)" "$SB/varlib/homebridge/node_modules/.bin/plugin-only-tool" "other plugin commands are still found"
 }
+
+# hb_service <uid> <args...>: runs the container's hb-service wrapper as that user id
+hb_service() {
+  local uid="$1"
+  shift
+  fake id "echo $uid"
+  printf '#!/bin/sh\necho "s6-svc $*" >> "$FAKELOG"\n' > "$SB/command/s6-svc"
+  printf '#!/bin/sh\necho "hb-service-shim $*" >> "$FAKELOG"\n' > "$SB/opt/hb-service-shim"
+  chmod +x "$SB/command/s6-svc" "$SB/opt/hb-service-shim"
+  run_script hb-service-docker.sh "$@"
+}
+
+test_hb_service_restart_goes_to_s6() {
+  new_sandbox hbs-restart
+  hb_service 0 restart
+  assert_eq "$RC" 0 "exit code"
+  assert_eq "$(cat "$FAKELOG")" "s6-svc -r /run/service/homebridge" "command run"
+}
+
+test_hb_service_stop_and_start_go_to_s6() {
+  new_sandbox hbs-stop
+  hb_service 0 stop
+  hb_service 0 start
+  assert_eq "$(tr '\n' ';' < "$FAKELOG")" "s6-svc -d /run/service/homebridge;s6-svc -u /run/service/homebridge;" "commands run"
+}
+
+test_hb_service_restart_needs_root() {
+  new_sandbox hbs-user
+  hb_service 1000 restart
+  assert_eq "$RC" 1 "exit code"
+  assert_not_contains "$FAKELOG" "s6-svc"
+}
+
+test_hb_service_other_commands_go_to_the_apt_wrapper() {
+  new_sandbox hbs-other
+  hb_service 0 add 'homebridge-foo@>=2.0.0'
+  hb_service 0 status
+  assert_eq "$(tr '\n' ';' < "$FAKELOG")" "hb-service-shim add homebridge-foo@>=2.0.0;hb-service-shim status;" "commands run"
+}
