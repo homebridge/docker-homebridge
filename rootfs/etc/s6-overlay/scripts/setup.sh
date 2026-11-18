@@ -1,9 +1,5 @@
 #!/command/with-contenv sh
 
-BWHITE='\033[1;37m'
-UWHITE='\033[4;37m'
-BYELLOW='\033[1;33m'
-CYAN='\033[4;36m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'

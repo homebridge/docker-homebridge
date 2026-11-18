@@ -6,16 +6,6 @@
 
 version: 2
 updates:
-  # Docker base image updates
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: weekly
-      time: "10:00"
-    open-pull-requests-limit: 3
-    labels:
-      - "production"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

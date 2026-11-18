@@ -1,7 +1,5 @@
-node_modules
-raspberry-pi
-.gitignore
-Dockerfile
-README.md
-.github
-/output
+# The build only needs the files that the Dockerfile copies or mounts.
+# Everything else (the git history, tests, docs) is left out of the build context.
+*
+!rootfs
+!build
