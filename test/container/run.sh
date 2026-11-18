@@ -9,6 +9,7 @@
 #                    test starts it first and then moves the volume to <image>.
 #   HB_TEST_PREFIX   prefix for container and volume names (default: hbtest)
 #   HB_TEST_PLUGIN   a small plugin from npm to install (default: homebridge-dummy)
+#   HB_TEST_MAX_SIZE_MB  largest allowed size of the files in the image (default: 1400)
 #   KEEP=1           keep the containers and volumes for a look afterwards
 #
 # Needs: docker, and the network (npm) for the scenarios that install Homebridge.
@@ -247,6 +248,17 @@ scenario_image_settings() {
   assert_match "$(image_sh 'dpkg-query -W -f "\${Status}" homebridge')" "install ok installed" "homebridge package state"
   assert_eq "$(image_sh 'command -v tzupdate pipx; ls /home/homebridge/.local/bin/tzupdate 2> /dev/null' | wc -l | tr -d ' ')" "0" "tzupdate and pipx are not in the image"
   assert_eq "$(image_sh 'readlink /etc/localtime')" "/usr/share/zoneinfo/Etc/GMT" "default time zone of the image"
+
+  # size: the files in the image, in MB. This catches a desktop package (GTK,
+  # icon themes ...) or the apt package lists coming back.
+  local size_mb
+  size_mb=$(image_sh 'du -sxm / 2> /dev/null | cut -f1')
+  if [ "${size_mb:-99999}" -le "${HB_TEST_MAX_SIZE_MB:-1400}" ]; then ok; else fail "the image holds ${size_mb} MB of files, more than ${HB_TEST_MAX_SIZE_MB:-1400} MB"; fi
+  echo "    image size: ${size_mb} MB of files"
+  assert_eq "$(image_sh 'ls /var/lib/apt/lists | wc -l')" "0" "apt package lists left in the image"
+  assert_eq "$(image_sh 'dpkg-query -W -f "\${Package}\n" | grep -c -E "^(avahi-discover|libgtk-3-0.*|adwaita-icon-theme)$"')" "0" "desktop packages in the image"
+  # tools that plugin installs and startup scripts need
+  assert_eq "$(image_sh 'for t in node npm jq curl git make g++ python3 sudo xz gpg avahi-daemon avahi-browse; do command -v "$t" > /dev/null || echo "$t"; done' | tr '\n' ' ')" "" "tools missing from the image"
 }
 
 scenario_update_from_previous_image() {

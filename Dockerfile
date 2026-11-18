@@ -36,17 +36,28 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
   HOME="/home/homebridge" \
   npm_config_prefix=/opt/homebridge
 
+# Only the packages named here are installed (no "recommended" extras), and the
+# apt package lists are removed in the same step, so they do not stay in a layer.
+# - ca-certificates and xz-utils are needed by the downloads below
+# - avahi-daemon is the mDNS service; avahi-utils has avahi-browse for testing
+# - git, make, g++ and python3 are needed to install plugins with native code
+# - bzip2, gpg, less, openssh-client, patch and xxd are small tools that user
+#   startup scripts and plugin installs may call
 RUN set -x \
   && apt-get update \
   && apt-get upgrade -y \
-  && apt-get install -y curl wget tzdata locales psmisc procps iputils-ping logrotate \
-  libatomic1 apt-transport-https apt-utils jq openssl sudo nano net-tools \
+  && apt-get install -y --no-install-recommends \
+  adduser apt-transport-https apt-utils ca-certificates curl iputils-ping jq libatomic1 locales \
+  logrotate nano net-tools openssl procps psmisc sudo tzdata vim wget xz-utils \
+  bzip2 gpg less openssh-client patch xxd \
+  g++ git libcrypt-dev make python3 python3-dev python3-pip python3-setuptools python3-venv \
+  avahi-daemon avahi-utils dbus libavahi-compat-libdnssd-dev libnss-mdns \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
-  && apt-get install -y python3 python3-pip python3-setuptools git make g++ libnss-mdns \
-  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev vim \
   && chmod 0755 /bin/ping \
-  && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
+  && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 # s6-overlay is the first program that runs in every container. Each archive is
 # checked against the SHA-256 that the s6-overlay project publishes next to it.
@@ -104,7 +115,7 @@ RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyr
   esac \
   && echo "deb [signed-by=/usr/share/keyrings/homebridge.asc] https://repo.homebridge.io ${APT_CHANNEL} main" > /etc/apt/sources.list.d/homebridge.list \
   && apt-get update \
-  && apt-get install -y "homebridge=${APT_VERSION}" \
+  && apt-get install -y --no-install-recommends "homebridge=${APT_VERSION}" \
   && rm -f /etc/apt/sources.list.d/homebridge.list \
   && chown -R root:root /opt/homebridge \
   && rm -rf /var/lib/homebridge \
