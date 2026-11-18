@@ -30,6 +30,17 @@ ui_port_check() {
   fi
 }
 
+# s6 starts this service as soon as the avahi service has been started, which
+# can be a moment before avahi-daemon is ready. Give it up to 10 seconds, so
+# Homebridge does not ask avahi too early on a slow machine.
+if [ "$ENABLE_AVAHI" = "1" ]; then
+  hb_avahi_waited=0
+  until [ -S /var/run/avahi-daemon/socket ] || [ "$hb_avahi_waited" -ge 10 ]; do
+    sleep 1
+    hb_avahi_waited=$((hb_avahi_waited + 1))
+  done
+fi
+
 # start.sh from the apt package deletes every plugin when package.json is not
 # valid JSON, so repair the file first. This runs again each time Homebridge
 # is restarted.
