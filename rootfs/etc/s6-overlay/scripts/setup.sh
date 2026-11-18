@@ -38,9 +38,27 @@ fi
 
 # setup homebridge
 mkdir -p /homebridge
-if [ "$(realpath /var/lib/homebridge)" != "/homebridge" ]; then
-  rm -rf /var/lib/homebridge
-  ln -sf /homebridge /var/lib/homebridge
+
+# /var/lib/homebridge is the data path of the homebridge apt package. In this
+# image it must be a link to the volume at /homebridge. Whatever is found
+# there is never deleted: it may be the user's data, mounted at the wrong path.
+if [ -L /var/lib/homebridge ]; then
+  if [ "$(readlink /var/lib/homebridge)" != "/homebridge" ]; then
+    ln -sfn /homebridge /var/lib/homebridge
+  fi
+elif [ -e /var/lib/homebridge ]; then
+  # rmdir only removes an empty folder. It fails for a folder with files in it
+  # and for a mounted volume.
+  if ! rmdir /var/lib/homebridge 2> /dev/null; then
+    echo "ERROR: /var/lib/homebridge is a mounted volume or holds files."
+    echo "ERROR: This image keeps the Homebridge data in /homebridge. Mount your data folder there, for example:"
+    echo "ERROR:   -v /path/to/your/homebridge:/homebridge"
+    echo "ERROR: Nothing was changed or deleted. Stopping."
+    exit 1
+  fi
+  ln -sfn /homebridge /var/lib/homebridge
+else
+  ln -sfn /homebridge /var/lib/homebridge
 fi
 
 # fix a mistake where we were creating a symlink loop
