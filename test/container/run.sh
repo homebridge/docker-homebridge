@@ -251,6 +251,9 @@ scenario_image_settings() {
   assert_eq "$(image_sh 'readlink /etc/localtime')" "/usr/share/zoneinfo/Etc/GMT" "default time zone of the image"
   assert_eq "$(image_sh 'grep -c "^ *\. /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh')" "1" "times source.sh loads source-docker.sh"
   assert_eq "$(image_sh '. /opt/homebridge/source.sh; echo "$DOCKER_HOMEBRIDGE_VERSION"')" "$IMAGE_TAG" "DOCKER_HOMEBRIDGE_VERSION after loading source.sh"
+  # the homebridge user has the same numbers in every image, whatever the Ubuntu version
+  assert_eq "$(image_sh 'echo "$(id -u homebridge):$(id -g homebridge)"')" "858:858" "uid and gid of the homebridge user"
+  assert_eq "$(image_sh 'stat -c %u:%g /opt/homebridge /opt/homebridge/bin/node /home/homebridge | sort -u')" "858:858" "owner of /opt/homebridge and /home/homebridge"
 
   # size: the files in the image, in MB. This catches a desktop package (GTK,
   # icon themes ...) or the apt package lists coming back.

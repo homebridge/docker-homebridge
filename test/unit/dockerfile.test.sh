@@ -33,3 +33,14 @@ test_s6_dependencies_name_real_services() {
   assert_eq "$(find "$dir" -name dependencies -type f | wc -l | tr -d ' ')" "0" "old one-file dependency lists"
   assert_eq "$(find "$dir/homebridge/dependencies.d" -type f -exec basename {} \; | sort | tr '\n' ' ')" "avahi dbus setup userdata " "homebridge starts after"
 }
+
+test_dockerfile_homebridge_user_has_fixed_numbers() {
+  assert_contains "$REPO/Dockerfile" 'ARG HOMEBRIDGE_UID=858'
+  assert_contains "$REPO/Dockerfile" 'ARG HOMEBRIDGE_GID=858'
+  assert_contains "$REPO/Dockerfile" 'useradd --system --uid "${HOMEBRIDGE_UID}" --gid homebridge' "the user is made before the package is installed"
+  # the user must exist before apt installs the package, or the package picks the numbers
+  local useradd_line install_line
+  useradd_line=$(grep -n 'useradd --system' "$REPO/Dockerfile" | head -1 | cut -d: -f1)
+  install_line=$(grep -n 'apt-get install -y --no-install-recommends "homebridge=' "$REPO/Dockerfile" | head -1 | cut -d: -f1)
+  if [ -n "$useradd_line" ] && [ -n "$install_line" ] && [ "$useradd_line" -lt "$install_line" ]; then ok; else fail "useradd (line ${useradd_line:-?}) must come before the package install (line ${install_line:-?})"; fi
+}
