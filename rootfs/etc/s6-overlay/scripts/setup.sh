@@ -63,6 +63,44 @@ else
   echo "jq is functioning correctly, proceeding with setup"
 fi
 
+# configure the user the Homebridge service will run as (HOMEBRIDGE_RUN_AS_USER)
+. /etc/s6-overlay/scripts/service-user.sh
+if hb_resolve_service_user; then
+  # PUID / PGID optionally remap the homebridge account created by the apt package
+  hb_apply_requested_ids
+  hb_resolve_service_user
+  echo "Configuring the homebridge service user with uid ${HB_SERVICE_UID} and gid ${HB_SERVICE_GID}"
+
+  # allow the homebridge user to use sudo, which the Homebridge UI needs to
+  # restart the container and to update Homebridge, the UI and Node.js
+  usermod -a -G sudo homebridge 2> /dev/null
+  printf '%s\n' \
+    "homebridge ALL=(ALL) NOPASSWD: ALL" \
+    > /etc/sudoers.d/010_homebridge-nopasswd
+  chown root:root /etc/sudoers.d/010_homebridge-nopasswd
+  chmod 0440 /etc/sudoers.d/010_homebridge-nopasswd
+
+  mkdir -p /home/homebridge
+  [ -e /home/homebridge/.bashrc ] || cp /opt/homebridge/bashrc /home/homebridge/.bashrc 2> /dev/null
+
+  # the homebridge apt package scripts read this file to work out which user the
+  # service runs as
+  mkdir -p /etc/systemd/system/homebridge.service.d
+  printf '%s\n' \
+    "# this docker container does not use systemd" \
+    "# the homebridge apt package just checks this file to see if the user has been changed from the default" \
+    "" \
+    "[Service]" \
+    "User=homebridge" \
+    > /etc/systemd/system/homebridge.service.d/override.conf
+else
+  if [ -n "$PUID" ] || [ -n "$PGID" ]; then
+    echo "WARNING: PUID / PGID are ignored unless HOMEBRIDGE_RUN_AS_USER is enabled; the Homebridge service will run as root."
+  fi
+  # running as root, the sudo rule for the homebridge user is not needed
+  rm -f /etc/sudoers.d/010_homebridge-nopasswd
+fi
+
 # set the .npmrc file
 cp /defaults/.npmrc /homebridge/.npmrc
 
@@ -151,9 +189,21 @@ if [ -f /opt/homebridge/source.sh ]; then
   . "/opt/homebridge/source.sh"
 fi
 
+# take ownership of the paths the service needs to write to, so that the plugin
+# install below - and Homebridge itself - can run as the homebridge user
+if ! hb_fix_permissions /homebridge /opt/homebridge /home/homebridge; then
+  echo "Failed to set ownership of /homebridge to ${HB_SERVICE_UID}:${HB_SERVICE_GID}; the Homebridge service will run as root."
+  HB_SERVICE_USER=root
+fi
+
 # install plugins
 echo "Installing Homebridge and user plugins, please wait..."
 cat /homebridge/package.json
-npm --prefix /homebridge install --omit=dev
+if [ "$HB_SERVICE_USER" = "root" ]; then
+  npm --prefix /homebridge install --omit=dev
+else
+  echo "Installing as the homebridge user"
+  /command/s6-setuidgid homebridge npm --prefix /homebridge install --omit=dev
+fi
 
 exit 0
