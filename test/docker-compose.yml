@@ -13,9 +13,3 @@ services:
       options:
         max-size: '10m'
         max-file: '1'
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
-      interval: 60s
-      retries: 5
-      start_period: 300s
-      timeout: 2s

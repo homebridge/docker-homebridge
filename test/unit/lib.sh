@@ -69,6 +69,7 @@ rewrite() {
     -e "s#/defaults#@DEFAULTS@#g" \
     -e "s#/command/#@COMMAND@/#g" \
     -e "s#/proc/#@PROC@/#g" \
+    -e "s#/usr/bin/curl#@OPT@/bin/curl#g" \
     -e "s#/etc/#@ETC@/#g" \
     -e "s#(^|[^A-Za-z0-9_./-])/homebridge([^A-Za-z-]|\$)#\\1@HB@\\2#g" \
     -e "s#(^|[^A-Za-z0-9_./-])/homebridge([^A-Za-z-]|\$)#\\1@HB@\\2#g" \
