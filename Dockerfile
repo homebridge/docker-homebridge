@@ -14,6 +14,8 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 ARG HOMEBRIDGE_APT_PKG_VERSION
 ARG FFMPEG_FOR_HOMEBRIDGE_VERSION
 ARG DOCKER_HOMEBRIDGE_VERSION
+# Tells two images with the same version (built on the same day) apart
+ARG DOCKER_HOMEBRIDGE_BUILD
 
 # Set version label using the Docker Homebridge version
 LABEL org.opencontainers.image.version="${DOCKER_HOMEBRIDGE_VERSION}"
@@ -110,6 +112,7 @@ RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/sourc
   echo "fi" >> /opt/homebridge/source.sh ; \
   fi && \
   echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
+  echo "export DOCKER_HOMEBRIDGE_BUILD=${DOCKER_HOMEBRIDGE_BUILD}" >> /opt/homebridge/source-docker.sh && \
   echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
   echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
   chmod 755 /opt/homebridge/source-docker.sh
