@@ -138,3 +138,60 @@ test_workflows_do_not_use_the_personal_token() {
   bad=$(workflow_files | xargs grep -Hn 'secrets\.GH_TOKEN' || true)
   assert_eq "$bad" "" "uses of the personal access token secrets.GH_TOKEN"
 }
+
+# ---------------------------------------------------------------- stream branch
+
+resolve_branch() { # <stream>
+  OUT=$(PATH="$SB/bin:$PATH" GITHUB_REPOSITORY=homebridge/docker-homebridge GITHUB_OUTPUT="$SB/output" \
+    bash "$REPO/.github/scripts/resolve-stream-branch.sh" "$1" 2> "$SB/err")
+  RC=$?
+}
+
+# branch_gh <refs json> <files json>: a fake gh for the two API calls. It
+# applies the --jq filter with the real jq.
+branch_gh() {
+  printf '%s' "$1" > "$SB/refs.json"
+  printf '%s' "$2" > "$SB/compare.json"
+  fake_gh 'for last; do :; done
+case "$*" in
+  *matching-refs*) jq -r "$last" "'"$SB"'/refs.json" ;;
+  *compare*) jq -r "$last" "'"$SB"'/compare.json" ;;
+esac'
+}
+
+REFS='[{"ref":"refs/heads/beta-2026.9.30"},{"ref":"refs/heads/beta-2026.11.18"},{"ref":"refs/heads/beta-2026.11.2"},{"ref":"refs/heads/beta-test"}]'
+
+test_branch_stable_always_uses_latest() {
+  gh_sandbox branch-stable
+  branch_gh "$REFS" '{"files":[]}'
+  resolve_branch stable
+  assert_eq "$(printf '%s\n' "$OUT" | tail -1)" "latest" "branch"
+  assert_contains "$SB/output" "branch=latest"
+  assert_not_contains "$FAKELOG" "matching-refs" "no branch look-up for stable"
+}
+
+test_branch_beta_uses_the_newest_dated_branch() {
+  gh_sandbox branch-beta
+  branch_gh "$REFS" '{"files":[{"filename":"package.json"},{"filename":"legacy/package.json"}]}'
+  resolve_branch beta
+  assert_eq "$(printf '%s\n' "$OUT" | tail -1)" "beta-2026.11.18" "branch"
+  assert_contains "$SB/output" "branch=beta-2026.11.18"
+  assert_not_contains "$SB/err" "::warning::" "only bot version changes on latest: no warning"
+  if printf '%s\n' "$OUT" | grep -q "::warning::"; then fail "warning printed for bot version changes only"; else ok; fi
+}
+
+test_branch_beta_without_a_dated_branch_uses_latest() {
+  gh_sandbox branch-none
+  branch_gh '[{"ref":"refs/heads/beta-test"}]' '{"files":[]}'
+  resolve_branch beta
+  assert_eq "$(printf '%s\n' "$OUT" | tail -1)" "latest" "branch"
+}
+
+test_branch_warns_when_it_is_missing_changes_from_latest() {
+  gh_sandbox branch-stale
+  branch_gh "$REFS" '{"files":[{"filename":"package.json"},{"filename":"rootfs/etc/s6-overlay/scripts/setup.sh"},{"filename":"Dockerfile"}]}'
+  resolve_branch beta
+  assert_eq "$RC" 0 "exit code"
+  assert_eq "$(printf '%s\n' "$OUT" | tail -1)" "beta-2026.11.18" "branch"
+  if printf '%s\n' "$OUT" | grep -q "::warning::beta-2026.11.18 does not have 2 file change(s) that are on latest"; then ok; else fail "no warning about the stale branch: $OUT"; fi
+}
