@@ -73,12 +73,6 @@ services:
       options:
         max-size: '10m'
         max-file: '1'
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
-      interval: 60s
-      retries: 5
-      start_period: 300s
-      timeout: 2s
 ```
 
 Start the container:
@@ -126,6 +120,11 @@ docker run \
 >   - /var/run/dbus:/var/run/dbus  # Mount host D-Bus socket
 >   - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket  # Mount host Avahi socket
 > ```
+
+### Health and failed starts
+
+- The image has a built-in health check. `docker ps` shows `healthy` when the Homebridge UI answers, and `unhealthy` when it has not answered for about five minutes. The check reads the UI port from your `config.json`, so it keeps working when you change the port.
+- If the start-up of the container fails (for example because the data folder is mounted at the wrong path), the container **stops** with an error in its log. With `restart: always` Docker starts it again. Read the reason with `docker logs homebridge`.
 
 ---
 

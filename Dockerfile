@@ -27,8 +27,11 @@ ARG HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# S6_BEHAVIOUR_IF_STAGE2_FAILS=2: when a start-up script fails (setup.sh), stop
+# the container. Without it the container stays "Up" with nothing running.
 ENV S6_OVERLAY_VERSION=3.2.0.2 \
   S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
+  S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
   S6_KEEP_ENV=1 \
   ENABLE_AVAHI=1 \
   USER=root \
@@ -122,5 +125,10 @@ COPY rootfs /
 EXPOSE 8581/tcp
 VOLUME /homebridge
 WORKDIR /homebridge
+
+# The container is "healthy" when the Homebridge UI answers. The first five
+# minutes do not count against it: a first start installs Homebridge.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=5 \
+  CMD [ "/etc/s6-overlay/scripts/healthcheck.sh" ]
 
 ENTRYPOINT [ "/init" ]
