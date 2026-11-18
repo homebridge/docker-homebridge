@@ -1,0 +1,106 @@
+name: CI
+run-name: CI - ${{ github.event.pull_request.title || github.ref_name }}
+
+# Runs on every pull request:
+#   1. lint: shellcheck, hadolint, actionlint and JSON checks
+#   2. the sandbox tests of the scripts (test/unit)
+#   3. a real build of every release stream, and the container tests on it (test/container)
+#
+# No secrets are used and the token can only read, so this is safe for pull
+# requests from forks. Nothing is pushed anywhere.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # hadolint v2.15.1 and actionlint 1.7.12, both picked by image digest
+      - name: Lint the shell scripts, the Dockerfile and the JSON files
+        env:
+          HADOLINT: docker run --rm -i -v ${{ github.workspace }}/.hadolint.yaml:/.hadolint.yaml:ro hadolint/hadolint@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d hadolint
+        run: test/lint.sh
+
+      - name: Lint the workflows
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo \
+            rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+
+  script-tests:
+    name: Script tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the sandbox tests of the scripts
+        run: test/unit/run.sh
+
+  image:
+    name: Build and test ${{ matrix.stream }}
+    needs: [lint, script-tests]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        stream: [stable, beta, alpha, legacy, synology]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the ${{ matrix.stream }} image
+        env:
+          STREAM: ${{ matrix.stream }}
+        run: ./build-local.sh "$STREAM" --build-only
+
+      # The update test starts from the image that users of this stream run today
+      - name: Pull the published ${{ matrix.stream }} image
+        id: previous
+        env:
+          STREAM: ${{ matrix.stream }}
+        run: |
+          if [[ "$STREAM" == "stable" ]]; then TAG="latest"; else TAG="$STREAM"; fi
+          PREVIOUS="ghcr.io/homebridge/homebridge:${TAG}"
+          if docker pull --quiet "$PREVIOUS"; then
+            echo "image=${PREVIOUS}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not pull ${PREVIOUS}. The update test is skipped."
+          fi
+
+      - name: Container tests
+        env:
+          PREVIOUS_IMAGE: ${{ steps.previous.outputs.image }}
+        run: test/container/run.sh docker-homebridge
+
+      - name: A download that fails its check must stop the build
+        env:
+          STREAM: ${{ matrix.stream }}
+        run: test/container/build-checks.sh "$STREAM"
