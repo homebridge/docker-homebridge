@@ -23,3 +23,13 @@ test_dockerfile_does_not_add_to_source_sh() {
   assert_contains "$REPO/Dockerfile" "does not load source-docker.sh" "build check that the apt package loads the file"
   assert_eq "$(grep -c '^ *\. /opt/homebridge/source-docker.sh' "$UNIT_DIR/fixtures/source.sh")" "1" "times the apt package source.sh loads source-docker.sh"
 }
+
+test_s6_dependencies_name_real_services() {
+  # each file in a dependencies.d folder must be the name of a service
+  local dir="$REPO/rootfs/etc/s6-overlay/s6-rc.d" dep
+  for dep in "$dir"/*/dependencies.d/* "$dir"/user/contents.d/*; do
+    if [ -d "$dir/$(basename "$dep")" ]; then ok; else fail "'$dep' is not the name of a service"; fi
+  done
+  assert_eq "$(find "$dir" -name dependencies -type f | wc -l | tr -d ' ')" "0" "old one-file dependency lists"
+  assert_eq "$(find "$dir/homebridge/dependencies.d" -type f -exec basename {} \; | sort | tr '\n' ' ')" "avahi dbus setup userdata " "homebridge starts after"
+}
