@@ -5,8 +5,14 @@ on:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
 
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
+
 jobs:
   label:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: homebridge/.github/.github/workflows/pr-labeler.yml@latest
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

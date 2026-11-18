@@ -109,3 +109,32 @@ if [ "$n" -lt 3 ]; then echo "[]"; else echo "[{\"databaseId\":7,\"name\":\"x Sc
   assert_eq "$RC" 0 "exit code"
   assert_eq "$OUT" "7" "run id"
 }
+
+# ---------------------------------------------------------------- workflow files
+
+# the workflows that are in use (text checks; actionlint checks the rest in CI)
+workflow_files() {
+  find "$REPO/.github/workflows" -name '*.yml' | sort
+}
+
+test_workflows_start_with_no_rights() {
+  local f
+  for f in $(workflow_files); do
+    if grep -Eq '^permissions: \{\}$' "$f"; then ok; else fail "$(basename "$f"): no top-level 'permissions: {}'"; fi
+  done
+}
+
+test_workflows_pin_outside_actions_by_commit() {
+  # actions from this repo (./) and from the homebridge organisation are exempt
+  local bad
+  bad=$({ workflow_files; ls "$REPO"/.github/actions/*/action.yml; } | xargs grep -HnE '^[[:space:]]*(- )?uses:' \
+    | grep -vE 'uses: (\./|homebridge/)' \
+    | grep -vE 'uses: [A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}( # .+)?$' || true)
+  assert_eq "$bad" "" "actions that are not pinned by a full commit hash"
+}
+
+test_workflows_do_not_use_the_personal_token() {
+  local bad
+  bad=$(workflow_files | xargs grep -Hn 'secrets\.GH_TOKEN' || true)
+  assert_eq "$bad" "" "uses of the personal access token secrets.GH_TOKEN"
+}

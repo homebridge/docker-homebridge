@@ -46,9 +46,14 @@ concurrency:
   group: stage-2-build-and-push
   cancel-in-progress: false
 
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
+
 jobs:
   set-versions:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       DOCKER_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
@@ -63,7 +68,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set Versions
       id: versions
@@ -160,20 +165,23 @@ jobs:
     name: Build the candidate image
     runs-on: ubuntu-latest
     needs: set-versions
+    permissions:
+      contents: read
+      packages: write # push the candidate image to ghcr.io
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v4
+      uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
     - name: Log into GitHub Container Registry
-      uses: docker/login-action@v4
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -182,7 +190,7 @@ jobs:
     # One build for all CPU types. It goes to the candidate tag only.
     - name: Build and push the candidate to GHCR
       id: build
-      uses: docker/build-push-action@v7
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
       with:
         context: .
         file: ./Dockerfile
@@ -216,6 +224,9 @@ jobs:
   test-candidate:
     name: Test the candidate image
     needs: [set-versions, build-candidate]
+    permissions:
+      contents: read
+      packages: read
     uses: ./.github/workflows/validate-docker-container.yml
     with:
       image: ${{ needs.set-versions.outputs.GHCR_IMAGE }}@${{ needs.build-candidate.outputs.digest }}
@@ -226,19 +237,21 @@ jobs:
     name: Publish the tested image
     runs-on: ubuntu-latest
     needs: [set-versions, build-candidate, test-candidate]
+    permissions:
+      packages: write # copy the tested image to the release tags on ghcr.io
     steps:
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v4
+      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
     - name: Log into GitHub Container Registry
-      uses: docker/login-action@v4
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Log into Docker Hub
-      uses: docker/login-action@v4
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
       if: github.repository == 'homebridge/docker-homebridge'
       with:
         registry: docker.io
@@ -279,11 +292,13 @@ jobs:
   extract-manifest:
     runs-on: ubuntu-latest
     needs: [set-versions, publish-images]
+    permissions:
+      contents: read
     outputs:
       package_changes: ${{ steps.extract_changes.outputs.package_changes }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
 
@@ -343,7 +358,7 @@ jobs:
         } >> "$GITHUB_OUTPUT"
 
     - name: Upload outputs as artifacts
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: output
         path: output/*
@@ -351,10 +366,13 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     needs: [set-versions, extract-manifest]
+    # the release itself is created with the GitHub App token made below
+    permissions:
+      contents: read
     steps:
     - name: Create GitHub App Token
       id: app-token
-      uses: actions/create-github-app-token@v3
+      uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
       with:
         app-id: ${{ secrets.DEPENDENCY_BOT_APP_ID }}
         private-key: ${{ secrets.DEPENDENCY_BOT_PRIVATE_KEY }}
@@ -362,10 +380,10 @@ jobs:
         repositories: docker-homebridge
         permission-contents: write
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Download artifacts
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         name: output
         path: output
@@ -412,6 +430,7 @@ jobs:
     name: Discord Webhooks
     needs: [set-versions, create-release, extract-manifest]
     if: ${{ inputs.release_type == 'stable' }}
+    permissions: {}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "${{ needs.set-versions.outputs.RELEASE_TITLE }}"
