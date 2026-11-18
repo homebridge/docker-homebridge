@@ -19,23 +19,29 @@ mkdir -p /var/run/avahi-daemon
 chown messagebus:messagebus /var/run/dbus
 chown avahi:avahi /var/run/avahi-daemon
 dbus-uuidgen --ensure
-sleep 1
 
-# avahi config
-cp /defaults/avahi-daemon.conf /etc/avahi/avahi-daemon.conf
-
-# fix for synology dsm - see #35
-if [ ! -z "$DSM_HOSTNAME" ]; then
-  sed -i "s/.*host-name.*/host-name=${DSM_HOSTNAME}/" /etc/avahi/avahi-daemon.conf
-else
-  sed -i "s/.*host-name.*/#host-name=/" /etc/avahi/avahi-daemon.conf
-fi
-
-# user defaults
-[ -e /homebridge/startup.sh ] || cp /defaults/startup.sh /homebridge/startup.sh
+# avahi config. DSM_HOSTNAME sets the host name that avahi announces (fix for
+# synology dsm - see #35). The value goes into a sed command, so only the
+# characters of a host name are let through.
+case "$DSM_HOSTNAME" in
+  '')
+    AVAHI_HOST_LINE='#host-name='
+    ;;
+  *[!A-Za-z0-9.-]*)
+    echo "WARNING: DSM_HOSTNAME may only hold letters, digits, dots and dashes. It is ignored."
+    AVAHI_HOST_LINE='#host-name='
+    ;;
+  *)
+    AVAHI_HOST_LINE="host-name=${DSM_HOSTNAME}"
+    ;;
+esac
+sed "s/^#*host-name=.*/${AVAHI_HOST_LINE}/" /defaults/avahi-daemon.conf > /etc/avahi/avahi-daemon.conf
 
 # setup homebridge
 mkdir -p /homebridge
+
+# user defaults
+[ -e /homebridge/startup.sh ] || cp /defaults/startup.sh /homebridge/startup.sh
 
 # /var/lib/homebridge is the data path of the homebridge apt package. In this
 # image it must be a link to the volume at /homebridge. Whatever is found
@@ -154,17 +160,15 @@ hb_npmrc_merge() { # <defaults file> <the user's file>
 }
 hb_npmrc_merge /defaults/.npmrc /homebridge/.npmrc
 
-# remove the package-lock.json
-if [ -e /homebridge/package-lock.json ]; then
-  rm -rf /homebridge/package-lock.json
-fi
-
-# if coming from an old pnpm based install, delete plugins so they are freshly installed
+# if coming from an old pnpm based install, delete plugins so they are freshly
+# installed (package.json, the list of plugins, is kept)
 if [ -e /homebridge/pnpm-lock.yaml ]; then
   rm -rf /homebridge/node_modules
-  rm -rf /homebridge/pnpm-lock.yaml
-  rm -rf /homebridge/package-lock.json
+  rm -f /homebridge/pnpm-lock.yaml
 fi
+
+# remove the package-lock.json
+rm -f /homebridge/package-lock.json
 
 # source the setup script
 if [ -f /opt/homebridge/source-docker.sh ]; then

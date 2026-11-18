@@ -232,3 +232,53 @@ test_hb_service_other_commands_go_to_the_apt_wrapper() {
   hb_service 0 status
   assert_eq "$(tr '\n' ';' < "$FAKELOG")" "hb-service-shim add homebridge-foo@>=2.0.0;hb-service-shim status;" "commands run"
 }
+
+test_avahi_host_name_default() {
+  new_sandbox avahi-default
+  run_setup
+  assert_contains "$SB/etc/avahi/avahi-daemon.conf" "#host-name="
+  assert_eq "$(grep -c 'host-name' "$SB/etc/avahi/avahi-daemon.conf")" 1 "host-name lines"
+  assert_contains "$SB/etc/avahi/avahi-daemon.conf" "use-ipv4=yes" "rest of the avahi config"
+}
+
+test_avahi_host_name_from_dsm_hostname() {
+  new_sandbox avahi-dsm
+  DSM_HOSTNAME=my-nas.local run_setup
+  assert_eq "$(grep 'host-name' "$SB/etc/avahi/avahi-daemon.conf")" "host-name=my-nas.local" "host-name line"
+}
+
+test_avahi_host_name_with_other_characters_is_refused() {
+  # "/" and "&" mean something to sed: they must never reach it
+  local bad
+  for bad in 'nas/x' 'nas&x' 'nas x' 'a
+b'; do
+    new_sandbox avahi-bad
+    DSM_HOSTNAME="$bad" run_setup
+    assert_eq "$RC" 0 "setup.sh exit code for DSM_HOSTNAME='$bad'"
+    assert_eq "$(grep 'host-name' "$SB/etc/avahi/avahi-daemon.conf")" "#host-name=" "host-name line for DSM_HOSTNAME='$bad'"
+    assert_contains "$SB/setup.sh.out" "WARNING: DSM_HOSTNAME may only hold"
+    assert_contains "$SB/etc/avahi/avahi-daemon.conf" "[rlimits]" "rest of the avahi config"
+  done
+}
+
+test_new_volume_gets_the_default_startup_script() {
+  new_sandbox startup-default
+  rmdir "$SB/homebridge"
+  run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_eq "$(cat "$SB/homebridge/startup.sh")" "$(cat "$REPO/rootfs/defaults/startup.sh")" "startup.sh in a volume folder that did not exist"
+}
+
+test_old_pnpm_install_keeps_the_plugin_list() {
+  new_sandbox pnpm
+  echo '{"docker_tag":"2026-11-15"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"2.5.0","homebridge-foo":"^1.0.0"}}' > "$SB/homebridge/package.json"
+  mkdir -p "$SB/homebridge/node_modules/homebridge-foo"
+  : > "$SB/homebridge/pnpm-lock.yaml"
+  : > "$SB/homebridge/package-lock.json"
+  run_setup
+  assert_no_file "$SB/homebridge/pnpm-lock.yaml"
+  assert_no_file "$SB/homebridge/package-lock.json"
+  assert_no_file "$SB/homebridge/node_modules/homebridge-foo"
+  assert_json "$SB/homebridge/package.json" '.dependencies["homebridge-foo"]' "^1.0.0" "plugin still listed, so npm installs it again"
+}
