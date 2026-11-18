@@ -39,7 +39,7 @@ This is a **multi-architecture** image supporting x86_64 and ARM64v8 platforms, 
 | :--- | :--- | :--- |
 | `latest`, `ubuntu` | `amd64`, `arm32v7`*, `arm64v8` | Stable |
 | `synology` | `amd64`, `arm32v7`, `arm64v8` | Stable |
-| `beta` | `amd64`, `arm32v7`*, `arm64v8` | Beta |
+| `beta` | `amd64`, `arm64v8` | Beta |
 | `alpha` | `amd64`, `arm64v8` | Alpha |
 | `legacy` | `amd64`, `arm32v7`*, `arm64v8` | Legacy |
 
