@@ -16,3 +16,10 @@ test_dockerfile_s6_checksums_match_the_version() {
   assert_contains "$REPO/Dockerfile" 'S6_OVERLAY_VERSION=3.2.0.2'
   assert_contains "$REPO/Dockerfile" 'S6_OVERLAY_SHA256_NOARCH=6dbcde158a3e78b9bb141d7bcb5ccb421e563523babbe2c64470e76f4fd02dae'
 }
+
+test_dockerfile_does_not_add_to_source_sh() {
+  # the apt package's source.sh already loads source-docker.sh
+  if grep -q '>> /opt/homebridge/source.sh' "$REPO/Dockerfile"; then fail "the Dockerfile appends to /opt/homebridge/source.sh"; else ok; fi
+  assert_contains "$REPO/Dockerfile" "does not load source-docker.sh" "build check that the apt package loads the file"
+  assert_eq "$(grep -c '^ *\. /opt/homebridge/source-docker.sh' "$UNIT_DIR/fixtures/source.sh")" "1" "times the apt package source.sh loads source-docker.sh"
+}

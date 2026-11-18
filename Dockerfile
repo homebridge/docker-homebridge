@@ -145,15 +145,15 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
   > /opt/homebridge/Docker.manifest
 
 # Fix Docker-Homebridge Update info wrong #645
+#
+# source-docker.sh holds the versions of this image. source.sh of the apt
+# package loads it (the last block of that file), and so the Homebridge UI can
+# read DOCKER_HOMEBRIDGE_VERSION. Nothing is added to source.sh here: the check
+# only stops the build if a future apt package no longer loads the file.
+RUN grep -q '^ *\. /opt/homebridge/source-docker.sh' /opt/homebridge/source.sh \
+  || { echo "ERROR: /opt/homebridge/source.sh of the apt package does not load source-docker.sh"; exit 1; }
 
-# Append environment variables to source.sh and source-vm.sh if not already present
-RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh; then \
-  echo "\n# Appended by docker-homebridge" >> /opt/homebridge/source.sh && \
-  echo "if [ -f '/opt/homebridge/source-docker.sh' ]; then" >> /opt/homebridge/source.sh && \
-  echo "  . /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
-  echo "fi" >> /opt/homebridge/source.sh ; \
-  fi && \
-  echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
+RUN echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
   echo "export DOCKER_HOMEBRIDGE_BUILD=${DOCKER_HOMEBRIDGE_BUILD}" >> /opt/homebridge/source-docker.sh && \
   echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
   echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
