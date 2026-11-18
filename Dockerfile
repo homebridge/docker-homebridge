@@ -49,12 +49,14 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
 # - git, make, g++ and python3 are needed to install plugins with native code
 # - bzip2, gpg, less, openssh-client, patch and xxd are small tools that user
 #   startup scripts and plugin installs may call
+# - nano is the one text editor. vim and logrotate were taken out (nothing in
+#   the container runs logrotate; the Homebridge UI trims its own log)
 RUN set -x \
   && apt-get update \
   && apt-get upgrade -y \
   && apt-get install -y --no-install-recommends \
   adduser apt-transport-https apt-utils ca-certificates curl iputils-ping jq libatomic1 locales \
-  logrotate nano net-tools openssl procps psmisc sudo tzdata vim wget xz-utils \
+  nano net-tools openssl procps psmisc sudo tzdata wget xz-utils \
   bzip2 gpg less openssh-client patch xxd \
   g++ git libcrypt-dev make python3 python3-dev python3-pip python3-setuptools python3-venv \
   avahi-daemon avahi-utils dbus libavahi-compat-libdnssd-dev libnss-mdns \
