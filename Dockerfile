@@ -20,6 +20,9 @@ ARG DOCKER_HOMEBRIDGE_BUILD
 # Set version label using the Docker Homebridge version
 LABEL org.opencontainers.image.version="${DOCKER_HOMEBRIDGE_VERSION}"
 
+# Every RUN step uses bash and stops when any command in a pipe fails
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # PATH: node_modules/.bin (commands that plugins bring along) comes after the
@@ -129,17 +132,20 @@ RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyr
 RUN jq -e '.dependencies.homebridge | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+")' /opt/homebridge/package.json > /dev/null \
   || { echo "ERROR: /opt/homebridge/package.json has no Homebridge version"; exit 1; }
 
-RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
-  echo "Homebridge Docker Package Manifest\n\n" \
-  "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
-  "| Package | Version |\n" \
-  "|:-------:|:-------:|\n" \
-  "|Ubuntu|${BASE_IMAGE}|\n" \
-  "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|\n" \
-  "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|\n" \
-  "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|\n" \
-  "|Homebridge UI|${HB_CONFIG_UI_X_VERSION}|\n" \
-  "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|\n" \
+# The manifest is printed at each start and is part of every release. Other
+# tools read its lines by their text (for example "|Homebridge|"), and each
+# line after the first starts with one space: keep that form.
+RUN printf '%s\n\n %s\n\n %s\n %s\n %s\n %s\n %s\n %s\n %s\n %s\n\n' \
+  "Homebridge Docker Package Manifest" \
+  "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}" \
+  "| Package | Version |" \
+  "|:-------:|:-------:|" \
+  "|Ubuntu|${BASE_IMAGE}|" \
+  "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|" \
+  "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|" \
+  "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|" \
+  "|Homebridge UI|$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json)|" \
+  "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|" \
   > /opt/homebridge/Docker.manifest
 
 # Fix Docker-Homebridge Update info wrong #645
@@ -151,11 +157,13 @@ RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /op
 RUN grep -q '^ *\. /opt/homebridge/source-docker.sh' /opt/homebridge/source.sh \
   || { echo "ERROR: /opt/homebridge/source.sh of the apt package does not load source-docker.sh"; exit 1; }
 
-RUN echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
-  echo "export DOCKER_HOMEBRIDGE_BUILD=${DOCKER_HOMEBRIDGE_BUILD}" >> /opt/homebridge/source-docker.sh && \
-  echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
-  echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
-  chmod 755 /opt/homebridge/source-docker.sh
+RUN printf 'export %s\n' \
+  "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" \
+  "DOCKER_HOMEBRIDGE_BUILD=${DOCKER_HOMEBRIDGE_BUILD}" \
+  "FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" \
+  "HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" \
+  > /opt/homebridge/source-docker.sh \
+  && chmod 755 /opt/homebridge/source-docker.sh
 
 COPY rootfs /
 

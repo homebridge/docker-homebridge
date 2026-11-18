@@ -1,0 +1,7 @@
+# Settings for hadolint, the Dockerfile linter (run by test/lint.sh).
+ignored:
+  # DL3008 asks for a fixed version of every apt package. The packages come
+  # from the Ubuntu release of the base image, and the build runs
+  # "apt-get upgrade" on purpose to pick up security updates. Fixed versions
+  # would stop those updates and break the build each time Ubuntu replaces one.
+  - DL3008
