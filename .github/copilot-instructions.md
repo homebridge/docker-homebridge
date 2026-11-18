@@ -240,6 +240,16 @@ docker compose down
 - **Trigger Builds:** Automatically triggers release-stage-2_build_and_push_docker_images.yml after updates
 - **Manual Control:** Support selective stream updates via workflow_dispatch
 
+**Pre-release Branches (beta and alpha only):**
+- By default every stream builds from the `latest` branch.
+- To ship unmerged work to beta or alpha without touching stable, create a branch named `<stream>-YYYY.M.D` from `latest` (date it was created, dots, no zero padding, e.g. `beta-2026.11.18`) and merge the feature PR into it with a normal merge (not squash), so the release notes list its commits.
+- Stage 1 picks the newest branch matching `<stream>-YYYY.M.D` (by `sort -V`), points the dependency bot at it (`base_branch`) and runs Stage 2 on it. With no such branch, the stream uses `latest`.
+- Dots, not dashes: release tags are `beta-YYYY-MM-DD`, and a branch with the same name would make git refs ambiguous.
+- Stage 2 refuses to build stable, legacy or synology from anything but `latest`, and refuses beta/alpha from any branch other than `latest` or `<stream>-YYYY.M.D`.
+- Keep the branch current by merging `latest` into it from time to time. While the branch exists, `<stream>/package.json` updates land on the branch, not on `latest`.
+- Retire it (feature merged into `latest`, or abandoned) by renaming it to `archive/<stream>-YYYY.M.D`. It then stops matching and the stream returns to `latest`, while the history stays browsable. Don't archive as a tag: the cleanup action prunes old beta/alpha tags.
+- The branch needs the same ruleset bypass as `latest` so the dependency bot App can push to it.
+
 **Build Matrix:**
 - Stable: `latest`, `ubuntu`, `YYYY-MM-DD` tags (from root package.json)
 - Beta: `beta`, `beta-YYYY-MM-DD` tags (from beta/package.json)

@@ -55,6 +55,7 @@ echo >> "$MANIFEST"
 
 GITHUB_TAG="${1:-latest}"
 PKG_RELEASE_STREAM="${2:-stable}"
+BUILD_BRANCH="${3:-latest}"
 
 group_log "Extracting package manifest and changes for tag: ${GITHUB_TAG}, stream: ${PKG_RELEASE_STREAM}"
 
@@ -63,6 +64,34 @@ docker cp temp-homebridge:/opt/homebridge/Docker.manifest ${DOCKER_MANIFEST}
 docker rm temp-homebridge
 
 group_end
+
+# Builds from a pre-release branch (e.g. beta-2026.11.18) carry changes that are not in
+# stable yet: say where the build came from and list what it adds on top of latest.
+if [[ "$BUILD_BRANCH" != "latest" ]]; then
+  REPO_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-homebridge/docker-homebridge}"
+  log "Adding pre-release branch section for branch: ${BUILD_BRANCH}"
+  echo -e "\n## Pre-release Changes (not yet in stable)\n" >> "$MANIFEST"
+  echo "Built from branch [\`${BUILD_BRANCH}\`](${REPO_URL}/tree/${BUILD_BRANCH})." >> "$MANIFEST"
+  echo >> "$MANIFEST"
+  if git rev-parse --verify --quiet origin/latest >/dev/null; then
+    # Pull requests merged into the branch, then the individual commits they brought in
+    BRANCH_PRS=$(git log --merges --format='%s' origin/latest..HEAD | grep -oE 'pull request #[0-9]+' | grep -oE '#[0-9]+' | sort -u || true)
+    for PR in $BRANCH_PRS; do
+      echo "* Pull request ${PR}" >> "$MANIFEST"
+    done
+    # Skip the dependency bot's daily package.json bumps; those are covered further down
+    BRANCH_COMMITS=$(git log --no-merges --format='%h %s' origin/latest..HEAD | grep -vE '^[0-9a-f]+ [A-Z]+: Update [a-z]+ dependencies' || true)
+    if [ -n "$BRANCH_COMMITS" ]; then
+      while IFS= read -r commit; do
+        echo "* ${commit#* } (\`${commit%% *}\`)" >> "$MANIFEST"
+      done <<< "$BRANCH_COMMITS"
+    elif [ -z "$BRANCH_PRS" ]; then
+      echo "* No changes beyond latest" >> "$MANIFEST"
+    fi
+  else
+    warn "origin/latest not available; cannot list pre-release changes."
+  fi
+fi
 
 log "Adding package manifest section for stream: ${PKG_RELEASE_STREAM}"
 

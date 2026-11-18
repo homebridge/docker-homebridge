@@ -45,6 +45,8 @@ This is a **multi-architecture** image supporting x86_64 and ARM64v8 platforms, 
 
 \* `arm32v7` is dropped when that release stream moves to Ubuntu 26.04. `synology` stays on Ubuntu 22.04 and is not part of this rollout.
 
+**Beta and alpha may include features not yet in `latest`.** When they do, the release notes for that build have a **Pre-release Changes** section listing them and the branch the image was built from.
+
 
 ---
 
