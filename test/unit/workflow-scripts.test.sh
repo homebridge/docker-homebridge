@@ -245,3 +245,57 @@ test_purge_yes_flag_skips_the_question() {
   run_purge "" --yes
   assert_contains "$FAKELOG" "docker rmi docker-homebridge:latest homebridge/homebridge:beta"
 }
+
+# ---------------------------------------------------------------- build-local.sh
+
+build_local() { # [arguments]
+  (PATH="$SB/bin:$PATH" sh "$REPO/build-local.sh" "$@" > "$SB/out" 2>&1)
+  RC=$?
+}
+
+# docker_fake <exit code of "docker build">
+docker_fake() {
+  printf '#!/bin/sh\necho "docker $*" >> "$FAKELOG"\nif [ "$1" = "build" ]; then exit %s; fi\n' "$1" > "$SB/bin/docker"
+  chmod +x "$SB/bin/docker"
+}
+
+test_build_local_stable_is_the_default() {
+  gh_sandbox build-stable
+  docker_fake 0
+  build_local
+  assert_eq "$RC" 0 "exit code"
+  assert_contains "$FAKELOG" "--build-arg HOMEBRIDGE_APT_PKG_VERSION=v$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "$REPO/package.json")"
+  assert_contains "$FAKELOG" "--build-arg DOCKER_HOMEBRIDGE_VERSION=$(date +'%Y-%m-%d') "
+  assert_contains "$FAKELOG" "--build-arg BASE_IMAGE=$(jq -r '.docker.baseImage' "$REPO/package.json")"
+  assert_contains "$FAKELOG" "docker compose up"
+}
+
+test_build_local_each_stream_reads_its_own_file() {
+  local stream
+  for stream in beta alpha legacy synology; do
+    gh_sandbox "build-$stream"
+    docker_fake 0
+    build_local "$stream" --build-only
+    assert_eq "$RC" 0 "exit code for $stream"
+    assert_contains "$FAKELOG" "--build-arg HOMEBRIDGE_APT_PKG_VERSION=v$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "$REPO/$stream/package.json")" "$stream package version"
+    assert_contains "$FAKELOG" "--build-arg DOCKER_HOMEBRIDGE_VERSION=$stream-$(date +'%Y-%m-%d') " "$stream version"
+    assert_contains "$FAKELOG" "--build-arg BASE_IMAGE=$(jq -r '.docker.baseImage' "$REPO/$stream/package.json")" "$stream base image"
+    assert_not_contains "$FAKELOG" "docker compose up" "--build-only starts no container"
+  done
+}
+
+test_build_local_failed_build_starts_nothing() {
+  gh_sandbox build-fail
+  docker_fake 1
+  build_local stable
+  assert_eq "$RC" 1 "exit code"
+  assert_not_contains "$FAKELOG" "docker compose up" "no container after a failed build"
+}
+
+test_build_local_unknown_stream() {
+  gh_sandbox build-unknown
+  docker_fake 0
+  build_local nightly
+  assert_eq "$RC" 1 "exit code"
+  assert_not_contains "$FAKELOG" "docker build"
+}
