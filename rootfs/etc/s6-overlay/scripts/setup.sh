@@ -125,8 +125,35 @@ else
   rm -f /etc/sudoers.d/010_homebridge-nopasswd
 fi
 
-# set the .npmrc file
-cp /defaults/.npmrc /homebridge/.npmrc
+# npm settings. /homebridge/.npmrc belongs to the user: their own lines (a
+# private registry, a proxy ...) are kept. Only settings that are missing are
+# added from the defaults of the image.
+hb_npmrc_merge() { # <defaults file> <the user's file>
+  if [ ! -f "$2" ]; then
+    cp "$1" "$2"
+    return
+  fi
+  hb_npmrc_tmp="$2.tmp.$$"
+  # two old settings that earlier images wrote. npm 11 and 12 warn about them:
+  # global-style is now install-strategy, and auto-install-peers was never an npm setting.
+  grep -v -E '^[[:space:]]*(auto-install-peers|global-style)[[:space:]]*=[[:space:]]*true[[:space:]]*$' "$2" > "$hb_npmrc_tmp"
+  if [ -n "$(tail -c 1 "$hb_npmrc_tmp")" ]; then
+    echo >> "$hb_npmrc_tmp"
+  fi
+  while IFS= read -r hb_npmrc_line || [ -n "$hb_npmrc_line" ]; do
+    hb_npmrc_key=$(printf '%s\n' "$hb_npmrc_line" | sed -n 's/^[[:space:]]*\([A-Za-z0-9_-]*\)[[:space:]]*=.*$/\1/p')
+    [ -n "$hb_npmrc_key" ] || continue
+    if ! grep -q -E "^[[:space:]]*${hb_npmrc_key}[[:space:]]*=" "$hb_npmrc_tmp"; then
+      printf '%s\n' "$hb_npmrc_line" >> "$hb_npmrc_tmp"
+    fi
+  done < "$1"
+  if cmp -s "$hb_npmrc_tmp" "$2"; then
+    rm -f "$hb_npmrc_tmp"
+  else
+    mv -f "$hb_npmrc_tmp" "$2"
+  fi
+}
+hb_npmrc_merge /defaults/.npmrc /homebridge/.npmrc
 
 # remove the package-lock.json
 if [ -e /homebridge/package-lock.json ]; then
