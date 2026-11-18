@@ -278,8 +278,9 @@ scenario_image_settings() {
   echo "    image size: ${size_mb} MB of files"
   assert_eq "$(image_sh 'ls /var/lib/apt/lists | wc -l')" "0" "apt package lists left in the image"
   assert_eq "$(image_sh 'dpkg-query -W -f "\${Package}\n" | grep -c -E "^(avahi-discover|libgtk-3-0.*|adwaita-icon-theme)$"')" "0" "desktop packages in the image"
+  assert_eq "$(image_sh 'for t in vim logrotate; do command -v "$t"; done' | wc -l | tr -d ' ')" "0" "vim and logrotate are not in the image (nano is the editor)"
   # tools that plugin installs and startup scripts need
-  assert_eq "$(image_sh 'for t in node npm jq curl git make g++ python3 sudo xz gpg avahi-daemon avahi-browse; do command -v "$t" > /dev/null || echo "$t"; done' | tr '\n' ' ')" "" "tools missing from the image"
+  assert_eq "$(image_sh 'for t in node npm jq curl git make g++ python3 sudo xz gpg nano avahi-daemon avahi-browse; do command -v "$t" > /dev/null || echo "$t"; done' | tr '\n' ' ')" "" "tools missing from the image"
 }
 
 scenario_plugin_commands_do_not_replace_system_tools() {
