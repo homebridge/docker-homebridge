@@ -40,7 +40,6 @@ jobs:
     outputs:
       DOCKER_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-      HOMEBRIDGE_APT_PKG_FILE: ${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
       BASE_IMAGE: ${{ steps.versions.outputs.BASE_IMAGE }}
       PLATFORMS: ${{ steps.versions.outputs.PLATFORMS }}
@@ -100,17 +99,12 @@ jobs:
           PLATFORMS="linux/amd64,linux/arm/v7,linux/arm64"
         fi
 
-        # Transform apt pkg filename: X.Y.Z-prerelease.N → X.Y.Z.prerelease.N (Debian naming)
-        # Stable versions (e.g. 2.0.2) pass through unchanged
-        HOMEBRIDGE_APT_PKG_FILE=$(echo "$HOMEBRIDGE_APT_PKG_VERSION" | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)-\([a-zA-Z][a-zA-Z0-9]*\)\(\.[0-9]*\)/\1.\2\3/')
-
         {
           echo "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}"
           echo "DOCKER_TAG=${DOCKER_TAG}"
           echo "RELEASE_TITLE=${RELEASE_TITLE}"
           echo "IS_STABLE=${IS_STABLE}"
           echo "HOMEBRIDGE_APT_PKG_VERSION=v${HOMEBRIDGE_APT_PKG_VERSION}"
-          echo "HOMEBRIDGE_APT_PKG_FILE=v${HOMEBRIDGE_APT_PKG_FILE}"
           echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}"
           echo "BASE_IMAGE=${BASE_IMAGE}"
           echo "PLATFORMS=${PLATFORMS}"
@@ -142,7 +136,6 @@ jobs:
         echo "BASE_IMAGE=${{ steps.versions.outputs.BASE_IMAGE }}"
         echo "PLATFORMS=${{ steps.versions.outputs.PLATFORMS }}"
         echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
-        echo "HOMEBRIDGE_APT_PKG_FILE=${{ steps.versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}"
         echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
         echo "RELEASE_TITLE=${{ steps.versions.outputs.RELEASE_TITLE }}"
         echo "::endgroup::"
@@ -166,7 +159,6 @@ jobs:
       id: build_args
       run: |
         ARGS="HOMEBRIDGE_APT_PKG_VERSION=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-        HOMEBRIDGE_APT_PKG_FILE=${{ needs.set-versions.outputs.HOMEBRIDGE_APT_PKG_FILE }}
         FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_VERSION=${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}
         DOCKER_HOMEBRIDGE_BUILD=${{ github.run_id }}.${{ github.run_attempt }}
