@@ -9,6 +9,7 @@ set -e
 
 INSTALL_DIR=$HOME/homebridge
 
+# shellcheck source=/dev/null
 . /etc/os-release
 
 LP="[homebridge/homebridge installer]"
@@ -55,6 +56,9 @@ fi
 
 sudo usermod -aG docker "$USER"
 
+echo "$LP Added $USER to the docker group, so docker commands work without sudo."
+echo "$LP Note: a member of the docker group can control Docker, and with that has the same power as root on this system."
+
 # Step 2: Create Docker Compose Manifest
 
 mkdir -p "$INSTALL_DIR"
@@ -62,7 +66,24 @@ cd "$INSTALL_DIR"
 
 echo "$LP Created $INSTALL_DIR"
 
-TZ=$(cat /etc/timezone 2>/dev/null || echo "UTC")
+# The time zone of this system. Newer systems (Debian 13) may have no
+# /etc/timezone file, so ask timedatectl first.
+TZ=$(timedatectl show -p Timezone --value 2>/dev/null || true)
+if [ -z "$TZ" ] && [ -r /etc/timezone ]; then
+  TZ=$(cat /etc/timezone)
+fi
+if [ -z "$TZ" ]; then
+  TZ="UTC"
+fi
+
+echo "$LP Using time zone $TZ"
+
+# Never lose an existing Compose file: a second run of this script keeps a copy
+if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
+  BACKUP="$INSTALL_DIR/docker-compose.yml.$(date +%Y%m%d-%H%M%S).bak"
+  cp "$INSTALL_DIR/docker-compose.yml" "$BACKUP"
+  echo "$LP Found an existing docker-compose.yml. A copy was saved as $BACKUP"
+fi
 
 cat >"$INSTALL_DIR/docker-compose.yml" <<EOL
 services:
@@ -99,9 +120,19 @@ sudo docker compose up -d
 
 echo "$LP Waiting for Homebridge to start..."
 
+# The first start downloads and installs Homebridge. Give up after 10 minutes.
+WAITED=0
 until curl --output /dev/null --silent --head --fail http://localhost:8581; do
+  if [ "$WAITED" -ge 600 ]; then
+    echo
+    echo "$LP ERROR: Homebridge did not answer on port 8581 within 10 minutes."
+    echo "$LP The container may still be starting. Read its log with:"
+    echo "$LP   cd $INSTALL_DIR && sudo docker compose logs --tail 50"
+    exit 1
+  fi
   printf '.'
   sleep 5
+  WAITED=$((WAITED + 5))
 done
 
 echo
