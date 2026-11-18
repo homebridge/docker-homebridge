@@ -29,16 +29,14 @@ concurrency:
   group: release-stage-1-update-dependencies
   cancel-in-progress: false
   
-permissions:
-  contents: write
-  pull-requests: write
-  checks: read
-  actions: write
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
 
 jobs:
   define-matrix:
     name: Define Jobs Matrix
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -64,6 +62,9 @@ jobs:
     name: Update ${{ matrix.stream }} Dependencies
     needs: define-matrix
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete old releases and their tags
+      actions: write # start the Stage 2 workflow
     strategy:
       max-parallel: 1
       fail-fast: false
@@ -92,7 +93,7 @@ jobs:
 
       - name: Create Dependency Bot App Token
         id: dependency-bot-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           app-id: ${{ secrets.DEPENDENCY_BOT_APP_ID }}
           private-key: ${{ secrets.DEPENDENCY_BOT_PRIVATE_KEY }}
@@ -107,8 +108,9 @@ jobs:
           config_file: '.github/homebridge-dependency-bot-${{ matrix.stream }}.json'
           release_stream: ${{ matrix.stream }}
           base_branch: ${{ steps.resolve-branch.outputs.branch }}
-          PUBLISH_TOKEN: ${{ steps.dependency-bot-token.outputs.token }}  # GitHub App on latest's bypass list, for direct pushes
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # GitHub App on latest's bypass list, for direct pushes. Every stream uses
+          # "update_method": "push", so the bot needs no other token.
+          PUBLISH_TOKEN: ${{ steps.dependency-bot-token.outputs.token }}
 
       - name: Log Skipped ${{ matrix.stream }} Stage 2 Trigger
         if: steps.homebridge-bot.outputs.changes_detected != 'true' || steps.homebridge-bot.outputs.auto_merge != 'true'
@@ -117,7 +119,7 @@ jobs:
   
       - name: Checkout repository (for trigger step)
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Trigger and Wait for ${{ matrix.stream }} Stage 2 Workflow
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
@@ -127,7 +129,7 @@ jobs:
           ref: ${{ steps.resolve-branch.outputs.branch }}
           release-type: ${{ matrix.stream }}
           scheduled: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
           # Stage 2 builds, tests on two CPU types and only then publishes
           timeout-minutes: '90'
           run-name: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} - Build and Push ${{ matrix.stream }}
@@ -136,6 +138,6 @@ jobs:
         if: ${{ matrix.stream != 'stable' }}
         uses: ./.github/actions/cleanup-old-releases-and-tags
         with:
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
           release-type: ${{ matrix.stream }}
           releases-to-keep: 5

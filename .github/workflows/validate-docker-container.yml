@@ -32,10 +32,16 @@ on:
           - synology
         default: latest
 
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
+
 jobs:
   validate-container:
     name: Validate on ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -48,11 +54,11 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     # needed when the image is in a private ghcr.io space (a fork)
     - name: Log into GitHub Container Registry
-      uses: docker/login-action@v4
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}

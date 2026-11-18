@@ -5,8 +5,14 @@ on:
   schedule:
     - cron: '30 1 * * *'
 
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
+
 jobs:
   stale:
+    permissions:
+      issues: write
+      pull-requests: write
     uses: homebridge/.github/.github/workflows/stale.yml@latest
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
