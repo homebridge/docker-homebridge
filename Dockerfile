@@ -57,8 +57,6 @@ RUN set -x \
   avahi-daemon avahi-utils dbus libavahi-compat-libdnssd-dev libnss-mdns \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
-  && chmod 0755 /bin/ping \
-  && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
