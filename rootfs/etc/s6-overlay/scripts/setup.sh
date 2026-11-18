@@ -70,7 +70,7 @@ if [ -h "/homebridge/homebridge" ] && [ "$(realpath /homebridge/homebridge)" = "
   rm /homebridge/homebridge
 fi
 
-cd /homebridge
+cd /homebridge || exit 1
 
 
 # test jq is functioning correctly
