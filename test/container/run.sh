@@ -249,6 +249,8 @@ scenario_image_settings() {
   assert_match "$(image_sh 'dpkg-query -W -f "\${Status}" homebridge')" "install ok installed" "homebridge package state"
   assert_eq "$(image_sh 'command -v tzupdate pipx; ls /home/homebridge/.local/bin/tzupdate 2> /dev/null' | wc -l | tr -d ' ')" "0" "tzupdate and pipx are not in the image"
   assert_eq "$(image_sh 'readlink /etc/localtime')" "/usr/share/zoneinfo/Etc/GMT" "default time zone of the image"
+  assert_eq "$(image_sh 'grep -c "^ *\. /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh')" "1" "times source.sh loads source-docker.sh"
+  assert_eq "$(image_sh '. /opt/homebridge/source.sh; echo "$DOCKER_HOMEBRIDGE_VERSION"')" "$IMAGE_TAG" "DOCKER_HOMEBRIDGE_VERSION after loading source.sh"
 
   # size: the files in the image, in MB. This catches a desktop package (GTK,
   # icon themes ...) or the apt package lists coming back.
