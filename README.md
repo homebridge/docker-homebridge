@@ -204,9 +204,11 @@ For advanced customization, use the **Startup Script** feature in the UI (`Setti
 </p>
 
 The `startup.sh` script:
-- Runs on every container start
+- Runs on every container start, as `root`, before Homebridge starts
 - Persists across container recreations
 - Can install packages, copy files, or execute custom commands
+- Must come to an end: Homebridge only starts after the script has finished, so a script that waits for ever keeps Homebridge from starting
+- If it ends with an error, a warning is written to the container log and Homebridge starts anyway
 
 **Example:**
 

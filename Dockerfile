@@ -112,6 +112,11 @@ RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyr
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
+# The start script reads the Homebridge version from the package. Stop the
+# build here if it is not there, so such an image is never published.
+RUN jq -e '.dependencies.homebridge | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+")' /opt/homebridge/package.json > /dev/null \
+  || { echo "ERROR: /opt/homebridge/package.json has no Homebridge version"; exit 1; }
+
 RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
   echo "Homebridge Docker Package Manifest\n\n" \
   "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \

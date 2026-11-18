@@ -70,10 +70,10 @@ cd /homebridge
 
 
 # test jq is functioning correctly
-JQ_TEST_ERROR="$(echo '{}' | jq . )"
+JQ_TEST_ERROR="$(echo '{}' | jq . 2>&1)"
 JQ_EXIT_CODE=$?
 if [ "$JQ_EXIT_CODE" -ne 0 ]; then
-  echo "ERROR: jq failed during setup check: ${JQ_TEST_ERROR:-no error details captured}"
+  echo "ERROR: jq failed during setup check (exit code ${JQ_EXIT_CODE}): ${JQ_TEST_ERROR:-no error details captured}"
   echo "ERROR: See https://github.com/homebridge/docker-homebridge/issues/960 for details."
   echo "ERROR: Stopping setup script to prevent potential issues with Homebridge setup."
   exit 1
@@ -84,6 +84,7 @@ fi
 # package.json is the list of installed plugins: repair it if it is broken,
 # before anything below reads or changes it, then keep a backup copy
 . /etc/s6-overlay/scripts/package-json.sh
+. /etc/s6-overlay/scripts/image-update.sh
 hb_package_json_repair /homebridge
 hb_package_json_backup /homebridge
 
@@ -173,18 +174,19 @@ if [ -f /opt/homebridge/source-docker.sh ]; then
   . "/opt/homebridge/source-docker.sh"
 fi
 
-# setup initial package.json with homebridge
+# The Homebridge version of this image. It is only ever read from the image:
+# asking npm for "latest" here would move a legacy or beta user to another
+# release line.
+HOMEBRIDGE_VERSION=""
 if [ -e /opt/homebridge/package.json ]; then
-  echo "Found package.json in /opt/homebridge, retrieving Homebridge version from dependencies"
-  HOMEBRIDGE_VERSION=$(jq -r '.dependencies["homebridge"]' /opt/homebridge/package.json | sed 's/\^//')
+  HOMEBRIDGE_VERSION=$(jq -r '.dependencies["homebridge"] // empty' /opt/homebridge/package.json | sed 's/^[\^~]//')
 fi
 
-if [ -z "$HOMEBRIDGE_VERSION" ]; then
-  echo "Homebridge version not found in /opt/homebridge/package.json, retrieving latest version from npm registry"
-  HOMEBRIDGE_VERSION="$(curl -sf https://registry.npmjs.org/homebridge/latest | jq -r '.version')"
+if hb_semver_valid "$HOMEBRIDGE_VERSION"; then
+  echo "Manifest Homebridge version: ${HOMEBRIDGE_VERSION}"
+else
+  echo "WARNING: no usable Homebridge version found in /opt/homebridge/package.json (found: ${HOMEBRIDGE_VERSION:-nothing})."
 fi
-
-echo "Manifest Homebridge version: ${HOMEBRIDGE_VERSION}"
 
 if [ -f /homebridge/homebridgeContainer.json ]; then
   echo "Found homebridgeContainer.json, retrieving installed Docker Homebridge version"
@@ -210,6 +212,11 @@ echo "Installed Docker Homebridge version: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION
 echo "Image Docker Homebridge version: ${DOCKER_HOMEBRIDGE_VERSION:-unknown} (build ${DOCKER_HOMEBRIDGE_BUILD:-unknown})"
 
 if [ ! -e /homebridge/package.json ]; then
+  if ! hb_semver_valid "$HOMEBRIDGE_VERSION"; then
+    echo "ERROR: /homebridge has no package.json, and this image does not say which Homebridge version to install."
+    echo "ERROR: The image is broken. Use another image tag. Stopping."
+    exit 1
+  fi
   echo "No package.json found in /homebridge, creating one with Homebridge version ${HOMEBRIDGE_VERSION}"
   jq -n --arg version "$HOMEBRIDGE_VERSION" '{dependencies: {homebridge: $version}}' | hb_write_json /homebridge/package.json
 elif [ "$IMAGE_UPDATED" = "1" ]; then
@@ -218,7 +225,6 @@ elif [ "$IMAGE_UPDATED" = "1" ]; then
   # when the release stream changed (for example from beta to latest). So an
   # image update never moves Homebridge down by accident.
   VOLUME_HOMEBRIDGE_VERSION=$(jq -r '.dependencies."homebridge" // empty' /homebridge/package.json)
-  . /etc/s6-overlay/scripts/image-update.sh
   if ! hb_semver_valid "$HOMEBRIDGE_VERSION"; then
     echo "WARNING: the image does not hold a usable Homebridge version (${HOMEBRIDGE_VERSION:-none}); keeping Homebridge ${VOLUME_HOMEBRIDGE_VERSION:-as it is} in the volume."
   else
@@ -277,9 +283,16 @@ echo "Installing Homebridge and user plugins, please wait..."
 cat /homebridge/package.json
 if [ "$HB_SERVICE_USER" = "root" ]; then
   npm --prefix /homebridge install --omit=dev
+  NPM_EXIT_CODE=$?
 else
   echo "Installing as the homebridge user"
   /command/s6-setuidgid homebridge npm --prefix /homebridge install --omit=dev
+  NPM_EXIT_CODE=$?
+fi
+
+if [ "$NPM_EXIT_CODE" -ne 0 ]; then
+  echo "WARNING: 'npm install' failed with exit code ${NPM_EXIT_CODE}. Homebridge or some plugins may be missing or out of date."
+  echo "WARNING: Check the network connection and the free disk space, then restart the container."
 fi
 
 exit 0

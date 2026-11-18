@@ -293,4 +293,5 @@ done
 
 echo
 echo "$TOTAL scenarios, $CHECKS checks passed, $FAILED checks failed"
-[ "$BAD" -eq 0 ]
+if [ "$BAD" -eq 0 ]; then exit 0; fi
+exit 1
