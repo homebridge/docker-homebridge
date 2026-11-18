@@ -146,3 +146,70 @@ test_root_mode_start_is_unchanged() {
   assert_not_contains "$FAKELOG" "setpriv"
   assert_not_contains "$FAKELOG" "chown"
 }
+
+# The fake chown changes nothing, so "the owner is already right" is tested
+# with the ids of the user who runs the tests.
+MY_UID=$(id -u)
+MY_GID=$(id -g)
+
+owner_changes() { grep -cE '^chown -(h|R) ' "$FAKELOG"; }
+
+test_owner_right_tree_is_only_read() {
+  user_sandbox own-right
+  mkdir -p "$SB/homebridge/node_modules/homebridge-foo"
+  echo '{}' > "$SB/homebridge/node_modules/homebridge-foo/package.json"
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=$MY_UID FAKE_GID=$MY_GID run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_eq "$(owner_changes)" 0 "files that had their owner changed"
+  assert_contains "$FAKELOG" "s6-setuidgid homebridge npm" "npm ran as the homebridge user"
+}
+
+test_owner_wrong_files_are_changed() {
+  user_sandbox own-wrong
+  mkdir -p "$SB/homebridge/node_modules/homebridge-foo" "$SB/opt/lib"
+  echo '{}' > "$SB/homebridge/node_modules/homebridge-foo/package.json"
+  : > "$SB/opt/lib/file"
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=4321 FAKE_GID=4321 run_setup
+  assert_contains "$FAKELOG" "chown -h 4321:4321"
+  assert_contains "$FAKELOG" "$SB/homebridge/node_modules/homebridge-foo/package.json" "file deep in the volume"
+  assert_contains "$FAKELOG" "$SB/opt/lib/file" "file in /opt/homebridge"
+  assert_not_contains "$FAKELOG" "chown -R" "no blind recursive chown"
+}
+
+test_owner_links_are_not_followed() {
+  user_sandbox own-link
+  mkdir -p "$SB/outside" "$SB/homebridge/node_modules"
+  : > "$SB/outside/keep-my-owner"
+  ln -s "$SB/outside" "$SB/homebridge/node_modules/homebridge-dev"
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=4321 FAKE_GID=4321 run_setup
+  assert_not_contains "$FAKELOG" "$SB/outside/keep-my-owner" "file behind a link"
+}
+
+test_owner_volume_is_checked_once_per_container_start() {
+  user_sandbox own-once
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=4321 FAKE_GID=4321 run_setup
+  : > "$FAKELOG"
+  : > "$SB/homebridge/written-by-the-startup-script"
+  FAKE_UID=4321 FAKE_GID=4321 run_homebridge "$DOCKER_DEFAULT_CAPS"
+  assert_contains "$FAKELOG" "$SB/homebridge/written-by-the-startup-script" "first Homebridge start checks the volume"
+  assert_file "$SB/run/homebridge-permissions-checked"
+
+  # Homebridge is restarted from the UI: no second walk over the volume
+  : > "$FAKELOG"
+  FAKE_UID=4321 FAKE_GID=4321 run_homebridge "$DOCKER_DEFAULT_CAPS"
+  assert_not_contains "$FAKELOG" "written-by-the-startup-script" "no walk over the volume on a restart"
+  assert_contains "$FAKELOG" "chown -h 4321:4321 $SB/homebridge/package.json" "files written by the script itself"
+
+  # the container is restarted: setup.sh runs again and asks for a new check
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=4321 FAKE_GID=4321 run_setup
+  assert_no_file "$SB/run/homebridge-permissions-checked"
+}
+
+test_owner_change_fails_falls_back_to_root() {
+  user_sandbox own-fail
+  fake chown 'echo "chown $*" >> "$FAKELOG"
+case "$1" in -h) exit 1 ;; esac'
+  HOMEBRIDGE_RUN_AS_USER=1 FAKE_UID=4321 FAKE_GID=4321 run_setup
+  assert_contains "$SB/setup.sh.out" "the Homebridge service will run as root"
+  assert_not_contains "$FAKELOG" "s6-setuidgid homebridge npm" "npm ran as root"
+}

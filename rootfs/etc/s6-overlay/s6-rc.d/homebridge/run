@@ -55,9 +55,22 @@ hb_package_json_backup /homebridge
 if hb_resolve_service_user; then
   HB_CAPABILITIES=$(hb_network_capabilities)
 
-  # the ownership is re-applied here, after the setup and userdata scripts have
-  # run, because both of them write to these paths as root
-  if ! hb_fix_permissions /homebridge /opt/homebridge /home/homebridge; then
+  # setup.sh has already set the owner of /homebridge, /opt/homebridge and
+  # /home/homebridge. The user's startup script ran after it, as root, and may
+  # have written into the volume: check the volume once more, on the first
+  # start of Homebridge in this container. Later restarts of Homebridge only
+  # set the owner of the few files this script writes itself.
+  HB_PERMISSIONS_OK=1
+  if [ ! -e /var/run/homebridge-permissions-checked ]; then
+    if hb_fix_permissions /homebridge; then
+      : > /var/run/homebridge-permissions-checked
+    else
+      HB_PERMISSIONS_OK=0
+    fi
+  fi
+  hb_own_files /homebridge/package.json /homebridge/package.json.bak /homebridge/package.json.broken
+
+  if [ "$HB_PERMISSIONS_OK" != "1" ]; then
     echo "Failed to set ownership of /homebridge to ${HB_SERVICE_UID}:${HB_SERVICE_GID}; the Homebridge service will run as root."
   elif ui_port_check; then
     export USER=homebridge
