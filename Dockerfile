@@ -110,8 +110,19 @@ RUN case "$(uname -m)" in \
 # HOMEBRIDGE_APT_PKG_VERSION is the npm form with a "v" (v2.0.27-beta.20261117).
 # The apt form is 2.0.27~beta.20261117, in the channel "beta". A version with
 # no pre-release part is in the channel "stable".
+#
+# The homebridge user is made first, with fixed numbers (858:858). The package
+# would make it with the next free numbers, which differ between Ubuntu
+# versions: the owner of every file in a user's volume would then change when
+# their stream moves to a newer Ubuntu. /opt/homebridge belongs to that user,
+# so the optional non-root mode (HOMEBRIDGE_RUN_AS_USER) does not have to
+# change the owner of those files in every container.
+ARG HOMEBRIDGE_UID=858
+ARG HOMEBRIDGE_GID=858
 RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyrings/homebridge.asc \
   set -x \
+  && groupadd --system --gid "${HOMEBRIDGE_GID}" homebridge \
+  && useradd --system --uid "${HOMEBRIDGE_UID}" --gid homebridge --home-dir /home/homebridge --create-home --shell /usr/sbin/nologin homebridge \
   && APT_VERSION="$(printf '%s' "${HOMEBRIDGE_APT_PKG_VERSION#v}" | sed 's/-/~/')" \
   && case "${APT_VERSION}" in \
   *~*) APT_CHANNEL="$(printf '%s' "${APT_VERSION}" | sed 's/^[^~]*~\([a-z]*\).*$/\1/')";; \
@@ -121,7 +132,8 @@ RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyr
   && apt-get update \
   && apt-get install -y --no-install-recommends "homebridge=${APT_VERSION}" \
   && rm -f /etc/apt/sources.list.d/homebridge.list \
-  && chown -R root:root /opt/homebridge \
+  && [ "$(id -u homebridge):$(id -g homebridge)" = "${HOMEBRIDGE_UID}:${HOMEBRIDGE_GID}" ] \
+  && chown -R homebridge:homebridge /opt/homebridge /home/homebridge \
   && rm -rf /var/lib/homebridge \
   && if id -u ubuntu > /dev/null 2>&1; then userdel -r ubuntu; fi \
   && apt-get clean \
