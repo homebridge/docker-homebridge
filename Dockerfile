@@ -161,6 +161,10 @@ RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/sourc
 
 COPY rootfs /
 
+# "sudo hb-service start|stop|restart" from the apt package needs systemd.
+# In the container these three commands go to s6 (see the script).
+RUN ln -sf /etc/s6-overlay/scripts/hb-service-docker.sh /usr/local/bin/hb-service
+
 EXPOSE 8581/tcp
 VOLUME /homebridge
 WORKDIR /homebridge

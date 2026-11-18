@@ -273,6 +273,28 @@ scenario_plugin_commands_do_not_replace_system_tools() {
   assert_match "$(image_sh 'echo "$PATH"')" '^/opt/homebridge/bin:.*/usr/bin:.*:/var/lib/homebridge/node_modules/\.bin$' "PATH of the image"
 }
 
+scenario_hb_service_commands() {
+  new_volume hbservice
+  start hbservice -v "$VOL:/homebridge"
+  wait_ui "$C" || return
+  assert_match "$(docker exec "$C" hb-service status 2>&1)" "Homebridge UI running" "hb-service status"
+  assert_match "$(docker exec "$C" sudo hb-service status 2>&1)" "Homebridge UI running" "sudo hb-service status"
+
+  # there is no systemd in the container: stop, start and restart go to s6
+  docker exec "$C" sudo hb-service stop > /dev/null 2>&1
+  sleep 10
+  if docker exec "$C" curl -fs -o /dev/null http://localhost:8581/ 2> /dev/null; then fail "the UI still answers after 'sudo hb-service stop'"; else ok; fi
+  assert_eq "$(docker inspect -f '{{.State.Running}}' "$C")" "true" "the container keeps running after 'sudo hb-service stop'"
+  docker exec "$C" sudo hb-service start > /dev/null 2>&1
+  wait_ui "$C" 90 || return
+  local starts
+  starts=$(docker logs "$C" 2>&1 | grep -c "is listening on")
+  docker exec "$C" sudo hb-service restart > /dev/null 2>&1
+  sleep 10
+  wait_ui "$C" 90 || return
+  assert_eq "$(docker logs "$C" 2>&1 | grep -c "is listening on")" "$((starts + 1))" "number of UI starts after 'sudo hb-service restart'"
+}
+
 scenario_update_from_previous_image() {
   if [ -z "${PREVIOUS_IMAGE:-}" ]; then
     echo "    skipped: PREVIOUS_IMAGE is not set"
