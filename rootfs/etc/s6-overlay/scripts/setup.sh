@@ -220,19 +220,17 @@ if [ "$IMAGE_UPDATED" = "1" ]; then
   fi
 fi
 
-# remove homebridge-config-ui-x from the package.json
-if [ -e /homebridge/package.json ]; then
-  echo "Checking for homebridge-config-ui-x in package.json"
-  if [ "$(cat /homebridge/package.json | jq -r '.dependencies."homebridge-config-ui-x"')" != "null" ]; then
-    echo "Found homebridge-config-ui-x in package.json"
-    packageJson="$(cat /homebridge/package.json | jq -rM 'del(."dependencies"."homebridge-config-ui-x")')"
-    if [ "$?" = "0" ]; then
-      printf "$packageJson" > /homebridge/package.json
-      echo "Removed homebridge-config-ui-x from package.json"
-    fi
+# The Homebridge UI is part of the image. An old install may still list it as a
+# plugin in package.json: take it out. One jq call, written through a temporary
+# file, so text such as % or \n in the file is never changed.
+if jq -e '.dependencies | has("homebridge-config-ui-x")' /homebridge/package.json > /dev/null 2>&1; then
+  echo "Found homebridge-config-ui-x in package.json"
+  if jq -M 'del(.dependencies."homebridge-config-ui-x")' /homebridge/package.json | hb_write_json /homebridge/package.json; then
+    echo "Removed homebridge-config-ui-x from package.json"
+  else
+    echo "WARNING: could not remove homebridge-config-ui-x from /homebridge/package.json; the file was left as it was."
   fi
 fi
-
 
 # source the setup script
 if [ -f /opt/homebridge/source.sh ]; then

@@ -129,3 +129,28 @@ test_write_json_refuses_bad_content() {
   assert_json "$SB/file.json" '.keep' "me" "old content kept"
   assert_eq "$(find "$SB" -maxdepth 1 -name 'file.json.tmp*' | wc -l | tr -d ' ')" "0" "no temporary file left"
 }
+
+test_ui_entry_removed_without_changing_the_rest() {
+  # an old install that still lists the UI, with % and \n inside package.json
+  new_sandbox pj-ui-entry
+  echo '{"docker_tag":"2026-11-15"}' > "$SB/homebridge/homebridgeContainer.json"
+  cat > "$SB/homebridge/package.json" << 'JSON'
+{"description":"line one\nline two 100%","dependencies":{"homebridge":"2.5.0","homebridge-config-ui-x":"5.0.0","homebridge-foo":"https://example.com/my%20plugin.tgz","homebridge-bar":"a\\b %s %d"}}
+JSON
+  run_setup
+  assert_valid_json "$SB/homebridge/package.json"
+  assert_json "$SB/homebridge/package.json" '.dependencies | has("homebridge-config-ui-x")' "false" "UI entry removed"
+  assert_json "$SB/homebridge/package.json" '.dependencies["homebridge-foo"]' "https://example.com/my%20plugin.tgz" "text with %"
+  assert_json "$SB/homebridge/package.json" '.dependencies["homebridge-bar"]' 'a\b %s %d' "text with a backslash"
+  assert_json "$SB/homebridge/package.json" '.description | split("\n") | length' "2" "text with a line break"
+  assert_json "$SB/homebridge/package.json" '.dependencies.homebridge' "2.5.0"
+}
+
+test_package_json_without_dependencies_is_left_alone() {
+  new_sandbox pj-no-deps
+  echo '{"docker_tag":"2026-11-15"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"name":"x"}' > "$SB/homebridge/package.json"
+  run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_eq "$(cat "$SB/homebridge/package.json")" '{"name":"x"}' "package.json unchanged"
+}
