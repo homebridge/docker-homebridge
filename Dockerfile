@@ -22,6 +22,9 @@ LABEL org.opencontainers.image.version="${DOCKER_HOMEBRIDGE_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# PATH: node_modules/.bin (commands that plugins bring along) comes after the
+# system folders, so such a command can not replace a system tool for the root
+# start scripts. See rootfs/etc/s6-overlay/scripts/safe-path.sh.
 # S6_BEHAVIOUR_IF_STAGE2_FAILS=2: when a start-up script fails (setup.sh), stop
 # the container. Without it the container stays "Up" with nothing running.
 ENV S6_OVERLAY_VERSION=3.2.0.2 \
@@ -32,7 +35,7 @@ ENV S6_OVERLAY_VERSION=3.2.0.2 \
   USER=root \
   HOMEBRIDGE_APT_PACKAGE=1 \
   UIX_CUSTOM_PLUGIN_PATH="/var/lib/homebridge/node_modules" \
-  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
+  PATH="/opt/homebridge/bin:$PATH:/var/lib/homebridge/node_modules/.bin" \
   HOME="/home/homebridge" \
   npm_config_prefix=/opt/homebridge
 

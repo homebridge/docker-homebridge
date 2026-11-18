@@ -15,8 +15,9 @@
 # Needs: docker, and the network (npm) for the scenarios that install Homebridge.
 # Nothing is published on the host: every check runs with "docker exec".
 #
-# Text in single quotes below is meant for the shell inside the container.
-# shellcheck disable=SC2016
+# Text in single quotes below is meant for the shell inside the container, and
+# the scenario functions are called by name at the end of this file.
+# shellcheck disable=SC2016,SC2329
 
 set -u
 
@@ -259,6 +260,17 @@ scenario_image_settings() {
   assert_eq "$(image_sh 'dpkg-query -W -f "\${Package}\n" | grep -c -E "^(avahi-discover|libgtk-3-0.*|adwaita-icon-theme)$"')" "0" "desktop packages in the image"
   # tools that plugin installs and startup scripts need
   assert_eq "$(image_sh 'for t in node npm jq curl git make g++ python3 sudo xz gpg avahi-daemon avahi-browse; do command -v "$t" > /dev/null || echo "$t"; done' | tr '\n' ' ')" "" "tools missing from the image"
+}
+
+scenario_plugin_commands_do_not_replace_system_tools() {
+  # a plugin's npm package brings a command called "jq" that always fails
+  new_volume pluginbin
+  vol_sh "$VOL" 'mkdir -p /homebridge/node_modules/.bin && printf "#!/bin/sh\necho PLUGIN-JQ-WAS-USED\nexit 9\n" > /homebridge/node_modules/.bin/jq && chmod +x /homebridge/node_modules/.bin/jq'
+  setup_only "$VOL"
+  assert_eq "$RC" 0 "setup.sh exit code"
+  if printf '%s\n' "$OUT" | grep -q "PLUGIN-JQ-WAS-USED"; then fail "setup.sh used the jq from node_modules/.bin"; else ok; fi
+  assert_eq "$(vol_sh "$VOL" "jq -r .dependencies.homebridge /homebridge/package.json")" "$IMAGE_HB" "setup.sh did its work"
+  assert_match "$(image_sh 'echo "$PATH"')" '^/opt/homebridge/bin:.*/usr/bin:.*:/var/lib/homebridge/node_modules/\.bin$' "PATH of the image"
 }
 
 scenario_update_from_previous_image() {

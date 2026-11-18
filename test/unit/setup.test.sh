@@ -161,3 +161,35 @@ test_startup_script_success_prints_no_warning() {
   run_script userdata.sh
   assert_not_contains "$SB/userdata.sh.out" "WARNING"
 }
+
+# plugin_command <name>: a command that an npm package of a plugin put into
+# node_modules/.bin. It fails loudly when it is used.
+plugin_command() {
+  mkdir -p "$SB/homebridge/node_modules/.bin"
+  printf '#!/bin/sh\necho "PLUGIN %s WAS USED" >&2\necho "plugin-%s $*" >> "$FAKELOG"\nexit 9\n' "$1" "$1" > "$SB/homebridge/node_modules/.bin/$1"
+  chmod +x "$SB/homebridge/node_modules/.bin/$1"
+}
+
+test_plugin_commands_do_not_replace_system_tools_in_setup() {
+  new_sandbox path-setup
+  ln -s "$SB/homebridge" "$SB/varlib/homebridge"
+  echo '{"docker_tag":"2026-11-13"}' > "$SB/homebridge/homebridgeContainer.json"
+  echo '{"dependencies":{"homebridge":"2.4.0","homebridge-config-ui-x":"5.0.0"}}' > "$SB/homebridge/package.json"
+  for tool in jq sed grep cat cp mv rm ln; do plugin_command "$tool"; done
+  run_setup
+  assert_eq "$RC" 0 "setup.sh exit code"
+  assert_not_contains "$FAKELOG" "plugin-" "commands from node_modules/.bin used by setup.sh"
+  assert_json "$SB/homebridge/package.json" '.dependencies.homebridge' "2.5.0" "setup.sh still did its work"
+  assert_json "$SB/homebridge/package.json" '.dependencies | has("homebridge-config-ui-x")' "false" "work done after source.sh was loaded"
+}
+
+test_plugin_commands_do_not_replace_system_tools_in_startup_script() {
+  new_sandbox path-userdata
+  ln -s "$SB/homebridge" "$SB/varlib/homebridge"
+  plugin_command jq
+  printf '#!/bin/sh\necho "{}" | jq -c . > "%s/jq-result"\ncommand -v plugin-only-tool > "%s/plugin-tool"\n' "$SB" "$SB" > "$SB/homebridge/startup.sh"
+  plugin_command plugin-only-tool
+  run_script userdata.sh
+  assert_eq "$(cat "$SB/jq-result" 2> /dev/null)" "{}" "the startup script got the real jq"
+  assert_eq "$(cat "$SB/plugin-tool" 2> /dev/null)" "$SB/varlib/homebridge/node_modules/.bin/plugin-only-tool" "other plugin commands are still found"
+}

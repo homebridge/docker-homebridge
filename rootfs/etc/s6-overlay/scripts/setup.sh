@@ -8,6 +8,8 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+. /etc/s6-overlay/scripts/safe-path.sh
+
 # make folders
 mkdir -p /var/run/dbus
 mkdir -p /var/run/avahi-daemon
@@ -269,6 +271,8 @@ fi
 if [ -f /opt/homebridge/source.sh ]; then
   echo "Sourcing /opt/homebridge/source.sh"
   . "/opt/homebridge/source.sh"
+  # source.sh puts node_modules/.bin in front of the system folders: undo that
+  . /etc/s6-overlay/scripts/safe-path.sh
 fi
 
 # take ownership of the paths the service needs to write to, so that the plugin
