@@ -45,6 +45,13 @@ This is a **multi-architecture** image supporting x86_64 and ARM64v8 platforms, 
 
 \* `arm32v7` is dropped when that release stream moves to Ubuntu 26.04. `synology` stays on Ubuntu 22.04 and is not part of this rollout.
 
+Which tag to use:
+
+- `latest` (or `ubuntu`, the same image): the stable release. Use this one unless you have a reason not to.
+- `beta` and `alpha`: pre-release versions of Homebridge and the Homebridge UI, for testing.
+- `legacy`: Homebridge 1.x, for plugins that do not work with Homebridge 2 yet. It gets no new Homebridge features. Move to `latest` when your plugins support Homebridge 2.
+- `synology`: the stable release built on Ubuntu 22.04, for Synology NAS (see the [Synology guide](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)).
+
 **Beta and alpha may include features not yet in `latest`.** When they do, the release notes for that build have a **Pre-release Changes** section listing them and the branch the image was built from.
 
 
@@ -62,12 +69,13 @@ services:
     image: homebridge/homebridge:latest
     restart: always
     network_mode: host
-    hostname: docker-desktop  # Optional: Set container hostname
+    hostname: homebridge      # Optional: Set container hostname
     volumes:
       - ./volumes/homebridge:/homebridge
     environment:
       - TZ=America/Toronto  # Optional: Set your timezone
       - ENABLE_AVAHI=1      # Optional: Enable/disable Avahi (1=enabled, 0=disabled)
+    stop_grace_period: 30s  # Optional: give Homebridge time to shut down cleanly
     logging:
       driver: json-file
       options:
@@ -84,13 +92,16 @@ docker compose up -d
 ### Using Docker CLI
 
 ```bash
-docker run \
+docker run -d \
+  --restart=always \
   --net=host \
   --name=homebridge \
   -e TZ=America/Toronto \
   -v $(pwd)/homebridge:/homebridge \
   homebridge/homebridge:latest
 ```
+
+> **Good to know**: the services in the container run as `root`, and the container uses the network of the host. HomeKit needs the host network to find Homebridge. To run Homebridge itself as another user, see [Running as a non-root user](#running-as-a-non-root-user).
 
 ---
 
@@ -110,6 +121,8 @@ docker run \
 | Hostname | `hostname: homebridge` | `--hostname=homebridge` | Container ID | Set custom hostname for the container |
 | Timezone | `environment:`<br/>`- TZ=America/Toronto` | `-e TZ=America/Toronto` | `UTC` | Set timezone ([list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
 | Avahi mDNS | `environment:`<br/>`- ENABLE_AVAHI=1` | `-e ENABLE_AVAHI=1` | `1` | Set to `0` to disable Avahi mDNS service |
+| Avahi host name | `environment:`<br/>`- DSM_HOSTNAME=mynas` | `-e DSM_HOSTNAME=mynas` | unset | Host name that Avahi announces. Needed on some Synology DSM systems ([details](https://github.com/homebridge/docker-homebridge/issues/35)) |
+| Start banner | `environment:`<br/>`- NO_BANNER=1` | `-e NO_BANNER=1` | unset | Set to `1` to hide the table of versions printed at each start |
 | Run as user | `environment:`<br/>`- HOMEBRIDGE_RUN_AS_USER=1` | `-e HOMEBRIDGE_RUN_AS_USER=1` | unset (`root`) | Run the Homebridge service as the `homebridge` user instead of `root` ([details](#running-as-a-non-root-user)) |
 | User / Group | `environment:`<br/>`- PUID=1000`<br/>`- PGID=1000` | `-e PUID=1000 -e PGID=1000` | `homebridge` account ids | Optional uid / gid for the `homebridge` user; requires `HOMEBRIDGE_RUN_AS_USER=1` ([details](#running-as-a-non-root-user)) |
 
@@ -218,8 +231,9 @@ The `startup.sh` script:
 # Install custom Node.js packages
 npm install -g some-custom-package
 
-# Install Python dependencies
-pip3 install some-python-library
+# Install a system package (for Python libraries use the python3-<name> packages:
+# Ubuntu does not allow a plain "pip3 install" outside a virtual environment)
+apt-get update && apt-get install -y python3-requests
 
 # Copy configuration from host
 cp /homebridge/custom-config.json /etc/custom-config.json
@@ -288,26 +302,32 @@ This image includes **FFmpeg** with `libfdk-aac` audio support for camera stream
 
 ## ✅ Container Validation
 
-This repository includes automated validation to ensure container builds work correctly.
+Every image is tested **before** it is published. The release workflow builds the image to a test tag first, runs the tests below on `amd64` and on `arm64`, and only copies the image to its public tags when they pass.
+
+The tests ([`test/container/run.sh`](./test/container/run.sh)):
+- ✅ Start with a new, empty volume: the Homebridge UI answers and the container becomes `healthy`
+- ✅ Start again with an existing volume: an installed plugin is still there
+- ✅ Start with a `package.json` that was cut short: the plugins are kept and the file is repaired
+- ✅ Update from the image that is public now: the plugin is kept and Homebridge does not move down a version
+- ✅ Wrong set-ups (data mounted at the wrong path, a failed start-up): the container stops with a clear error, and no data is deleted
+- ✅ Start with Docker Compose and host networking, as in this README
 
 ### Manual Validation
 
-To validate a specific release:
+To test an image that is already published:
 
 1. Go to [Actions](https://github.com/homebridge/docker-homebridge/actions)
-2. Select **"Validate Docker Container"**
+2. Select **"Validate Homebridge Docker Container"**
 3. Click **"Run workflow"**
-4. Choose the release tag:
-   - `latest` - Stable release
-   - `beta` - Beta pre-release
-   - `alpha` - Alpha early release
+4. Choose the image tag: `latest`, `beta`, `alpha`, `legacy` or `synology`
 
-The validation workflow will:
-- ✅ Start the container and verify it runs
-- ✅ Check Homebridge UI accessibility on port 8581
-- ✅ Verify Homebridge service starts with version detection
-- ✅ Validate container health checks
-- ✅ Extract and validate the Docker manifest
+### Testing a Change Yourself
+
+```bash
+test/unit/run.sh                          # tests of the start scripts, no Docker needed
+./build-local.sh beta --build-only        # build the beta image as "docker-homebridge"
+test/container/run.sh docker-homebridge   # start it and run the container tests
+```
 
 ---
 
@@ -339,7 +359,7 @@ Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) and ask in th
 
 ## 📄 License
 
-Copyright (C) 2024 homebridge  
+Copyright (C) 2024-2026 homebridge  
 Copyright (C) 2017-2022 oznu
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

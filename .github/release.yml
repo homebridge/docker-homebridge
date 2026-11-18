@@ -2,6 +2,6 @@
 
 changelog:
   categories:
-    - title: Homebridge Apt Package Manifest
+    - title: Homebridge Docker Package Manifest
       labels:
         - "*"

@@ -1,451 +1,95 @@
 # Homebridge Docker Repository - Copilot Instructions
 
-**Trust these instructions first.** Only search or explore if information here is incomplete or incorrect. Most development tasks can be accomplished using the documented build scripts and testing procedures below.
+Read this first. It describes the repository as it is. If something here does not match the code, the code is right: fix this file in the same change.
 
-## Repository Overview
+## What this repository is
 
-This repository creates the official multi-architecture Docker images for Homebridge - an iOS HomeKit bridge that runs on your home network. The images are Ubuntu 24.04-based and support x86_64, ARM32v7, and ARM64v8 architectures.
+- It builds the official Homebridge Docker images: `homebridge/homebridge` (Docker Hub) and `ghcr.io/homebridge/homebridge`.
+- There are five release streams. Each has its own `package.json` with the versions it is built from:
 
-**Key Technologies:**
-- Docker multi-arch builds (amd64, arm32v7, arm64v8)
-- Ubuntu 24.04 base image
-- Node.js/npm for Homebridge runtime
-- S6 overlay for process supervision
-- GitHub Actions for CI/CD automation
-- FFmpeg for video streaming support
-- Avahi mDNS for HomeKit discovery
+| Stream | Image tags | Versions file | Base image | CPU types |
+| :--- | :--- | :--- | :--- | :--- |
+| stable | `latest`, `ubuntu`, `YYYY-MM-DD` | `package.json` | see the file | see below |
+| beta | `beta`, `beta-YYYY-MM-DD` | `beta/package.json` | see the file | see below |
+| alpha | `alpha`, `alpha-YYYY-MM-DD` | `alpha/package.json` | see the file | see below |
+| legacy | `legacy`, `legacy-YYYY-MM-DD` | `legacy/package.json` | see the file | see below |
+| synology | `synology`, `synology-YYYY-MM-DD` | `synology/package.json` | see the file | see below |
 
-**Repository Size:** ~460 lines of scripts/configs, primarily Docker configuration and build automation.
+- The base image is the `docker.baseImage` field of each versions file. Images on Ubuntu 26.04 are built for `amd64` and `arm64`. Images on older Ubuntu versions are also built for 32-bit ARM (`arm/v7`).
+- The image installs the `homebridge` apt package (repository `homebridge/homebridge-apt-pkg`), which holds Node.js, Homebridge and the Homebridge UI. It adds ffmpeg (`homebridge/ffmpeg-for-homebridge`), avahi and s6-overlay.
 
-## Build Instructions & Validation
+## Layout
 
-### Prerequisites
-- Docker with buildx support for multi-arch builds
-- `jq` for JSON parsing (required for version extraction)
-- Node.js ecosystem familiarity helpful but not required
-
-### Current Build Status - IMPORTANT
-
-**⚠️ LOCAL BUILDS CURRENTLY FAIL** due to `pipx install tzupdate` dependency issue in Dockerfile (fails after ~89 seconds at build step 2/9). Use published images for all testing and validation.
-
-### Working Validation Commands
-
-**Always run these commands from the repository root.**
-
-1. **Test Stable Release (Published Image):**
-   ```bash
-   # Uses published stable image - NEVER CANCEL, takes ~19 seconds
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest'
-   docker compose up -d
-   # Verify UI accessible: curl -s -o /dev/null -w "%{http_code}" http://localhost:8581
-   # Should return 200
-   docker compose down
-   ```
-   - Duration: 19 seconds for image pull, 15 seconds for startup
-   - Validates: Container startup, UI accessibility, Homebridge functionality
-   - Creates working container accessible at http://localhost:8581
-
-2. **Test Beta Release (Published Image):**
-   ```bash
-   # Uses published beta image - NEVER CANCEL, takes ~20 seconds
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta'
-   docker compose up -d
-   # Verify UI accessible: curl -s -o /dev/null -w "%{http_code}" http://localhost:8581
-   # Should return 200
-   docker compose down
-   ```
-   - Duration: 20 seconds for image pull, 15 seconds for startup
-   - Uses beta package versions and latest development features
-   - Creates beta-tagged container
-
-3. **Test Alpha Release (Published Image):**
-   ```bash
-   # Uses published alpha image - NEVER CANCEL, takes ~21 seconds
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
-   docker compose up -d
-   # Verify UI accessible: curl -s -o /dev/null -w "%{http_code}" http://localhost:8581
-   # Should return 200
-   docker compose down
-   ```
-   - Duration: 21 seconds for image pull, 15 seconds for startup
-   - Uses alpha package versions for early testing
-   - Creates alpha-tagged container
-
-### Local Build Commands (Currently Failing - Use Only for Investigation)
-
-**❌ DO NOT USE FOR VALIDATION** - These will fail but are documented for completeness:
-
-1. **Standard Build (Will Fail):**
-   ```bash
-   # Extracts versions from package.json automatically - WILL FAIL at tzupdate step
-   ./test-build-local.sh
-   ```
-   - Expected failure at ~89 seconds during `pipx install tzupdate`
-   - Error: "No matching distribution found for tzupdate"
-
-2. **Beta Build (Will Fail):**
-   ```bash
-   # Extracts versions from beta/package.json automatically - WILL FAIL at tzupdate step
-   ./beta-build-local.sh
-   ```
-   - Same tzupdate dependency issue as stable build
-
-### Automated Dependency Updates (NorthernMan54/Homebridge-Dependency-Bot)
-
-**Overview:**
-This repository uses the NorthernMan54/Homebridge-Dependency-Bot to automatically update dependencies for stable, beta, and alpha release streams. The bot runs daily via a consolidated workflow and can also be triggered manually.
-
-**Dependency Management Workflow:**
-- **Consolidated Workflow** (`release-stage-1_update_dependencies.yml`):
-  - Runs daily at 10:00 UTC (6 AM Eastern)
-  - Updates dependencies for all three release streams: stable, beta, alpha
-  - Uses NorthernMan54/Homebridge-Dependency-Bot action
-  - Creates and auto-merges PRs if changes detected
-  - Triggers builds automatically after dependency updates
-
-**Configuration Structure:**
-- `.github/homebridge-dependency-bot-stable.json`: Manages root `package.json` with latest releases
-- `.github/homebridge-dependency-bot-beta.json`: Manages `beta/package.json` with beta releases
-- `.github/homebridge-dependency-bot-alpha.json`: Manages `alpha/package.json` with alpha releases
-
-**Manual vs Automated Process:**
-- **Manual:** Trigger via workflow_dispatch in GitHub Actions UI
-- **Automated:** Daily scheduled runs process all release streams
-- Both processes use the same configuration files and dependency bot action
-- Automated process ensures all release streams stay current with upstream changes
-
-**Troubleshooting Dependency Bot:**
-- Check workflow run logs in Actions tab for `release-stage-1_update_dependencies.yml`
-- Verify JSON syntax with `jq . .github/homebridge-dependency-bot-*.json`
-- Manual trigger available via workflow_dispatch in GitHub Actions UI
-- Bot requires `GH_TOKEN` secret for PR approval (auto-configured)
-
-### Build Process Details
-
-**Version Management:**
-- Versions are automatically extracted from `package.json` (stable) or `beta/package.json` (beta)
-- Key dependencies: `@homebridge/homebridge-apt-pkg`, `ffmpeg-for-homebridge`
-- Build args: `HOMEBRIDGE_APT_PKG_VERSION`, `FFMPEG_FOR_HOMEBRIDGE_VERSION`, `DOCKER_HOMEBRIDGE_VERSION`
-
-**Version Extraction (Working):**
-```bash
-# Test version extraction (this works)
-export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' package.json | sed 's/\^//')
-export FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' package.json | sed 's/\^//')
-export DOCKER_HOMEBRIDGE_VERSION=$(date +'%Y-%m-%d')
-echo "Versions: $HOMEBRIDGE_APT_PKG_VERSION, $FFMPEG_FOR_HOMEBRIDGE_VERSION, $DOCKER_HOMEBRIDGE_VERSION"
+```
+Dockerfile                      one Dockerfile for all streams (build arguments choose the versions)
+build/homebridge-apt-key.asc    public key of the Homebridge apt repository (a copy of repo.homebridge.io/KEY.gpg)
+build-local.sh                  local build of one stream: ./build-local.sh beta
+package.json, <stream>/package.json   versions per stream, changed by the dependency bot
+rootfs/                         copied into the image as /
+  defaults/                     default .npmrc, avahi config and startup.sh for a new volume
+  etc/s6-overlay/s6-rc.d/       the s6 services: setup, timezone, userdata, dbus, avahi, homebridge, homebridge-log, credits
+  etc/s6-overlay/scripts/       the scripts those services run
+    setup.sh                    runs as root on every start: links, package.json checks, image update rules, npm install
+    package-json.sh             helpers: repair and backup of /homebridge/package.json
+    image-update.sh             helpers: version compare and the "never move Homebridge down" rule
+    safe-path.sh                PATH for the root scripts
+    service-user.sh             helpers for the optional non-root mode (HOMEBRIDGE_RUN_AS_USER, PUID, PGID)
+    healthcheck.sh              the HEALTHCHECK of the image
+    hb-service-docker.sh        /usr/local/bin/hb-service inside the container
+scripts/create-release-body.sh  writes the release notes
+test/unit/                      sandbox tests of the scripts (no Docker needed)
+test/container/                 tests that start a real image
+.github/workflows/              CI and the release workflows (see below)
+raspbian-installer.sh           installer for Raspberry Pi OS; the wiki links to this file on branch latest
+homebridge.xml                  Unraid template; Unraid reads this file from branch latest
 ```
 
-**Build Arguments (For When Builds Work):**
-```bash
-docker build \
-  --build-arg HOMEBRIDGE_APT_PKG_VERSION=v1.7.6 \
-  --build-arg FFMPEG_FOR_HOMEBRIDGE_VERSION=v2.1.7 \
-  --build-arg DOCKER_HOMEBRIDGE_VERSION=2025-09-02 \
-  -t homebridge .
-```
+## How to test a change
 
-### Validation & Testing
+Always run these from the repository root.
 
-**ALWAYS use published images for validation:**
-```bash
-cd test
-# Test stable
-export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest'
-docker compose up -d && sleep 15
-curl -f http://localhost:8581 || echo "UI not accessible"
-docker compose logs --tail 20
-docker compose down
-
-# Test beta
-export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta'
-docker compose up -d && sleep 15
-curl -f http://localhost:8581 || echo "UI not accessible"
-docker compose logs --tail 20
-docker compose down
-
-# Test alpha
-export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
-docker compose up -d && sleep 15
-curl -f http://localhost:8581 || echo "UI not accessible"
-docker compose logs --tail 20
-docker compose down
-```
-
-### Common Issues & Solutions
-
-1. **Local build fails with tzupdate error:** Expected - use published images instead
-2. **Docker buildx not available:** Enable experimental features in Docker settings
-3. **Missing jq:** Install with `apt-get install jq` or `brew install jq`
-4. **Container won't start:** Check logs with `docker compose logs`
-5. **UI not accessible:** Verify container is healthy and port 8581 is available
-
-## Project Architecture & Layout
-
-### Core Structure
-```
-├── Dockerfile                    # Multi-arch Ubuntu-based image definition
-├── package.json                  # Stable release dependency versions
-├── beta/package.json            # Beta release dependency versions
-├── rootfs/                      # Files copied into Docker image
-│   ├── defaults/                # Default configuration files
-│   │   ├── startup.sh          # User-customizable startup script template
-│   │   ├── .npmrc              # npm configuration
-│   │   └── avahi-daemon.conf   # mDNS configuration
-│   └── etc/s6-overlay/         # S6 process supervision configuration
-│       ├── scripts/            # Container startup scripts
-│       │   ├── setup.sh       # Main setup script (125 lines)
-│       │   ├── tzupdate.sh    # Timezone management
-│       │   ├── userdata.sh    # User data initialization
-│       │   └── credits.sh     # Version info display
-│       └── s6-rc.d/           # S6 service definitions
-├── test/                       # Local testing configuration
-│   └── docker-compose.yml     # Test container setup
-└── .github/                    # CI/CD automation and configuration
-    ├── homebridge-dependency-bot-stable.json  # Stable release dependency configuration
-    ├── homebridge-dependency-bot-beta.json    # Beta release dependency configuration  
-    ├── homebridge-dependency-bot-alpha.json   # Alpha release dependency configuration
-    ├── dependabot.yml          # Deprecated - migrated to dependency bot
-    └── workflows/
-        ├── release-stage-1_update_dependencies.yml     # Dependency management workflow
-        └── release-stage-2_build_and_push_docker_images.yml  # Main build and release workflow
-```
-
-### Key Configuration Files
-- **Dockerfile:** Main image definition with multi-arch support
-- **rootfs/etc/s6-overlay/scripts/setup.sh:** Primary container initialization (npm installs, config setup)
-- **test/docker-compose.yml:** Local testing environment
-- **build scripts:** `test-build-local.sh` (stable), `beta-build-local.sh` (beta), `alpha-build-local.sh` (alpha)
-- **.github/homebridge-dependency-bot-*.json:** Configuration for automated dependency updates per release stream
-- **.github/dependabot.yml:** Deprecated dependency management (replaced by dependency bot)
-
-### CI/CD Pipeline 
-
-**Main Release Pipeline (.github/workflows/release-stage-2_build_and_push_docker_images.yml):**
-1. **Version extraction** from package.json files
-2. **Multi-architecture builds** (amd64, arm32v7, arm64v8)
-3. **Container registry pushes** (GitHub Container Registry + Docker Hub)
-4. **Release creation** with auto-generated manifests
-5. **Discord notifications** for release announcements
-
-**Manual Trigger Required:** Workflow runs via `workflow_dispatch` only.
-
-**Dependency Management Pipeline:**
-- **Consolidated Workflow:** `release-stage-1_update_dependencies.yml` handles all release streams
-- **Daily Schedule:** Runs at 10:00 UTC, processes stable/beta/alpha streams  
-- **Auto-merge:** Enabled for dependency PRs to maintain currency
-- **Trigger Builds:** Automatically triggers release-stage-2_build_and_push_docker_images.yml after updates
-- **Manual Control:** Support selective stream updates via workflow_dispatch
-
-**Pre-release Branches (beta and alpha only):**
-- By default every stream builds from the `latest` branch.
-- To ship unmerged work to beta or alpha without touching stable, create a branch named `<stream>-YYYY.M.D` from `latest` (date it was created, dots, no zero padding, e.g. `beta-2026.11.18`) and merge the feature PR into it with a normal merge (not squash), so the release notes list its commits.
-- Stage 1 picks the newest branch matching `<stream>-YYYY.M.D` (by `sort -V`), points the dependency bot at it (`base_branch`) and runs Stage 2 on it. With no such branch, the stream uses `latest`.
-- Dots, not dashes: release tags are `beta-YYYY-MM-DD`, and a branch with the same name would make git refs ambiguous.
-- Stage 2 refuses to build stable, legacy or synology from anything but `latest`, and refuses beta/alpha from any branch other than `latest` or `<stream>-YYYY.M.D`.
-- Keep the branch current by merging `latest` into it from time to time. While the branch exists, `<stream>/package.json` updates land on the branch, not on `latest`.
-- Retire it (feature merged into `latest`, or abandoned) by renaming it to `archive/<stream>-YYYY.M.D`. It then stops matching and the stream returns to `latest`, while the history stays browsable. Don't archive as a tag: the cleanup action prunes old beta/alpha tags.
-- The branch needs the same ruleset bypass as `latest` so the dependency bot App can push to it.
-
-**Build Matrix:**
-- Stable: `latest`, `ubuntu`, `YYYY-MM-DD` tags (from root package.json)
-- Beta: `beta`, `beta-YYYY-MM-DD` tags (from beta/package.json)
-- Alpha: `alpha`, `alpha-YYYY-MM-DD` tags (from alpha/package.json)
-
-### Dependencies & Requirements
-
-**Runtime Dependencies (automatically installed):**
-- Ubuntu base packages: curl, wget, jq, python3, git, make, g++
-- S6 overlay v3.2.0.2 for process supervision
-- Avahi for mDNS/HomeKit discovery
-- FFmpeg with libfdk-aac for camera streams
-
-**Environment Variables:**
-- `ENABLE_AVAHI=1` (default) - Controls mDNS service
-- `TZ` - Timezone configuration
-- Network mode must be `host` for HomeKit functionality
-
-### Container Behavior
-- **Exposed Port:** 8581 (Homebridge UI)
-- **Volume Mount:** `/homebridge` (configuration and plugin storage)
-- **Network Mode:** `host` required for HomeKit protocol
-- **Startup Script:** `/homebridge/startup.sh` runs at container start if present
-- **Health Check:** `curl --fail localhost:8581`
-
-### File Locations in Running Container
-- Homebridge config: `/homebridge/config.json`
-- Plugin storage: `/homebridge/node_modules/`
-- Log files: Standard S6 logging
-- Startup customizations: `/homebridge/startup.sh`
-
-## Validation Steps
-
-**Before Code Changes:**
-1. Run published image test to verify current functionality works
-2. Check container logs show successful Homebridge startup
-3. Verify UI accessible at `http://localhost:8581`
-
-**After Code Changes:**
-1. Test changes using published images if possible
-2. For Dockerfile changes: **Cannot test locally due to current build issues**
-3. For script changes: Test by mounting files into running container
-4. For workflow changes: Test with workflow_dispatch trigger
-
-**Always validate:**
-- JSON syntax in package.json files (`jq . package.json`)
-- JSON syntax in dependency bot configs (`jq . .github/homebridge-dependency-bot-*.json`)
-- Shell script syntax (`bash -n script.sh`)
-- Published image functionality using test commands above
-
-## Manual Validation Scenarios
-
-**ALWAYS test with published images - local builds will fail:**
-
-1. **Complete End-to-End Test (Stable):**
+1. **Lint** (needs `shellcheck` and `hadolint`):
    ```bash
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest'
-   docker compose up -d
-   
-   # Wait for startup
-   sleep 15
-   
-   # Check UI accessibility
-   curl -f http://localhost:8581 > /dev/null && echo "✅ UI accessible" || echo "❌ UI failed"
-   
-   # Check logs for successful startup
-   docker compose logs | grep "Homebridge v" && echo "✅ Homebridge started" || echo "❌ Homebridge failed"
-   
-   # Verify pairing code displayed
-   docker compose logs | grep "Enter this code" && echo "✅ Pairing ready" || echo "❌ No pairing code"
-   
-   # Clean shutdown
-   docker compose down
+   test/lint.sh
    ```
-
-2. **Beta Version Test:**
+2. **Sandbox tests** (seconds, no Docker): they copy the scripts to a scratch folder, point their paths at it, and run them with fake `npm`, `chown` and so on.
    ```bash
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta'
-   docker compose up -d
-   sleep 15
-   curl -f http://localhost:8581 > /dev/null && echo "✅ Beta UI accessible" || echo "❌ Beta UI failed"
-   docker compose logs | grep "Homebridge v2" && echo "✅ Beta version running" || echo "❌ Not beta version"
-   docker compose down
+   test/unit/run.sh
    ```
-
-3. **Alpha Version Test:**
+3. **Build and container tests** (needs Docker, a few minutes):
    ```bash
-   cd test
-   export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha'
-   docker compose up -d
-   sleep 15
-   curl -f http://localhost:8581 > /dev/null && echo "✅ Alpha UI accessible" || echo "❌ Alpha UI failed"
-   docker compose logs | grep "Homebridge v2" && echo "✅ Alpha version running" || echo "❌ Not alpha version"
-   docker compose down
+   ./build-local.sh beta --build-only
+   test/container/run.sh docker-homebridge
    ```
+   `PREVIOUS_IMAGE=ghcr.io/homebridge/homebridge:beta test/container/run.sh docker-homebridge` also tests an update from the published image.
 
-4. **Version Verification:**
-   ```bash
-   # Check stable version
-   docker run --rm ghcr.io/homebridge/homebridge:latest cat /opt/homebridge/Docker.manifest | head -10
-   
-   # Check beta version  
-   docker run --rm ghcr.io/homebridge/homebridge:beta cat /opt/homebridge/Docker.manifest | head -10
-   
-   # Check alpha version
-   docker run --rm ghcr.io/homebridge/homebridge:alpha cat /opt/homebridge/Docker.manifest | head -10
-   ```
+Every fix needs a test that fails without it. A change to a start script almost always belongs in `test/unit/`. A change to the Dockerfile belongs in `test/container/`.
 
-## Common Tasks Reference
+The `CI` workflow runs all three on every pull request.
 
-**The following are validated working commands:**
+## How a release happens
 
-### Test Published Images
-```bash
-# Pull and test stable image (~19 seconds)
-cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:latest' && docker compose up -d
+- **Stage 1** (`release-stage-1_update_dependencies.yml`) runs every day at 10:00 UTC. For each stream, `homebridge/dependency-bot` updates the versions file (config: `.github/homebridge-dependency-bot-<stream>.json`). When a version changed, it starts Stage 2 and waits for it. Stage 1 fails when Stage 2 fails.
+- **Stage 2** (`release-stage-2_build_and_push_docker_images.yml`):
+  1. builds the image once and pushes it to the tag `candidate-<version>` on ghcr.io
+  2. tests that candidate on amd64 and arm64 (`validate-docker-container.yml`, which runs `test/container/run.sh`)
+  3. only then copies the tested image to the real tags on both registries
+  4. creates the GitHub release, and tells Discord for stable
+- Releases are fully automatic for all streams, also stable.
+- beta and alpha build from the newest `beta-YYYY.M.D` / `alpha-YYYY.M.D` branch when one exists, otherwise from `latest`. **Delete such a branch once its work is merged into `latest`**, or that stream keeps building from old scripts (Stage 1 prints a warning).
+- An image is only built when a version in the stream's file changes. A change to the `Dockerfile` or `rootfs/` reaches users with the next version change, or with a manual Stage 2 run.
 
-# Pull and test beta image (~20 seconds)  
-cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:beta' && docker compose up -d
+## Things other projects depend on. Do not change them by accident
 
-# Pull and test alpha image (~21 seconds)
-cd test && export HOMEBRIDGE_IMAGE='ghcr.io/homebridge/homebridge:alpha' && docker compose up -d
-```
+- Image names and tags (table above), and the release tag format `YYYY-MM-DD` / `<stream>-YYYY-MM-DD`. The Homebridge UI reads the releases of this repository to offer Docker updates, and shows the release notes to users.
+- Inside the container: the volume path `/homebridge`, port 8581, `/homebridge/startup.sh`, `/homebridge/homebridgeContainer.json` (field `docker_tag`), `/opt/homebridge/Docker.manifest` and its table form.
+- Environment variables: `TZ`, `ENABLE_AVAHI`, `DSM_HOSTNAME`, `NO_BANNER`, `HOMEBRIDGE_RUN_AS_USER`, `PUID`, `PGID`, and the ones the UI reads (`DOCKER_HOMEBRIDGE_VERSION`, `HOMEBRIDGE_CONFIG_UI`, `CONFIG_UI_VERSION`).
+- From the apt package: `/opt/homebridge/start.sh`, `/opt/homebridge/source.sh` (which loads `/opt/homebridge/source-docker.sh`), `/usr/local/bin/hb-service`, and the apt repository `repo.homebridge.io` with its channels `stable`, `beta`, `alpha`, `legacy`.
 
-### Verify JSON Configuration
-```bash
-# Validate package.json syntax
-jq . package.json
+## Rules for changes
 
-# Validate beta package.json syntax
-jq . beta/package.json
-
-# Validate alpha package.json syntax
-jq . alpha/package.json
-
-# Validate dependency bot configurations
-jq . .github/homebridge-dependency-bot-stable.json
-jq . .github/homebridge-dependency-bot-beta.json
-jq . .github/homebridge-dependency-bot-alpha.json
-```
-
-### Check Repository Structure
-```bash
-# Repository root contents
-ls -la
-# Output: Dockerfile, package.json, beta/, rootfs/, test/, .github/, build scripts
-
-# S6 overlay structure
-find rootfs/etc/s6-overlay -type f | head -10
-# Output: Service definitions and startup scripts
-
-# GitHub workflows
-ls .github/workflows/
-# Output: release-stage-1_update_dependencies.yml, release-stage-2_build_and_push_docker_images.yml, etc.
-```
-
-### Test Environment
-```bash
-# Test directory structure
-ls test/
-# Output: docker-compose.yml
-
-# Default test image from docker-compose.yml
-grep "image:" test/docker-compose.yml
-# Output: image: ${HOMEBRIDGE_IMAGE:-homebridge/homebridge:beta}
-```
-
-**CRITICAL REMINDERS:**
-- **NEVER attempt local builds** - they will fail due to tzupdate dependency issue
-- **ALWAYS use published images** for testing and validation
-- **NEVER CANCEL** published image pulls - they take 19-21 seconds and work reliably
-- **Always wait 15 seconds** after container startup before testing UI
-- **Always use `docker compose down`** for clean shutdown (takes ~3 seconds)
-
-## Validation Steps
-
-**Before Code Changes:**
-1. Run `./test-build-local.sh` to verify build works
-2. Check container starts: `docker logs` should show successful Homebridge startup
-3. Verify UI accessible at `http://localhost:8581`
-
-**After Code Changes:**
-1. Re-run build script to test changes
-2. For Dockerfile changes: Test all three architectures if possible
-3. For script changes: Verify in running container
-4. For workflow changes: Test with workflow_dispatch trigger
-
-**Always validate:**
-- JSON syntax in package.json files (`jq . package.json`)
-- JSON syntax in dependency bot configs (`jq . .github/homebridge-dependency-bot-*.json`)
-- Shell script syntax (`bash -n script.sh`)
-- Docker build completes without errors
-- Container starts and reaches healthy state
-
----
-
-**Trust these instructions first.** Only search or explore if information here is incomplete or incorrect. Most development tasks can be accomplished using the documented build scripts and testing procedures above.
+- `/homebridge/package.json` is the user's list of plugins. Never write it directly: use `hb_write_json` from `package-json.sh`. Never delete anything in the volume.
+- An image update must never move Homebridge down, unless the user changed stream. The rule is in `image-update.sh` and has tests.
+- Shell scripts in `rootfs/` run with `/bin/sh` (dash). No bash-only syntax there.
+- New workflows start with `permissions: {}`, give each job only what it needs, and pin actions from outside the homebridge organisation by full commit hash.
+- Commit messages follow Conventional Commits (`fix(setup): ...`, `ci: ...`, `docs: ...`).
