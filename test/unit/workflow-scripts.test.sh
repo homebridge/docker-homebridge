@@ -195,3 +195,53 @@ test_branch_warns_when_it_is_missing_changes_from_latest() {
   assert_eq "$(printf '%s\n' "$OUT" | tail -1)" "beta-2026.11.18" "branch"
   if printf '%s\n' "$OUT" | grep -q "::warning::beta-2026.11.18 does not have 2 file change(s) that are on latest"; then ok; else fail "no warning about the stale branch: $OUT"; fi
 }
+
+# ---------------------------------------------------------------- scripts/purge-docker.sh
+
+# purge_sandbox <name>: a fake docker with two Homebridge images, one
+# container made from them, and other things that must not be touched
+purge_sandbox() {
+  gh_sandbox "$1"
+  cat > "$SB/bin/docker" << 'FAKE'
+#!/bin/sh
+echo "docker $*" >> "$FAKELOG"
+case "$*" in
+  "images --format {{.Repository}}:{{.Tag}} docker-homebridge") echo "docker-homebridge:latest" ;;
+  "images --format {{.Repository}}:{{.Tag}} homebridge/homebridge") echo "homebridge/homebridge:beta" ;;
+  "ps -a -q --filter ancestor=docker-homebridge:latest") echo "c0ffee" ;;
+esac
+FAKE
+  chmod +x "$SB/bin/docker"
+}
+
+run_purge() { # <answer on standard input> [arguments]
+  local answer="$1"
+  shift
+  (printf '%s\n' "$answer" | PATH="$SB/bin:$PATH" bash "$REPO/scripts/purge-docker.sh" "$@" > "$SB/out" 2>&1)
+  RC=$?
+}
+
+test_purge_only_removes_homebridge_things() {
+  purge_sandbox purge-yes
+  run_purge y
+  assert_eq "$RC" 0 "exit code"
+  assert_contains "$FAKELOG" "docker rm -f c0ffee"
+  assert_contains "$FAKELOG" "docker rmi docker-homebridge:latest homebridge/homebridge:beta"
+  assert_not_contains "$FAKELOG" "prune" "nothing is pruned"
+  assert_not_contains "$FAKELOG" "docker volume" "volumes are never touched"
+  if grep -qx "docker ps -a -q" "$FAKELOG" || grep -qx "docker images -a -q" "$FAKELOG"; then fail "all containers or images were listed"; else ok; fi
+}
+
+test_purge_asks_first() {
+  purge_sandbox purge-no
+  run_purge n
+  assert_eq "$RC" 0 "exit code"
+  assert_contains "$SB/out" "Nothing was removed."
+  assert_not_contains "$FAKELOG" "docker rm"
+}
+
+test_purge_yes_flag_skips_the_question() {
+  purge_sandbox purge-flag
+  run_purge "" --yes
+  assert_contains "$FAKELOG" "docker rmi docker-homebridge:latest homebridge/homebridge:beta"
+}
