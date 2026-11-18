@@ -299,3 +299,45 @@ test_build_local_unknown_stream() {
   assert_eq "$RC" 1 "exit code"
   assert_not_contains "$FAKELOG" "docker build"
 }
+
+# ---------------------------------------------------------------- cleanup of old releases
+
+RELEASE_TAGS='[{"tagName":"beta-2026-11-18"},{"tagName":"alpha-2026-11-18"},{"tagName":"beta-2026-11-17"},{"tagName":"2026-11-15"},{"tagName":"legacy-2026-11-16"},{"tagName":"beta-2026-11-12"},{"tagName":"beta-2026-11-10"},{"tagName":"synology-2026-11-15"},{"tagName":"beta-test-build"},{"tagName":"no-beta-2026-11-01"},{"tagName":"2026-11-08"},{"tagName":"beta-2026-11-09"}]'
+
+run_cleanup() { # <stream> <keep>
+  printf '%s' "$RELEASE_TAGS" > "$SB/releases.json"
+  fake_gh 'case "$*" in "release list"*) cat "'"$SB"'/releases.json" ;; esac'
+  (PATH="$SB/bin:$PATH" bash "$REPO/.github/actions/cleanup-old-releases-and-tags/cleanup.sh" "$1" "$2" > "$SB/out" 2>&1)
+  RC=$?
+}
+
+test_cleanup_keeps_the_newest_of_one_stream() {
+  gh_sandbox cleanup-beta
+  run_cleanup beta 3
+  assert_eq "$RC" 0 "exit code"
+  assert_eq "$(grep '^gh release delete' "$FAKELOG" | tr '\n' ';')" "gh release delete beta-2026-11-10 --cleanup-tag --yes;gh release delete beta-2026-11-09 --cleanup-tag --yes;" "releases deleted"
+}
+
+test_cleanup_never_touches_other_tags() {
+  gh_sandbox cleanup-other
+  run_cleanup beta 1
+  assert_not_contains "$FAKELOG" "delete alpha-" "another stream"
+  assert_not_contains "$FAKELOG" "delete 2026-" "a stable release"
+  assert_not_contains "$FAKELOG" "delete beta-test-build" "a tag that is not a release tag"
+  assert_not_contains "$FAKELOG" "delete no-beta-2026-11-01" "a tag that only contains the word beta"
+  assert_eq "$(grep -c '^gh release delete' "$FAKELOG")" 4 "number of releases deleted"
+}
+
+test_cleanup_nothing_to_delete() {
+  gh_sandbox cleanup-none
+  run_cleanup legacy 5
+  assert_eq "$RC" 0 "exit code"
+  assert_not_contains "$FAKELOG" "release delete"
+}
+
+test_cleanup_refuses_a_bad_number() {
+  gh_sandbox cleanup-bad
+  run_cleanup beta 0
+  assert_eq "$RC" 1 "exit code"
+  assert_not_contains "$FAKELOG" "release delete"
+}
