@@ -17,7 +17,8 @@
 #
 # Text in single quotes below is meant for the shell inside the container, and
 # the scenario functions are called by name at the end of this file.
-# shellcheck disable=SC2016,SC2329
+# (SC2317 is the same note in older shellcheck versions.)
+# shellcheck disable=SC2016,SC2317,SC2329
 
 set -u
 

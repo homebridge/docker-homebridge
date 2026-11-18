@@ -7,7 +7,8 @@
 #   HADOLINT="docker run --rm -i -v $PWD/.hadolint.yaml:/.config/hadolint.yaml hadolint/hadolint hadolint"
 
 # The check functions below are called by name through run().
-# shellcheck disable=SC2329
+# (SC2317 is the same note in older shellcheck versions.)
+# shellcheck disable=SC2317,SC2329
 
 set -u
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
