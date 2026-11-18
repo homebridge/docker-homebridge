@@ -276,7 +276,11 @@ if [ -f /opt/homebridge/source.sh ]; then
 fi
 
 # take ownership of the paths the service needs to write to, so that the plugin
-# install below - and Homebridge itself - can run as the homebridge user
+# install below - and Homebridge itself - can run as the homebridge user.
+# Only what has a wrong owner is changed (see service-user.sh). The marker file
+# makes the homebridge service check the volume once more after the user's
+# startup script has run.
+rm -f /var/run/homebridge-permissions-checked
 if ! hb_fix_permissions /homebridge /opt/homebridge /home/homebridge; then
   echo "Failed to set ownership of /homebridge to ${HB_SERVICE_UID}:${HB_SERVICE_GID}; the Homebridge service will run as root."
   HB_SERVICE_USER=root

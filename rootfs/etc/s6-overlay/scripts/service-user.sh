@@ -120,10 +120,35 @@ hb_network_capabilities() {
 # can write to them. A no-op when running as root. Returns non-zero if the
 # ownership could not be changed, in which case the caller should fall back to
 # running Homebridge as root.
+#
+# Only files and folders with a wrong owner are changed. A tree that is already
+# right is only read, not written: that is much faster on a NAS disk or an SD
+# card, and Docker does not have to copy the files of the image
+# (/opt/homebridge) into the container. Links are changed themselves, never the
+# file they point to, and other volumes mounted below a path are left alone.
 hb_fix_permissions() {
   if [ "$HB_SERVICE_USER" = "root" ]; then
     return 0
   fi
 
-  chown -R "${HB_SERVICE_UID}:${HB_SERVICE_GID}" "$@"
+  for hb_path in "$@"; do
+    [ -e "$hb_path" ] || continue
+    find "$hb_path" -xdev \( ! -user "$HB_SERVICE_UID" -o ! -group "$HB_SERVICE_GID" \) \
+      -exec chown -h "${HB_SERVICE_UID}:${HB_SERVICE_GID}" {} + || return 1
+  done
+}
+
+# Sets the owner of single files that a root script has just written. Files
+# that do not exist are skipped. A no-op when running as root.
+hb_own_files() {
+  if [ "$HB_SERVICE_USER" = "root" ]; then
+    return 0
+  fi
+
+  for hb_file in "$@"; do
+    if [ -e "$hb_file" ]; then
+      chown -h "${HB_SERVICE_UID}:${HB_SERVICE_GID}" "$hb_file" 2> /dev/null
+    fi
+  done
+  return 0
 }
