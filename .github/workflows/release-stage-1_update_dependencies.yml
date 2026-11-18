@@ -70,6 +70,26 @@ jobs:
       matrix:
         stream: ${{ fromJson(needs.define-matrix.outputs.matrix).stream }}
     steps:
+      # Beta and alpha build from the newest <stream>-YYYY.M.D branch when one exists
+      # (e.g. beta-2026.11.18), so unreleased features can ship to that stream without
+      # touching latest. Every other stream, and beta/alpha without such a branch, uses latest.
+      - name: Resolve ${{ matrix.stream }} Branch
+        id: resolve-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STREAM: ${{ matrix.stream }}
+        run: |
+          BRANCH="latest"
+          if [[ "$STREAM" == "beta" || "$STREAM" == "alpha" ]]; then
+            CANDIDATE=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/heads/${STREAM}-" \
+              --jq '.[].ref | sub("^refs/heads/"; "")' \
+              | grep -E "^${STREAM}-[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$" \
+              | sort -V | tail -n 1 || true)
+            [[ -n "$CANDIDATE" ]] && BRANCH="$CANDIDATE"
+          fi
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "::notice::${STREAM} stream builds from branch ${BRANCH}"
+
       - name: Create Dependency Bot App Token
         id: dependency-bot-token
         uses: actions/create-github-app-token@v2
@@ -86,6 +106,7 @@ jobs:
         with:
           config_file: '.github/homebridge-dependency-bot-${{ matrix.stream }}.json'
           release_stream: ${{ matrix.stream }}
+          base_branch: ${{ steps.resolve-branch.outputs.branch }}
           PUBLISH_TOKEN: ${{ steps.dependency-bot-token.outputs.token }}  # GitHub App on latest's bypass list, for direct pushes
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -103,7 +124,7 @@ jobs:
         uses: ./.github/actions/trigger-and-wait-workflow
         with:
           workflow-file: 'release-stage-2_build_and_push_docker_images.yml'
-          ref: 'latest'
+          ref: ${{ steps.resolve-branch.outputs.branch }}
           release-type: ${{ matrix.stream }}
           scheduled: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
           github-token: ${{ secrets.GH_TOKEN }}

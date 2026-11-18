@@ -53,6 +53,18 @@ jobs:
         RELEASE_TYPE="${{ inputs.release_type }}"
         DATE_TAG="$(date +%Y-%m-%d)"
 
+        # Only beta and alpha may build from a pre-release branch (e.g. beta-2026.11.18).
+        # Everything else must come from latest, so a branch can never publish :latest,
+        # :ubuntu, :legacy or :synology.
+        if [[ "$RELEASE_TYPE" != "beta" && "$RELEASE_TYPE" != "alpha" && "$GITHUB_REF_NAME" != "latest" ]]; then
+          echo "::error::${RELEASE_TYPE} releases must be built from the latest branch, not ${GITHUB_REF_NAME}"
+          exit 1
+        fi
+        if [[ "$GITHUB_REF_NAME" != "latest" && ! "$GITHUB_REF_NAME" =~ ^${RELEASE_TYPE}-[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+          echo "::error::${RELEASE_TYPE} releases must be built from latest or a ${RELEASE_TYPE}-YYYY.M.D branch, not ${GITHUB_REF_NAME}"
+          exit 1
+        fi
+
         if [[ "$RELEASE_TYPE" == "stable" ]]; then
           PKG_FILE="package.json"
           DOCKER_TAG="latest"
@@ -220,7 +232,7 @@ jobs:
     - name: Create Release Body
       id: release_body
       run: |
-        ./scripts/create-release-body.sh "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" "${{ inputs.release_type }}"
+        ./scripts/create-release-body.sh "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" "${{ inputs.release_type }}" "${GITHUB_REF_NAME}"
         echo "release_body=output/release-body.md" >> "$GITHUB_OUTPUT"
         echo "docker_manifest=output/Docker.manifest" >> "$GITHUB_OUTPUT"
       env:
@@ -304,10 +316,21 @@ jobs:
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
+        # Tag the commit that was built (not the default branch head), and keep
+        # non-stable releases from becoming GitHub's "Latest" release.
+        PRERELEASE_FLAGS=()
+        if [[ "${{ needs.set-versions.outputs.IS_STABLE }}" != "true" ]]; then
+          PRERELEASE_FLAGS+=(--latest=false)
+        fi
+        if [[ "${{ inputs.release_type }}" == "beta" || "${{ inputs.release_type }}" == "alpha" ]]; then
+          PRERELEASE_FLAGS+=(--prerelease)
+        fi
         gh release create "${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}" \
+          --target "${GITHUB_SHA}" \
           --title "${{ needs.set-versions.outputs.RELEASE_TITLE }}" \
           --notes-file output/release-body.md \
-          --draft=false
+          --draft=false \
+          "${PRERELEASE_FLAGS[@]}"
 
     - name: Upload Release Assets
       env:
