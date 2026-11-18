@@ -42,20 +42,30 @@ hb_resolve_service_user() {
 }
 
 # Applies PUID / PGID to the homebridge account. Each value is applied
-# independently and skipped, with a warning, if it is not numeric, is 0, or is
-# already owned by another account or group.
+# independently and skipped, with a warning, if it is not numeric or is 0.
+#
+# PGID: when the number is free, the homebridge group gets it. When the number
+# already belongs to another group of the image, that group becomes the main
+# group of the homebridge user. Group 100 ("users") is the usual value on
+# Unraid and Synology, and it exists in every Ubuntu image.
+#
+# PUID: skipped, with a warning, when another account of the image has it.
 hb_apply_requested_ids() {
   if [ -n "$PGID" ]; then
-    hb_gid_owner=$(getent group "$PGID" | cut -d: -f1)
     case "$PGID" in
       *[!0-9]* | 0)
         echo "WARNING: PGID must be a non-zero number (got PGID=${PGID}); keeping the default homebridge gid."
         ;;
       *)
-        if [ -n "$hb_gid_owner" ] && [ "$hb_gid_owner" != "homebridge" ]; then
-          echo "WARNING: gid ${PGID} is already used by the ${hb_gid_owner} group; keeping the default homebridge gid."
-        else
+        hb_gid_owner=$(getent group "$PGID" | cut -d: -f1)
+        if [ -z "$hb_gid_owner" ]; then
           groupmod -g "$PGID" homebridge
+          usermod -g homebridge homebridge
+        elif [ "$hb_gid_owner" = "homebridge" ]; then
+          usermod -g homebridge homebridge
+        else
+          echo "gid ${PGID} is the ${hb_gid_owner} group of this image; using it as the main group of the homebridge user."
+          usermod -g "$PGID" homebridge
         fi
         ;;
     esac
@@ -70,7 +80,7 @@ hb_apply_requested_ids() {
       *)
         if [ -n "$hb_uid_owner" ] && [ "$hb_uid_owner" != "homebridge" ]; then
           echo "WARNING: uid ${PUID} is already used by the ${hb_uid_owner} account; keeping the default homebridge uid."
-        else
+        elif [ "$(id -u homebridge)" != "$PUID" ]; then
           usermod -u "$PUID" homebridge
         fi
         ;;
