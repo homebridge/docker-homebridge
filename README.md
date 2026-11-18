@@ -255,12 +255,10 @@ docker compose up -d
 
 ### In-Container Updates
 
-Since the `2025-06-25` release, updates to  
-- Homebridge core
-- Homebridge UI
-- Node.js runtime
+What happens to an update you made inside the container (from the Homebridge UI) when you later update the image:
 
-will be overwritten if the container is updated.
+- **Homebridge**: your version is kept if it is newer than the one in the new image. The image's version is used when it is newer than yours, or when you change release stream (for example from the `beta` tag back to `latest`).
+- **Homebridge UI** and **Node.js**: these are part of the image, so the versions of the new image are used.
 
 ---
 

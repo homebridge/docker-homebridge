@@ -155,11 +155,26 @@ if [ ! -e /homebridge/package.json ]; then
   jq -n --arg version "$HOMEBRIDGE_VERSION" '{dependencies: {homebridge: $version}}' | hb_write_json /homebridge/package.json
 else
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
-    # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
-    echo "Docker Container updated, updating Homebridge version in package.json to ${HOMEBRIDGE_VERSION}"
-    jq -M --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json \
-      | hb_write_json /homebridge/package.json \
-      || echo "WARNING: could not update the Homebridge version in /homebridge/package.json; the file was left as it was."
+    # The image was updated. The Homebridge version of the image is only
+    # written into the volume when it is newer than the one in the volume, or
+    # when the release stream changed (for example from beta to latest). So an
+    # image update never moves Homebridge down by accident.
+    VOLUME_HOMEBRIDGE_VERSION=$(jq -r '.dependencies."homebridge" // empty' /homebridge/package.json)
+    . /etc/s6-overlay/scripts/image-update.sh
+    if ! hb_semver_valid "$HOMEBRIDGE_VERSION"; then
+      echo "WARNING: the image does not hold a usable Homebridge version (${HOMEBRIDGE_VERSION:-none}); keeping Homebridge ${VOLUME_HOMEBRIDGE_VERSION:-as it is} in the volume."
+    else
+      UPDATE_DECISION=$(hb_update_decision "$HOMEBRIDGE_VERSION" "$VOLUME_HOMEBRIDGE_VERSION" "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" "$DOCKER_HOMEBRIDGE_VERSION")
+      UPDATE_REASON=$(printf '%s\n' "$UPDATE_DECISION" | sed -n 2p)
+      if [ "$(printf '%s\n' "$UPDATE_DECISION" | sed -n 1p)" = "image" ]; then
+        echo "Docker Container updated, setting the Homebridge version in package.json to ${HOMEBRIDGE_VERSION}: ${UPDATE_REASON}"
+        jq -M --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json \
+          | hb_write_json /homebridge/package.json \
+          || echo "WARNING: could not update the Homebridge version in /homebridge/package.json; the file was left as it was."
+      else
+        echo "Docker Container updated, keeping the Homebridge version in package.json: ${UPDATE_REASON}"
+      fi
+    fi
   fi
 fi
 
