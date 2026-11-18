@@ -27,6 +27,13 @@ ui_port_check() {
   fi
 }
 
+# start.sh from the apt package deletes every plugin when package.json is not
+# valid JSON, so repair the file first. This runs again each time Homebridge
+# is restarted.
+. /etc/s6-overlay/scripts/package-json.sh
+hb_package_json_repair /homebridge
+hb_package_json_backup /homebridge
+
 if hb_resolve_service_user; then
   # the ownership is re-applied here, after the setup and userdata scripts have
   # run, because both of them write to these paths as root

@@ -63,6 +63,12 @@ else
   echo "jq is functioning correctly, proceeding with setup"
 fi
 
+# package.json is the list of installed plugins: repair it if it is broken,
+# before anything below reads or changes it, then keep a backup copy
+. /etc/s6-overlay/scripts/package-json.sh
+hb_package_json_repair /homebridge
+hb_package_json_backup /homebridge
+
 # configure the user the Homebridge service will run as (HOMEBRIDGE_RUN_AS_USER)
 . /etc/s6-overlay/scripts/service-user.sh
 if hb_resolve_service_user; then
@@ -146,13 +152,14 @@ fi
 echo "Installed Docker Homebridge version: ${INSTALLED_DOCKER_HOMEBRIDGE_VERSION}"
 if [ ! -e /homebridge/package.json ]; then
   echo "No package.json found in /homebridge, creating one with Homebridge version ${HOMEBRIDGE_VERSION}"
-  echo "{ \"dependencies\": { \"homebridge\": \"$HOMEBRIDGE_VERSION\" }}" | jq . > /homebridge/package.json
+  jq -n --arg version "$HOMEBRIDGE_VERSION" '{dependencies: {homebridge: $version}}' | hb_write_json /homebridge/package.json
 else
   if [ "$INSTALLED_DOCKER_HOMEBRIDGE_VERSION" != "$DOCKER_HOMEBRIDGE_VERSION" ]; then
     # if package.json exists, change homebridge version to HOMEBRIDGE_VERSION
     echo "Docker Container updated, updating Homebridge version in package.json to ${HOMEBRIDGE_VERSION}"
-    packageJson="$(jq -rM --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json)"
-    printf '%s' "$packageJson" > /homebridge/package.json
+    jq -M --arg version "$HOMEBRIDGE_VERSION" '.dependencies."homebridge" = $version' /homebridge/package.json \
+      | hb_write_json /homebridge/package.json \
+      || echo "WARNING: could not update the Homebridge version in /homebridge/package.json; the file was left as it was."
   fi
 fi
 
