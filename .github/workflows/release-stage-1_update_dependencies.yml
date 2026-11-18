@@ -28,7 +28,7 @@ on:
 concurrency:
   group: release-stage-1-update-dependencies
   cancel-in-progress: false
-  
+
 # No job gets a token with rights by default. Each job below lists what it needs.
 permissions: {}
 
@@ -104,9 +104,13 @@ jobs:
 
       - name: Log Skipped ${{ matrix.stream }} Stage 2 Trigger
         if: steps.homebridge-bot.outputs.changes_detected != 'true' || steps.homebridge-bot.outputs.auto_merge != 'true'
+        env:
+          STREAM: ${{ matrix.stream }}
+          CHANGES_DETECTED: ${{ steps.homebridge-bot.outputs.changes_detected }}
+          AUTO_MERGE: ${{ steps.homebridge-bot.outputs.auto_merge }}
         run: |
-          echo "::warning::${{ matrix.stream }} Stage 2 not triggered: Changes Detected=${{ steps.homebridge-bot.outputs.changes_detected }}, Auto Merge=${{ steps.homebridge-bot.outputs.auto_merge }}"
-  
+          echo "::warning::${STREAM} Stage 2 not triggered: Changes Detected=${CHANGES_DETECTED}, Auto Merge=${AUTO_MERGE}"
+
       - name: Checkout repository (for trigger step)
         if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,7 +128,8 @@ jobs:
           timeout-minutes: '90'
           run-name: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }} - Build and Push ${{ matrix.stream }}
 
-      - name: Cleanup older beta and alpha release and tags
+      # stable releases are all kept; the other streams keep their newest five
+      - name: Cleanup older ${{ matrix.stream }} releases and tags
         if: ${{ matrix.stream != 'stable' }}
         uses: ./.github/actions/cleanup-old-releases-and-tags
         with:
