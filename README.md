@@ -39,11 +39,18 @@ This is a **multi-architecture** image supporting x86_64 and ARM64v8 platforms, 
 | :--- | :--- | :--- |
 | `latest`, `ubuntu` | `amd64`, `arm32v7`*, `arm64v8` | Stable |
 | `synology` | `amd64`, `arm32v7`, `arm64v8` | Stable |
-| `beta` | `amd64`, `arm32v7`*, `arm64v8` | Beta |
+| `beta` | `amd64`, `arm64v8` | Beta |
 | `alpha` | `amd64`, `arm64v8` | Alpha |
 | `legacy` | `amd64`, `arm32v7`*, `arm64v8` | Legacy |
 
 \* `arm32v7` is dropped when that release stream moves to Ubuntu 26.04. `synology` stays on Ubuntu 22.04 and is not part of this rollout.
+
+Which tag to use:
+
+- `latest` (or `ubuntu`, the same image): the stable release. Use this one unless you have a reason not to.
+- `beta` and `alpha`: pre-release versions of Homebridge and the Homebridge UI, for testing.
+- `legacy`: Homebridge 1.x, for plugins that do not work with Homebridge 2 yet. It gets no new Homebridge features. Move to `latest` when your plugins support Homebridge 2.
+- `synology`: the stable release built on Ubuntu 22.04, for Synology NAS (see the [Synology guide](https://github.com/homebridge/docker-homebridge/wiki/Homebridge-on-Synology)).
 
 **Beta and alpha may include features not yet in `latest`.** When they do, the release notes for that build have a **Pre-release Changes** section listing them and the branch the image was built from.
 
@@ -62,23 +69,18 @@ services:
     image: homebridge/homebridge:latest
     restart: always
     network_mode: host
-    hostname: docker-desktop  # Optional: Set container hostname
+    hostname: homebridge      # Optional: Set container hostname
     volumes:
       - ./volumes/homebridge:/homebridge
     environment:
       - TZ=America/Toronto  # Optional: Set your timezone
       - ENABLE_AVAHI=1      # Optional: Enable/disable Avahi (1=enabled, 0=disabled)
+    stop_grace_period: 30s  # Optional: give Homebridge time to shut down cleanly
     logging:
       driver: json-file
       options:
         max-size: '10m'
         max-file: '1'
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8581 || exit 1"]
-      interval: 60s
-      retries: 5
-      start_period: 300s
-      timeout: 2s
 ```
 
 Start the container:
@@ -90,13 +92,16 @@ docker compose up -d
 ### Using Docker CLI
 
 ```bash
-docker run \
+docker run -d \
+  --restart=always \
   --net=host \
   --name=homebridge \
   -e TZ=America/Toronto \
   -v $(pwd)/homebridge:/homebridge \
   homebridge/homebridge:latest
 ```
+
+> **Good to know**: the services in the container run as `root`, and the container uses the network of the host. HomeKit needs the host network to find Homebridge. To run Homebridge itself as another user, see [Running as a non-root user](#running-as-a-non-root-user).
 
 ---
 
@@ -116,6 +121,10 @@ docker run \
 | Hostname | `hostname: homebridge` | `--hostname=homebridge` | Container ID | Set custom hostname for the container |
 | Timezone | `environment:`<br/>`- TZ=America/Toronto` | `-e TZ=America/Toronto` | `UTC` | Set timezone ([list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)) |
 | Avahi mDNS | `environment:`<br/>`- ENABLE_AVAHI=1` | `-e ENABLE_AVAHI=1` | `1` | Set to `0` to disable Avahi mDNS service |
+| Avahi host name | `environment:`<br/>`- DSM_HOSTNAME=mynas` | `-e DSM_HOSTNAME=mynas` | unset | Host name that Avahi announces. Needed on some Synology DSM systems ([details](https://github.com/homebridge/docker-homebridge/issues/35)) |
+| Start banner | `environment:`<br/>`- NO_BANNER=1` | `-e NO_BANNER=1` | unset | Set to `1` to hide the table of versions printed at each start |
+| Run as user | `environment:`<br/>`- HOMEBRIDGE_RUN_AS_USER=1` | `-e HOMEBRIDGE_RUN_AS_USER=1` | unset (`root`) | Run the Homebridge service as the `homebridge` user instead of `root` ([details](#running-as-a-non-root-user)) |
+| User / Group | `environment:`<br/>`- PUID=1000`<br/>`- PGID=1000` | `-e PUID=1000 -e PGID=1000` | `homebridge` account ids | Optional uid / gid for the `homebridge` user; requires `HOMEBRIDGE_RUN_AS_USER=1` ([details](#running-as-a-non-root-user)) |
 
 > **Note**: When running with `ENABLE_AVAHI=0`, you can mount the host's mDNS service to enable mDNS usage in the container:
 > ```yaml
@@ -124,6 +133,71 @@ docker run \
 >   - /var/run/dbus:/var/run/dbus  # Mount host D-Bus socket
 >   - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket  # Mount host Avahi socket
 > ```
+
+### Health and failed starts
+
+- The image has a built-in health check. `docker ps` shows `healthy` when the Homebridge UI answers, and `unhealthy` when it has not answered for about five minutes. The check reads the UI port from your `config.json`, so it keeps working when you change the port.
+- If the start-up of the container fails (for example because the data folder is mounted at the wrong path), the container **stops** with an error in its log. With `restart: always` Docker starts it again. Read the reason with `docker logs homebridge`.
+
+---
+
+### Running as a non-root user
+
+By default the Homebridge service runs as `root`. Set `HOMEBRIDGE_RUN_AS_USER=1` to run it
+as the `homebridge` user instead.
+
+Optionally set `PUID` / `PGID` to change that user's uid / gid, so files in the data volume
+(`-v` flags) are owned by a matching user on the host:
+
+```yaml
+services:
+  homebridge:
+    image: homebridge/homebridge:latest
+    environment:
+      - HOMEBRIDGE_RUN_AS_USER=1
+      - PUID=1000
+      - PGID=1000
+```
+
+To find your ids, use `id <user>`:
+
+```
+$ id dockeruser
+uid=1000(dockeruser) gid=1000(dockergroup) groups=1000(dockergroup)
+```
+
+On Unraid the usual values are `PUID=99` and `PGID=100`. On Synology, use the ids of the user that owns the shared folder.
+
+**What this mode is for**
+
+* The files that Homebridge and its plugins write into the volume belong to the user and group you choose, not to `root`.
+* Homebridge, the Homebridge UI, the plugins and the plugin install at start-up do not run as `root`.
+
+**What this mode is not**
+
+* It is **not a security wall** between a plugin and `root`. The `homebridge` user may use `sudo` without a password (the Homebridge UI needs that to restart Homebridge and to update Homebridge, the UI and Node.js). It also owns `/opt/homebridge`, which holds Node.js, the UI and scripts that the start-up of the container runs as `root`.
+* Removing the `sudo` rule does not change this. Only install plugins you trust, as on any Homebridge install.
+
+**Details**
+
+* Without `PUID` / `PGID` the `homebridge` user is uid `858` and gid `858`, in every image.
+* `PUID` and `PGID` are applied independently. A value that is `0` or not a number is ignored with a warning. A `PUID` that another account inside the container already has is ignored with a warning.
+* A `PGID` that already belongs to a group inside the container is fine: that group becomes the main group of the `homebridge` user. Group `100` (`users`) is such a group.
+* `PUID` / `PGID` are ignored when `HOMEBRIDGE_RUN_AS_USER` is not enabled.
+* On each start of the container, files in `/homebridge`, `/opt/homebridge` and `/home/homebridge` that have another owner are given to the `homebridge` user. Files that are already right are not touched, so this is quick after the first start.
+* Homebridge keeps the network rights it has on a normal (apt) install, as far as the container has them: ports below `1024` and raw network packets (ping). Docker gives a container these two by default. A plugin that changes network settings also needs `--cap-add NET_ADMIN` (Compose: `cap_add: [NET_ADMIN]`).
+
+Homebridge falls back to running as `root` if:
+
+* the owner of files in `/homebridge` or `/opt/homebridge` cannot be changed (for example an NFS
+  volume mounted with `root_squash`)
+* the Homebridge UI is configured to listen on a port below `1024` and the container may not use such ports (`--cap-drop NET_BIND_SERVICE` or `--cap-drop ALL`)
+
+The container log says which user Homebridge was started as, and why.
+
+> **Note**: the custom startup script (`/homebridge/startup.sh`) always runs as `root`. Files it
+> writes into `/homebridge` are given to the `homebridge` user when the container starts. Files it
+> writes later (for example from a background job) should be chowned by the script itself.
 
 ---
 
@@ -152,9 +226,11 @@ For advanced customization, use the **Startup Script** feature in the UI (`Setti
 </p>
 
 The `startup.sh` script:
-- Runs on every container start
+- Runs on every container start, as `root`, before Homebridge starts
 - Persists across container recreations
 - Can install packages, copy files, or execute custom commands
+- Must come to an end: Homebridge only starts after the script has finished, so a script that waits for ever keeps Homebridge from starting
+- If it ends with an error, a warning is written to the container log and Homebridge starts anyway
 
 **Example:**
 
@@ -164,8 +240,9 @@ The `startup.sh` script:
 # Install custom Node.js packages
 npm install -g some-custom-package
 
-# Install Python dependencies
-pip3 install some-python-library
+# Install a system package (for Python libraries use the python3-<name> packages:
+# Ubuntu does not allow a plain "pip3 install" outside a virtual environment)
+apt-get update && apt-get install -y python3-requests
 
 # Copy configuration from host
 cp /homebridge/custom-config.json /etc/custom-config.json
@@ -174,6 +251,23 @@ cp /homebridge/custom-config.json /etc/custom-config.json
 <p align="center">
   <img width="600px" src="https://github.com/homebridge/docker-homebridge/blob/latest/assets/sample-startup-script.png" alt="Sample Startup Script">
 </p>
+
+---
+
+## ⌨️ Commands Inside the Container
+
+Open a shell in the container with `docker exec -it homebridge bash`, or use the terminal in the Homebridge UI.
+
+| What you want | Command |
+|:--------------|:--------|
+| Is Homebridge running? | `hb-service status` |
+| Show the log | `hb-service logs` |
+| Restart Homebridge | Use **Restart** in the Homebridge UI, or `docker restart homebridge` on the host, or `sudo hb-service restart` in the container |
+| Stop / start Homebridge and keep the container | `sudo hb-service stop` / `sudo hb-service start` |
+| Install or remove a plugin by hand | `sudo hb-service add homebridge-example` / `sudo hb-service remove homebridge-example` |
+
+- `hb-service` (without `sudo`) is the program of the Homebridge UI. `sudo hb-service` is the wrapper of the Homebridge package. Use them as shown in the table.
+- There is no systemd in the container. `systemctl` commands do not work here.
 
 ---
 
@@ -202,12 +296,10 @@ docker compose up -d
 
 ### In-Container Updates
 
-Since the `2025-06-25` release, updates to  
-- Homebridge core
-- Homebridge UI
-- Node.js runtime
+What happens to an update you made inside the container (from the Homebridge UI) when you later update the image:
 
-will be overwritten if the container is updated.
+- **Homebridge**: your version is kept if it is newer than the one in the new image. The image's version is used when it is newer than yours, or when you change release stream (for example from the `beta` tag back to `latest`).
+- **Homebridge UI** and **Node.js**: these are part of the image, so the versions of the new image are used.
 
 ---
 
@@ -219,26 +311,32 @@ This image includes **FFmpeg** with `libfdk-aac` audio support for camera stream
 
 ## ✅ Container Validation
 
-This repository includes automated validation to ensure container builds work correctly.
+Every image is tested **before** it is published. The release workflow builds the image to a test tag first, runs the tests below on `amd64` and on `arm64`, and only copies the image to its public tags when they pass.
+
+The tests ([`test/container/run.sh`](./test/container/run.sh)):
+- ✅ Start with a new, empty volume: the Homebridge UI answers and the container becomes `healthy`
+- ✅ Start again with an existing volume: an installed plugin is still there
+- ✅ Start with a `package.json` that was cut short: the plugins are kept and the file is repaired
+- ✅ Update from the image that is public now: the plugin is kept and Homebridge does not move down a version
+- ✅ Wrong set-ups (data mounted at the wrong path, a failed start-up): the container stops with a clear error, and no data is deleted
+- ✅ Start with Docker Compose and host networking, as in this README
 
 ### Manual Validation
 
-To validate a specific release:
+To test an image that is already published:
 
 1. Go to [Actions](https://github.com/homebridge/docker-homebridge/actions)
-2. Select **"Validate Docker Container"**
+2. Select **"Validate Homebridge Docker Container"**
 3. Click **"Run workflow"**
-4. Choose the release tag:
-   - `latest` - Stable release
-   - `beta` - Beta pre-release
-   - `alpha` - Alpha early release
+4. Choose the image tag: `latest`, `beta`, `alpha`, `legacy` or `synology`
 
-The validation workflow will:
-- ✅ Start the container and verify it runs
-- ✅ Check Homebridge UI accessibility on port 8581
-- ✅ Verify Homebridge service starts with version detection
-- ✅ Validate container health checks
-- ✅ Extract and validate the Docker manifest
+### Testing a Change Yourself
+
+```bash
+test/unit/run.sh                          # tests of the start scripts, no Docker needed
+./build-local.sh beta --build-only        # build the beta image as "docker-homebridge"
+test/container/run.sh docker-homebridge   # start it and run the container tests
+```
 
 ---
 
@@ -270,7 +368,7 @@ Join the [Official Homebridge Discord](https://discord.gg/Cmq8a44) and ask in th
 
 ## 📄 License
 
-Copyright (C) 2024 homebridge  
+Copyright (C) 2024-2026 homebridge  
 Copyright (C) 2017-2022 oznu
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

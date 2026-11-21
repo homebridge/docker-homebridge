@@ -1,11 +1,14 @@
-# Add 'beta' label to any PR where the base branch name starts with `beta` or has a `beta` section in the name
+# Labels a pull request by the branch it is opened against.
+# Each value is a regular expression that is searched for in the branch name.
+
+# 'beta' for a base branch with "beta" in its name (for example beta-2026.11.18)
 beta:
- - base-branch: ['^beta', 'beta', 'beta*']
+ - base-branch: 'beta'
 
-# Add 'beta' label to any PR where the base branch name starts with `beta` or has a `beta` section in the name
+# 'alpha' for a base branch with "alpha" in its name
 alpha:
- - base-branch: ['^alpha', 'alpha', 'alpha*']
+ - base-branch: 'alpha'
 
-# Add 'latest' label to any PR where the base branch name starts with `latest` or has a `latest` section in the name
+# 'latest' for the base branch latest
 latest:
- - base-branch: ['^latest', 'latest', 'latest*']
+ - base-branch: 'latest'

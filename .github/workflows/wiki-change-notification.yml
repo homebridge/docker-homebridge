@@ -3,11 +3,14 @@ name: Wiki Changed Discord Notifications
 on:
   gollum
 
+# This job only posts to a Discord webhook. It needs no GitHub rights.
+permissions: {}
+
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: 'oznu/gh-wiki-edit-discord-notification@main'
+      - uses: oznu/gh-wiki-edit-discord-notification@dfc866fd048f04c239ad113eef3c6c73504d333e # main
         with:
           discord-webhook-url: ${{ secrets.DISCORD_WEBHOOK_WIKI_EDIT }}
           ignore-collaborators: true

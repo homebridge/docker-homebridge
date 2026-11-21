@@ -14,54 +14,84 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 ARG HOMEBRIDGE_APT_PKG_VERSION
 ARG FFMPEG_FOR_HOMEBRIDGE_VERSION
 ARG DOCKER_HOMEBRIDGE_VERSION
+# Tells two images with the same version (built on the same day) apart
+ARG DOCKER_HOMEBRIDGE_BUILD
 
 # Set version label using the Docker Homebridge version
 LABEL org.opencontainers.image.version="${DOCKER_HOMEBRIDGE_VERSION}"
 
-# ENV HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION:-v1.4.1}
-ARG HOMEBRIDGE_APT_PKG_FILE=${HOMEBRIDGE_APT_PKG_VERSION}
-# ENV FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION:-v2.1.1}
-# ENV DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION:-latest}
+# Every RUN step uses bash and stops when any command in a pipe fails
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# PATH: node_modules/.bin (commands that plugins bring along) comes after the
+# system folders, so such a command can not replace a system tool for the root
+# start scripts. See rootfs/etc/s6-overlay/scripts/safe-path.sh.
+# S6_BEHAVIOUR_IF_STAGE2_FAILS=2: when a start-up script fails (setup.sh), stop
+# the container. Without it the container stays "Up" with nothing running.
 ENV S6_OVERLAY_VERSION=3.2.0.2 \
   S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
+  S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
   S6_KEEP_ENV=1 \
   ENABLE_AVAHI=1 \
   USER=root \
   HOMEBRIDGE_APT_PACKAGE=1 \
   UIX_CUSTOM_PLUGIN_PATH="/var/lib/homebridge/node_modules" \
-  PATH="/opt/homebridge/bin:/var/lib/homebridge/node_modules/.bin:$PATH" \
+  PATH="/opt/homebridge/bin:$PATH:/var/lib/homebridge/node_modules/.bin" \
   HOME="/home/homebridge" \
   npm_config_prefix=/opt/homebridge
 
+# Only the packages named here are installed (no "recommended" extras), and the
+# apt package lists are removed in the same step, so they do not stay in a layer.
+# - ca-certificates and xz-utils are needed by the downloads below
+# - avahi-daemon is the mDNS service; avahi-utils has avahi-browse for testing
+# - git, make, g++ and python3 are needed to install plugins with native code
+# - bzip2, gpg, less, openssh-client, patch and xxd are small tools that user
+#   startup scripts and plugin installs may call
+# - nano is the one text editor. vim and logrotate were taken out (nothing in
+#   the container runs logrotate; the Homebridge UI trims its own log)
 RUN set -x \
   && apt-get update \
   && apt-get upgrade -y \
-  && apt-get install -y curl wget tzdata locales psmisc procps iputils-ping logrotate \
-  libatomic1 apt-transport-https apt-utils jq openssl sudo nano net-tools \
+  && apt-get install -y --no-install-recommends \
+  adduser apt-transport-https apt-utils ca-certificates curl iputils-ping jq libatomic1 locales \
+  nano net-tools openssl procps psmisc sudo tzdata wget xz-utils \
+  bzip2 gpg less openssh-client patch xxd \
+  g++ git libcrypt-dev make python3 python3-dev python3-pip python3-setuptools python3-venv \
+  avahi-daemon avahi-utils dbus libavahi-compat-libdnssd-dev libnss-mdns \
   && locale-gen en_US.UTF-8 \
   && ln -snf /usr/share/zoneinfo/Etc/GMT /etc/localtime && echo Etc/GMT > /etc/timezone \
-  && apt-get install -y python3 python3-pip pipx python3-setuptools git make g++ libnss-mdns \
-  avahi-discover libavahi-compat-libdnssd-dev python3-venv python3-dev vim \
-  && pipx install tzupdate \
-  && chmod 0755 /bin/ping \
-  && rm -rf /etc/cron.daily/apt-compat /etc/cron.daily/dpkg /etc/cron.daily/passwd /etc/cron.daily/exim4-base
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+# s6-overlay is the first program that runs in every container. Each archive is
+# checked against the SHA-256 that the s6-overlay project publishes next to it.
+# When S6_OVERLAY_VERSION changes, these four values must change with it.
+ARG S6_OVERLAY_SHA256_NOARCH=6dbcde158a3e78b9bb141d7bcb5ccb421e563523babbe2c64470e76f4fd02dae
+ARG S6_OVERLAY_SHA256_X86_64=59289456ab1761e277bd456a95e737c06b03ede99158beb24f12b165a904f478
+ARG S6_OVERLAY_SHA256_AARCH64=8b22a2eaca4bf0b27a43d36e65c89d2701738f628d1abd0cea5569619f66f785
+ARG S6_OVERLAY_SHA256_ARMHF=c8b8532fe4ec432898960e9ec9c903926454ce73588d4c94ad0e023f0b34fe39
 
 RUN case "$(uname -m)" in \
-  x86_64) S6_ARCH='x86_64';; \
-  armv7l) S6_ARCH='armhf';; \
-  aarch64) S6_ARCH='aarch64';; \
+  x86_64) S6_ARCH='x86_64'; S6_SHA256="${S6_OVERLAY_SHA256_X86_64}";; \
+  armv7l) S6_ARCH='armhf'; S6_SHA256="${S6_OVERLAY_SHA256_ARMHF}";; \
+  aarch64) S6_ARCH='aarch64'; S6_SHA256="${S6_OVERLAY_SHA256_AARCH64}";; \
   *) echo "unsupported architecture"; exit 1 ;; \
   esac \
-  && cd /tmp \
   && set -x \
-  && curl -SLOf https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz \
+  && S6_URL="https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}" \
+  && curl -fsSL -o /tmp/s6-overlay-noarch.tar.xz "${S6_URL}/s6-overlay-noarch.tar.xz" \
+  && curl -fsSL -o "/tmp/s6-overlay-${S6_ARCH}.tar.xz" "${S6_URL}/s6-overlay-${S6_ARCH}.tar.xz" \
+  && echo "${S6_OVERLAY_SHA256_NOARCH}  /tmp/s6-overlay-noarch.tar.xz" | sha256sum -c - \
+  && echo "${S6_SHA256}  /tmp/s6-overlay-${S6_ARCH}.tar.xz" | sha256sum -c - \
   && tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz \
-  && curl -SLOf  https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
-  && tar -C / -Jxpf /tmp/s6-overlay-${S6_ARCH}.tar.xz
+  && tar -C / -Jxpf "/tmp/s6-overlay-${S6_ARCH}.tar.xz" \
+  && rm -f /tmp/s6-overlay-*.tar.xz
 
+# ffmpeg-for-homebridge publishes no checksum file, so this archive can not be
+# checked. It is saved to a file first, so a download that stops half way
+# fails the build and is never unpacked.
 RUN case "$(uname -m)" in \
   x86_64) FFMPEG_ARCH='x86_64';; \
   armv7l) FFMPEG_ARCH='arm32v7';; \
@@ -69,54 +99,99 @@ RUN case "$(uname -m)" in \
   *) echo "unsupported architecture"; exit 1 ;; \
   esac \
   && set -x \
-  && curl -Lfs https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
+  && curl -fsSL -o /tmp/ffmpeg.tar.gz "https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz" \
+  && tar xzf /tmp/ffmpeg.tar.gz -C / --no-same-owner \
+  && rm -f /tmp/ffmpeg.tar.gz
 
-RUN case "$(uname -m)" in \
-  x86_64) DEB_ARCH='amd64';; \
-  armv7l) DEB_ARCH='armhf';; \
-  aarch64) DEB_ARCH='arm64';; \
-  *) echo "unsupported architecture"; exit 1 ;; \
+# The homebridge package comes from the signed apt repository, the same one
+# every apt user installs from, so apt checks the signature and the checksum.
+# The public key is kept in this repo (build/homebridge-apt-key.asc, a copy of
+# https://repo.homebridge.io/KEY.gpg). The repository is taken out of the image
+# again, so a later "apt-get upgrade" in the container can not replace Homebridge.
+#
+# HOMEBRIDGE_APT_PKG_VERSION is the npm form with a "v" (v2.0.27-beta.20261117).
+# The apt form is 2.0.27~beta.20261117, in the channel "beta". A version with
+# no pre-release part is in the channel "stable".
+#
+# The homebridge user is made first, with fixed numbers (858:858). The package
+# would make it with the next free numbers, which differ between Ubuntu
+# versions: the owner of every file in a user's volume would then change when
+# their stream moves to a newer Ubuntu. /opt/homebridge belongs to that user,
+# so the optional non-root mode (HOMEBRIDGE_RUN_AS_USER) does not have to
+# change the owner of those files in every container.
+ARG HOMEBRIDGE_UID=858
+ARG HOMEBRIDGE_GID=858
+RUN --mount=type=bind,source=build/homebridge-apt-key.asc,target=/usr/share/keyrings/homebridge.asc \
+  set -x \
+  && groupadd --system --gid "${HOMEBRIDGE_GID}" homebridge \
+  && useradd --system --uid "${HOMEBRIDGE_UID}" --gid homebridge --home-dir /home/homebridge --create-home --shell /usr/sbin/nologin homebridge \
+  && APT_VERSION="$(printf '%s' "${HOMEBRIDGE_APT_PKG_VERSION#v}" | sed 's/-/~/')" \
+  && case "${APT_VERSION}" in \
+  *~*) APT_CHANNEL="$(printf '%s' "${APT_VERSION}" | sed 's/^[^~]*~\([a-z]*\).*$/\1/')";; \
+  *) APT_CHANNEL='stable';; \
   esac \
-  && set -x \
-  && curl -sSLf -o /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb https://github.com/homebridge/homebridge-apt-pkg/releases/download/${HOMEBRIDGE_APT_PKG_VERSION}/homebridge_${HOMEBRIDGE_APT_PKG_FILE}_${DEB_ARCH}.deb \
-  && apt-get install -y /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
-  && rm -rf /homebridge_${HOMEBRIDGE_APT_PKG_VERSION}.deb \
-  && chown -R root:root /opt/homebridge \
+  && echo "deb [signed-by=/usr/share/keyrings/homebridge.asc] https://repo.homebridge.io ${APT_CHANNEL} main" > /etc/apt/sources.list.d/homebridge.list \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends "homebridge=${APT_VERSION}" \
+  && rm -f /etc/apt/sources.list.d/homebridge.list \
+  && [ "$(id -u homebridge):$(id -g homebridge)" = "${HOMEBRIDGE_UID}:${HOMEBRIDGE_GID}" ] \
+  && chown -R homebridge:homebridge /opt/homebridge /home/homebridge \
   && rm -rf /var/lib/homebridge \
+  && if id -u ubuntu > /dev/null 2>&1; then userdel -r ubuntu; fi \
   && apt-get clean \
   && rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
-RUN HB_CONFIG_UI_X_VERSION=$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json) && \
-  echo "Homebridge Docker Package Manifest\n\n" \
-  "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}\n\n" \
-  "| Package | Version |\n" \
-  "|:-------:|:-------:|\n" \
-  "|Ubuntu|${BASE_IMAGE}|\n" \
-  "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|\n" \
-  "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|\n" \
-  "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|\n" \
-  "|Homebridge UI|${HB_CONFIG_UI_X_VERSION}|\n" \
-  "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|\n" \
+# The start script reads the Homebridge version from the package. Stop the
+# build here if it is not there, so such an image is never published.
+RUN jq -e '.dependencies.homebridge | type == "string" and test("^[0-9]+\\.[0-9]+\\.[0-9]+")' /opt/homebridge/package.json > /dev/null \
+  || { echo "ERROR: /opt/homebridge/package.json has no Homebridge version"; exit 1; }
+
+# The manifest is printed at each start and is part of every release. Other
+# tools read its lines by their text (for example "|Homebridge|"), and each
+# line after the first starts with one space: keep that form.
+RUN printf '%s\n\n %s\n\n %s\n %s\n %s\n %s\n %s\n %s\n %s\n %s\n\n' \
+  "Homebridge Docker Package Manifest" \
+  "Release Version: ${DOCKER_HOMEBRIDGE_VERSION}" \
+  "| Package | Version |" \
+  "|:-------:|:-------:|" \
+  "|Ubuntu|${BASE_IMAGE}|" \
+  "|ffmpeg for homebridge|${FFMPEG_FOR_HOMEBRIDGE_VERSION}|" \
+  "|Homebridge APT Package|${HOMEBRIDGE_APT_PKG_VERSION}|" \
+  "|NodeJS|$(jq -r '.dependencies.node' /opt/homebridge/package.json)|" \
+  "|Homebridge UI|$(jq -r '.dependencies["homebridge-config-ui-x"]' /opt/homebridge/package.json)|" \
+  "|Homebridge|$(jq -r '.dependencies.homebridge' /opt/homebridge/package.json)|" \
   > /opt/homebridge/Docker.manifest
 
 # Fix Docker-Homebridge Update info wrong #645
+#
+# source-docker.sh holds the versions of this image. source.sh of the apt
+# package loads it (the last block of that file), and so the Homebridge UI can
+# read DOCKER_HOMEBRIDGE_VERSION. Nothing is added to source.sh here: the check
+# only stops the build if a future apt package no longer loads the file.
+RUN grep -q '^ *\. /opt/homebridge/source-docker.sh' /opt/homebridge/source.sh \
+  || { echo "ERROR: /opt/homebridge/source.sh of the apt package does not load source-docker.sh"; exit 1; }
 
-# Append environment variables to source.sh and source-vm.sh if not already present
-RUN if ! grep -q "source /opt/homebridge/source-docker.sh" /opt/homebridge/source.sh; then \
-  echo "\n# Appended by docker-homebridge" >> /opt/homebridge/source.sh && \
-  echo "if [ -f '/opt/homebridge/source-docker.sh' ]; then" >> /opt/homebridge/source.sh && \
-  echo "  . /opt/homebridge/source-docker.sh" >> /opt/homebridge/source.sh && \
-  echo "fi" >> /opt/homebridge/source.sh ; \
-  fi && \
-  echo "export DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" > /opt/homebridge/source-docker.sh && \
-  echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> /opt/homebridge/source-docker.sh && \
-  echo "export HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> /opt/homebridge/source-docker.sh && \
-  chmod 755 /opt/homebridge/source-docker.sh
+RUN printf 'export %s\n' \
+  "DOCKER_HOMEBRIDGE_VERSION=${DOCKER_HOMEBRIDGE_VERSION}" \
+  "DOCKER_HOMEBRIDGE_BUILD=${DOCKER_HOMEBRIDGE_BUILD}" \
+  "FFMPEG_FOR_HOMEBRIDGE_VERSION=${FFMPEG_FOR_HOMEBRIDGE_VERSION}" \
+  "HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" \
+  > /opt/homebridge/source-docker.sh \
+  && chmod 755 /opt/homebridge/source-docker.sh
 
 COPY rootfs /
+
+# "sudo hb-service start|stop|restart" from the apt package needs systemd.
+# In the container these three commands go to s6 (see the script).
+RUN ln -sf /etc/s6-overlay/scripts/hb-service-docker.sh /usr/local/bin/hb-service
 
 EXPOSE 8581/tcp
 VOLUME /homebridge
 WORKDIR /homebridge
+
+# The container is "healthy" when the Homebridge UI answers. The first five
+# minutes do not count against it: a first start installs Homebridge.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=5 \
+  CMD [ "/etc/s6-overlay/scripts/healthcheck.sh" ]
 
 ENTRYPOINT [ "/init" ]

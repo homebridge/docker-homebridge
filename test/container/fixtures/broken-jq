@@ -1,0 +1,5 @@
+#!/bin/sh
+# A jq that always fails. The container tests mount it over /usr/bin/jq to
+# check what a failed start-up does (see issue 960).
+echo "jq: error: cannot allocate memory" >&2
+exit 5

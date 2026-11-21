@@ -1,202 +1,167 @@
 name: Validate Homebridge Docker Container
-run-name: Validate Homebridge Docker Container - ${{ github.event.inputs.release_tag }} Release
+run-name: Validate Homebridge Docker Container - ${{ inputs.image || inputs.release_tag }}
+
+# Tests one image on amd64 and on arm64.
+# - Stage 2 calls this for the candidate image, before anything is published.
+# - It can also be run by hand for an image that is already public.
 
 on:
   workflow_call:
     inputs:
-      release_tag:
-        description: 'Release tag to validate (alpha, beta, or latest)'
+      image:
+        description: 'Full name of the image to test (for example ghcr.io/homebridge/homebridge@sha256:...)'
         required: true
         type: string
-        default: latest
+      previous_image:
+        description: 'An older image of the same stream. The update test starts from it. Skipped when empty or not found.'
+        required: false
+        type: string
+        default: ''
 
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag to validate (alpha, beta, or latest)'
+        description: 'Published image tag to validate'
         required: true
         type: choice
         options:
-          - alpha
-          - beta
           - latest
+          - beta
+          - alpha
+          - legacy
+          - synology
         default: latest
 
-concurrency:
-  group: validate-docker-container
-  cancel-in-progress: false
+# No job gets a token with rights by default. Each job below lists what it needs.
+permissions: {}
 
 jobs:
   validate-container:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+    name: Validate on ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: read
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
     steps:
     - name: Checkout
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-    - name: Set container image based on release tag
-      id: set-image
+    # needed when the image is in a private ghcr.io space (a fork)
+    - name: Log into GitHub Container Registry
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull the image
+      id: image
+      env:
+        IMAGE_INPUT: ${{ inputs.image }}
+        RELEASE_TAG: ${{ inputs.release_tag }}
+        PREVIOUS_INPUT: ${{ inputs.previous_image }}
       run: |
-        echo "CONTAINER_IMAGE=ghcr.io/homebridge/homebridge:${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
-        echo "EXPECTED_TAG=${{ inputs.release_tag }}" >> $GITHUB_OUTPUT
+        if [[ -n "$IMAGE_INPUT" ]]; then
+          IMAGE="$IMAGE_INPUT"
+        else
+          IMAGE="ghcr.io/homebridge/homebridge:${RELEASE_TAG:-latest}"
+        fi
+        docker pull "$IMAGE"
 
-    - name: Start Homebridge container
+        PREVIOUS=""
+        if [[ -n "$PREVIOUS_INPUT" ]]; then
+          if docker pull "$PREVIOUS_INPUT"; then
+            PREVIOUS="$PREVIOUS_INPUT"
+          else
+            echo "::warning::Could not pull ${PREVIOUS_INPUT}. The update test is skipped."
+          fi
+        fi
+
+        echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+        echo "previous=${PREVIOUS}" >> "$GITHUB_OUTPUT"
+
+    # New volume, existing volume with a plugin, a broken package.json, a wrong
+    # mount path, a failed start, the update rules and the update from the
+    # previous image. See test/container/run.sh.
+    - name: Container tests
+      env:
+        IMAGE: ${{ steps.image.outputs.image }}
+        PREVIOUS_IMAGE: ${{ steps.image.outputs.previous }}
+      run: test/container/run.sh "$IMAGE"
+
+    # The way the README tells users to run it: Docker Compose and host networking
+    - name: Start with Docker Compose and wait for "healthy"
       working-directory: ./test
+      env:
+        HOMEBRIDGE_IMAGE: ${{ steps.image.outputs.image }}
       run: |
-        echo "Starting Homebridge container with image: ${{ steps.set-image.outputs.CONTAINER_IMAGE }}"
-        export HOMEBRIDGE_IMAGE=${{ steps.set-image.outputs.CONTAINER_IMAGE }}
         docker compose up -d
-        
-        echo "Waiting for container to initialize..."
-        sleep 15
-        
-        # Check if container is still running
-        if ! docker compose ps | grep -q "Up"; then
-          echo "❌ Container failed to start or exited unexpectedly"
-          docker compose logs
+        CONTAINER=$(docker compose ps -q homebridge)
+
+        # the real health state of the container, not only the word "Up"
+        for attempt in $(seq 1 60); do
+          STATE=$(docker inspect -f '{{.State.Status}}' "$CONTAINER")
+          HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$CONTAINER")
+          echo "attempt ${attempt}: container ${STATE}, health ${HEALTH}"
+          if [[ "$STATE" != "running" ]]; then
+            echo "::error::The container is not running (${STATE})"
+            exit 1
+          fi
+          if [[ "$HEALTH" == "healthy" ]]; then
+            break
+          fi
+          if [[ "$HEALTH" == "unhealthy" || "$HEALTH" == "none" ]]; then
+            echo "::error::Container health is ${HEALTH}"
+            exit 1
+          fi
+          sleep 5
+        done
+        if [[ "$HEALTH" != "healthy" ]]; then
+          echo "::error::The container did not become healthy in 5 minutes"
           exit 1
         fi
-        
-        echo "✅ Container is running"
 
-    - name: Validate Homebridge UI accessibility
+    - name: Check the Homebridge UI, the service and the manifest
       working-directory: ./test
       run: |
-        echo "Testing Homebridge UI accessibility..."
-        
-        # Test UI accessibility with retries
-        max_attempts=5
-        attempt=1
-        
-        while [ $attempt -le $max_attempts ]; do
-          echo "Attempt $attempt/$max_attempts: Checking UI accessibility..."
-          
-          if curl -f --connect-timeout 10 --max-time 30 -s -o /dev/null -w "%{http_code}" http://localhost:8581 | grep -q "200"; then
-            echo "✅ Homebridge UI is accessible (HTTP 200)"
-            break
-          elif [ $attempt -eq $max_attempts ]; then
-            echo "❌ Homebridge UI is not accessible after $max_attempts attempts"
-            
-            # Show detailed debugging information
-            echo "Container status:"
-            docker compose ps
-            echo "Container logs:"
-            docker compose logs --tail 20
-            echo "Port check:"
-            netstat -tlnp | grep :8581 || echo "Port 8581 not listening"
-            
+        echo "Homebridge UI on port 8581 of the host:"
+        curl --fail --silent --show-error --max-time 30 --output /dev/null http://localhost:8581
+
+        echo "Homebridge start line in the log:"
+        docker compose logs | grep "Homebridge v"
+
+        echo "hb-service status inside the container:"
+        docker compose exec -T homebridge hb-service status
+
+        echo "Docker manifest:"
+        docker compose exec -T homebridge cat /opt/homebridge/Docker.manifest | tee manifest_output.txt
+        for name in Ubuntu "ffmpeg for homebridge" "Homebridge APT Package" NodeJS "Homebridge UI" Homebridge; do
+          if ! grep -q "|${name}|[^|]\+|" manifest_output.txt; then
+            echo "::error::The manifest has no version for ${name}"
             exit 1
-          else
-            echo "UI not ready yet, waiting 10 seconds..."
-            sleep 10
-            attempt=$((attempt + 1))
           fi
         done
-
-    - name: Validate Homebridge service startup
-      working-directory: ./test
-      run: |
-        echo "Validating Homebridge service startup..."
-        
-        # Check for Homebridge version in logs
-        if docker compose logs | grep -q "Homebridge v"; then
-          version=$(docker compose logs | grep "Homebridge v" | tail -1 | sed -n 's/.*Homebridge v\([0-9.]*\).*/\1/p')
-          echo "✅ Homebridge service started successfully (version: $version)"
-        else
-          echo "❌ Homebridge version not found in logs"
-          docker compose logs
-          exit 1
-        fi
-        
-        # Check for pairing code (indicates successful setup)
-        if docker compose logs | grep -q "Enter this code"; then
-          echo "✅ Homebridge setup completed with pairing code"
-        else
-          echo "⚠️  Pairing code not found - this may be normal for some configurations"
-        fi
-        
-        # Check for any error messages
-        if docker compose logs | grep -i error | grep -v "no such file or directory"; then
-          echo "⚠️  Some errors found in logs (may be non-critical):"
-          docker compose logs | grep -i error | grep -v "no such file or directory" | head -5
-        fi
-
-    - name: Test container health check
-      working-directory: ./test
-      run: |
-        echo "Testing container health check..."
-        
-        # Wait a bit more for health check to stabilize
-        sleep 5
-        
-        # Check container health status
-        health_status=$(docker compose ps --format "table {{.Service}}\t{{.Status}}" | grep homebridge | awk '{print $2}')
-        
-        if echo "$health_status" | grep -q "Up"; then
-          echo "✅ Container health check passed"
-        else
-          echo "❌ Container health check failed. Status: $health_status"
-          docker compose ps
+        if grep -q "|null|\||[[:space:]]*|" manifest_output.txt; then
+          echo "::error::The manifest has an empty version"
           exit 1
         fi
 
-    - name: Validate hb-serivice status
+    - name: Show the container log
+      if: failure()
       working-directory: ./test
-      run: |
-        echo "Validating hb-service status inside container..."
-        docker compose exec homebridge sudo hb-service status || echo "⚠️ hb-service status failed"
-
-        echo "Running hb-service view inside the container..."
-        docker compose exec homebridge sudo hb-service view || echo "⚠️ hb-service view failed"
-
-    - name: Validate version manifest
-      run: |
-        echo "Checking Docker manifest for ${{ inputs.release_tag }} release..."
-        
-        # Pull version manifest from container
-        if docker run --rm ${{ steps.set-image.outputs.CONTAINER_IMAGE }} cat /opt/homebridge/Docker.manifest > manifest_output.txt 2>/dev/null; then
-          echo "✅ Successfully retrieved Docker manifest"
-          echo "Manifest preview:"
-          head -10 manifest_output.txt
-          
-          # Check for expected components in manifest
-          if grep -q "Ubuntu" manifest_output.txt && grep -q "Homebridge" manifest_output.txt; then
-            echo "✅ Manifest contains expected components"
-          else
-            echo "⚠️  Manifest may be incomplete"
-            cat manifest_output.txt
-          fi
-        else
-          echo "⚠️  Could not retrieve Docker manifest (non-critical)"
-        fi
+      run: docker compose logs --tail 200 || true
 
     - name: Cleanup
       if: always()
       working-directory: ./test
-      run: |
-        echo "Cleaning up test environment..."
-        docker compose down
-        echo "✅ Cleanup completed"
-
-    - name: Validation summary
-      if: success()
-      run: |
-        echo "🎉 Container validation completed successfully!"
-        echo "Release tag: ${{ inputs.release_tag }}"
-        echo "Container image: ${{ steps.set-image.outputs.CONTAINER_IMAGE }}"
-        echo "All validation checks passed:"
-        echo "  ✅ Container started successfully"
-        echo "  ✅ Homebridge UI accessible on port 8581"
-        echo "  ✅ Homebridge service running"
-        echo "  ✅ Container health check passed"
-        echo "::notice::Validation completed successfully for tag ${{ inputs.release_tag }}"
-
-    - name: Validation failure summary
-      if: failure()
-      run: |
-        echo "❌ Container validation failed!"
-        echo "Release tag: ${{ inputs.release_tag }}"
-        echo "Container image: ${{ steps.set-image.outputs.CONTAINER_IMAGE }}"
-        echo "Please review the logs above for details on the failure."
-        echo "::error::Validation failed for tag ${{ inputs.release_tag }}"
+      run: docker compose down --volumes || true

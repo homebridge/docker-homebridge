@@ -1,10 +1,17 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
-# If used in GitHub Actions, ensure we have a full git history
-#     - name: Checkout
-#      uses: actions/checkout@v4
-#      with:
-#        fetch-depth: 0
+# Writes the release notes (output/release-body.md) and the package manifest
+# (output/Docker.manifest) for one release.
+#
+# Usage: create-release-body.sh <release tag> <stream> <build branch>
+#   <release tag>   for example 2026-11-18 or beta-2026-11-18
+#   <stream>        stable, beta, alpha, legacy or synology
+#   <build branch>  the branch the image was built from (default: latest)
+#
+# Environment:
+#   HOMEBRIDGE_IMAGE_REPO   where the image is (default: ghcr.io/homebridge/homebridge)
+#
+# Needs: docker, gh, git with the full history and the tags (fetch-depth: 0), jq.
 
 # Exit on error
 set -e
@@ -12,25 +19,23 @@ set -e
 # Logging functions
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 log() { echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $*" >&2; }
 warn() { echo -e "${YELLOW}[$(date +'%H:%M:%S')] WARN:${NC} $*" >&2; }
-error() { echo -e "${RED}[$(date +'%H:%M:%S')] ERROR:${NC} $*" >&2; }
 info() { echo -e "${BLUE}[$(date +'%H:%M:%S')] INFO:${NC} $*" >&2; }
 group_log() {
-    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-        echo -e "::group::$*"
-    else
-        log "===> $* <==="
-    fi
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo -e "::group::$*"
+  else
+    log "===> $* <==="
+  fi
 }
 group_end() {
-    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-        echo -e "::endgroup::"
-    fi
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo -e "::endgroup::"
+  fi
 }
 
 # Determine repository root
@@ -56,11 +61,21 @@ echo >> "$MANIFEST"
 GITHUB_TAG="${1:-latest}"
 PKG_RELEASE_STREAM="${2:-stable}"
 BUILD_BRANCH="${3:-latest}"
+IMAGE_REPO="${HOMEBRIDGE_IMAGE_REPO:-ghcr.io/homebridge/homebridge}"
+
+case "$PKG_RELEASE_STREAM" in
+  stable) PACKAGE_JSON_PATH="package.json" ;;
+  beta | alpha | legacy | synology) PACKAGE_JSON_PATH="${PKG_RELEASE_STREAM}/package.json" ;;
+  *)
+    echo "Unknown stream '${PKG_RELEASE_STREAM}'. Use stable, beta, alpha, legacy or synology." >&2
+    exit 1
+    ;;
+esac
 
 group_log "Extracting package manifest and changes for tag: ${GITHUB_TAG}, stream: ${PKG_RELEASE_STREAM}"
 
-docker create --name temp-homebridge ghcr.io/homebridge/homebridge:${GITHUB_TAG}
-docker cp temp-homebridge:/opt/homebridge/Docker.manifest ${DOCKER_MANIFEST}
+docker create --name temp-homebridge "${IMAGE_REPO}:${GITHUB_TAG}"
+docker cp temp-homebridge:/opt/homebridge/Docker.manifest "${DOCKER_MANIFEST}"
 docker rm temp-homebridge
 
 group_end
@@ -70,10 +85,12 @@ group_end
 if [[ "$BUILD_BRANCH" != "latest" ]]; then
   REPO_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-homebridge/docker-homebridge}"
   log "Adding pre-release branch section for branch: ${BUILD_BRANCH}"
-  echo -e "\n## Pre-release Changes (not yet in stable)\n" >> "$MANIFEST"
-  echo "Built from branch [\`${BUILD_BRANCH}\`](${REPO_URL}/tree/${BUILD_BRANCH})." >> "$MANIFEST"
-  echo >> "$MANIFEST"
-  if git rev-parse --verify --quiet origin/latest >/dev/null; then
+  {
+    echo -e "\n## Pre-release Changes (not yet in stable)\n"
+    echo "Built from branch [\`${BUILD_BRANCH}\`](${REPO_URL}/tree/${BUILD_BRANCH})."
+    echo
+  } >> "$MANIFEST"
+  if git rev-parse --verify --quiet origin/latest > /dev/null; then
     # Pull requests merged into the branch, then the individual commits they brought in
     BRANCH_PRS=$(git log --merges --format='%s' origin/latest..HEAD | grep -oE 'pull request #[0-9]+' | grep -oE '#[0-9]+' | sort -u || true)
     for PR in $BRANCH_PRS; do
@@ -98,12 +115,12 @@ log "Adding package manifest section for stream: ${PKG_RELEASE_STREAM}"
 # Add current manifest section
 echo -e "\n## Current Package Manifest:\n" >> "$MANIFEST"
 
-for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
+for OUTPUT_MANIFEST in "${OUTPUT_DIR}"/*manifest; do
 
-# Extract the base name of the manifest file
+  # Extract the base name of the manifest file
   MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
 
-# Create this line based on the manifest name - ### AMD64 Manifest
+  # Create this line based on the manifest name - ### AMD64 Manifest
   if [[ "$MANIFEST_NAME" == *"amd64.manifest" ]]; then
     MANIFEST_HEADER="AMD64 Manifest"
   elif [[ "$MANIFEST_NAME" == *"arm64.manifest" ]]; then
@@ -113,59 +130,39 @@ for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
   fi
 
   log "Including manifest: $MANIFEST_NAME"
-  echo "### ${MANIFEST_HEADER}" >> "$MANIFEST"
-  echo >> "$MANIFEST"
-  cat "$OUTPUT_MANIFEST" >> "$MANIFEST"
-  echo >> "$MANIFEST"
+  {
+    echo "### ${MANIFEST_HEADER}"
+    echo
+    cat "$OUTPUT_MANIFEST"
+    echo
+  } >> "$MANIFEST"
 done
 
-# Get the latest tag to compare against, filtered by release type
-if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
-  # For beta releases, only look at beta tags
-  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -1 2>/dev/null || echo "")
-elif [[ "${PKG_RELEASE_STREAM:-stable}" == "alpha" ]]; then
-  # For alpha releases, only look at alpha tags
-  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -1 2>/dev/null || echo "")
-elif [[ "${PKG_RELEASE_STREAM:-stable}" == "legacy" ]]; then
-  # For legacy releases, only look at legacy tags
-  LATEST_TAG=$(git tag -l | grep -E "legacy" | sort -V | tail -1 2>/dev/null || echo "")
-elif [[ "${PKG_RELEASE_STREAM:-stable}" == "synology" ]]; then
-  # For synology releases, only look at synology tags
-  LATEST_TAG=$(git tag -l | grep -E "synology" | sort -V | tail -1 2>/dev/null || echo "")
-else
-  # For stable releases, only look at stable tags (no beta, alpha, legacy, or synology in name)
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha|legacy|synology)" | sort -V | tail -1 2>/dev/null || echo "")
-fi
+# The release tags of one stream, oldest first. A stable tag is only a date
+# (2026-11-15). The other streams have the stream name in front (beta-2026-11-18).
+stream_tags() {
+  local pattern
+  if [[ "$1" == "stable" ]]; then
+    pattern='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+  else
+    pattern="^$1-[0-9]{4}-[0-9]{2}-[0-9]{2}\$"
+  fi
+  git tag -l | grep -E "$pattern" | sort -V || true
+}
 
-log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
+# The previous release of this stream. The tag of the release being made is
+# left out: on a second build on the same day it already exists.
+LATEST_TAG=$(stream_tags "$PKG_RELEASE_STREAM" | grep -vxF -- "$GITHUB_TAG" | tail -1 || true)
 
-# Check for package manifest changes if we have a previous tag
+log "Previous release for stream '${PKG_RELEASE_STREAM}': ${LATEST_TAG:-none}"
+
+# Check for package version changes if we have a previous tag
 HAS_PACKAGE_CHANGES=false
 if [ -n "$LATEST_TAG" ]; then
-  # Get the previous package.json for comparison
-  PACKAGE_JSON_PATH=""
-  case "${PKG_RELEASE_STREAM:-stable}" in
-    beta)
-      PACKAGE_JSON_PATH="beta/package.json"
-      ;;
-    alpha)
-      PACKAGE_JSON_PATH="alpha/package.json"
-      ;;
-    legacy)
-      PACKAGE_JSON_PATH="legacy/package.json"
-      ;;
-    synology)
-      PACKAGE_JSON_PATH="synology/package.json"
-      ;;
-    *)
-      PACKAGE_JSON_PATH="package.json"
-      ;;
-  esac
-  
-  log "Previous package.json path for comparison: ${PACKAGE_JSON_PATH:-none}"
+  log "package.json path for comparison: ${PACKAGE_JSON_PATH}"
 
   # Compare package versions with previous tag
-  if [ -n "$PACKAGE_JSON_PATH" ] && git show "$LATEST_TAG:$PACKAGE_JSON_PATH" >/dev/null 2>&1; then
+  if git show "$LATEST_TAG:$PACKAGE_JSON_PATH" > /dev/null 2>&1; then
     # Define the list of dependencies to check
     DEPENDENCIES=(
       "@homebridge/homebridge-apt-pkg"
@@ -175,18 +172,17 @@ if [ -n "$LATEST_TAG" ]; then
     # Iterate through the dependencies
     for DEP in "${DEPENDENCIES[@]}"; do
       # Get the previous version of the dependency from the latest tag
-      PREV_VERSION=$(git show "$LATEST_TAG:$PACKAGE_JSON_PATH" 2>/dev/null | jq -r ".dependencies[\"$DEP\"] // \"unknown\"")
+      PREV_VERSION=$(git show "$LATEST_TAG:$PACKAGE_JSON_PATH" 2> /dev/null | jq -r --arg dep "$DEP" '.dependencies[$dep] // "unknown"')
 
       # Get the current version of the dependency from the current package.json
-      CURR_VERSION=$(jq -r ".dependencies[\"$DEP\"] // \"unknown\"" "${REPO_ROOT}/${PACKAGE_JSON_PATH}")
+      CURR_VERSION=$(jq -r --arg dep "$DEP" '.dependencies[$dep] // "unknown"' "${REPO_ROOT}/${PACKAGE_JSON_PATH}")
 
       # Check if the version has changed and add it to the changelog
       if [[ "$PREV_VERSION" != "$CURR_VERSION" && "$CURR_VERSION" != "unknown" ]]; then
-        log "Dependency ${DEP} changed from ${PREV_VERSION} to ${CURR_VERSION}, ${HAS_PACKAGE_CHANGES}"
+        log "Dependency ${DEP} changed from ${PREV_VERSION} to ${CURR_VERSION}"
         if [ "$HAS_PACKAGE_CHANGES" = false ]; then
-
-          log "Adding Package Manifest Changes section to release body"
-          echo -e "## Docker Build Instruction Changes" >> "$MANIFEST"
+          log "Adding Package Version Changes section to release body"
+          echo -e "## Package Version Changes" >> "$MANIFEST"
           echo >> "$MANIFEST"
           HAS_PACKAGE_CHANGES=true
         fi
@@ -198,92 +194,87 @@ if [ -n "$LATEST_TAG" ]; then
   fi
 fi
 
-
-
-if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR} 2>/dev/null; then
+if [ -n "$LATEST_TAG" ] && gh release download "$LATEST_TAG" --pattern "*.manifest" --dir "${PREVIOUS_DIR}" 2> /dev/null; then
   echo -e "\n## Changes Since Previous Release ($LATEST_TAG):\n" >> "$MANIFEST"
-  
+
   # Iterate through all manifest files in ${OUTPUT_DIR}
-  for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
+  for OUTPUT_MANIFEST in "${OUTPUT_DIR}"/*manifest; do
     # Extract the base name of the manifest file
     MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
     log "Processing manifest for changes: $MANIFEST_NAME"
     # Check if a corresponding file exists in ${PREVIOUS_DIR}
     PREVIOUS_MANIFEST="${PREVIOUS_DIR}/${MANIFEST_NAME}"
     if [[ -f "$PREVIOUS_MANIFEST" ]]; then
-      TMP_DIFF="/tmp/manifest.diff.$$"
+      TMP_DIFF="$(mktemp)"
       # Compare the manifests and capture differences
       info "diff -u \"$PREVIOUS_MANIFEST\" \"$OUTPUT_MANIFEST\" "
-      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > ${TMP_DIFF} 2>/dev/null; then
+      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > "${TMP_DIFF}" 2> /dev/null; then
         # Check if there are any meaningful changes in the diff
-        if grep -qE "^[+-] \|" ${TMP_DIFF}; then
-          echo "### Changes in ${MANIFEST_NAME}" >> "$MANIFEST"
-          echo "\`\`\`diff" >> "$MANIFEST"
-          # Include the diff output, sorted for readability
-          grep -E "^[+-] \|" ${TMP_DIFF} | sort -k2 | head -20 >> "$MANIFEST"
-          echo "\`\`\`" >> "$MANIFEST"
+        if grep -qE "^[+-] \|" "${TMP_DIFF}"; then
+          {
+            echo "### Changes in ${MANIFEST_NAME}"
+            echo "\`\`\`diff"
+            # Include the diff output, sorted for readability
+            grep -E "^[+-] \|" "${TMP_DIFF}" | sort -k2 | head -20
+            echo "\`\`\`"
+          } >> "$MANIFEST"
         else
           warn "No meaningful changes detected in ${MANIFEST_NAME}."
           echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
-          cat ${TMP_DIFF}
+          cat "${TMP_DIFF}"
         fi
-        rm -f ${TMP_DIFF} || true
       else
         warn "No changes detected in ${MANIFEST_NAME}."
         echo "No changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
       fi
+      rm -f "${TMP_DIFF}" || true
     else
       # If no corresponding file exists in ${PREVIOUS_DIR}, note it in the manifest
       echo "No previous manifest found for ${MANIFEST_NAME}." >> "$MANIFEST"
     fi
   done
-  
-  # Show Docker image specific changes
-
-  # echo "See [commit history](https://github.com/homebridge/homebridge-vm-image/compare/$LATEST_TAG...${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}) for Docker-specific changes." >> "$MANIFEST"
 else
   echo -e "\n## Changes Since Previous Release\n" >> "$MANIFEST"
   echo "Previous release manifest not available for comparison." >> "$MANIFEST"
 fi
 
+# Commits that change the image of THIS stream: its own package.json and the
+# files every stream shares. The daily version bumps of the dependency bot are
+# left out (they are listed under "Package Version Changes"), and so are the
+# commits that only touch another stream.
+STREAM_PATHS=("$PACKAGE_JSON_PATH" Dockerfile rootfs build)
+stream_commits() { # <git log arguments ...>
+  git log --no-merges --format='%h %s' "$@" -- "${STREAM_PATHS[@]}" 2> /dev/null \
+    | grep -vE '^[0-9a-f]+ [A-Z]+: Update [a-z]+ dependencies' || true
+}
+write_commits() { # <list of "hash subject" lines>
+  local commit
+  while IFS= read -r commit; do
+    if [ -n "$commit" ]; then
+      echo "* ${commit#* } (\`${commit%% *}\`)" >> "$MANIFEST"
+    fi
+  done <<< "$1"
+}
+
 echo -e "\n### Docker Homebridge Changes" >> "$MANIFEST"
 if [ -n "$LATEST_TAG" ]; then
-  # Get commits since the latest tag of the same type
-  CHANGELOG_COMMITS=$(git log --oneline --no-merges "$LATEST_TAG"..HEAD 2>/dev/null)
-  
+  # Get commits since the previous release of the same stream
+  CHANGELOG_COMMITS=$(stream_commits "$LATEST_TAG"..HEAD)
+
   if [ -n "$CHANGELOG_COMMITS" ]; then
-    # Add code changes section header
-    if [ "$HAS_PACKAGE_CHANGES" = true ]; then
-      echo "### Code Changes" >> "$MANIFEST"
-      echo >> "$MANIFEST"
-    fi
-    # Format commits as changelog entries
-    while IFS= read -r commit; do
-      if [ -n "$commit" ]; then
-        # Extract commit hash and message
-        COMMIT_HASH=$(echo "$commit" | cut -d' ' -f1)
-        COMMIT_MSG=$(echo "$commit" | cut -d' ' -f2-)
-        echo "* $COMMIT_MSG (\`$COMMIT_HASH\`)" >> "$MANIFEST"
-      fi
-    done <<< "$CHANGELOG_COMMITS"
+    echo >> "$MANIFEST"
+    write_commits "$CHANGELOG_COMMITS"
   else
-    if [ "$HAS_PACKAGE_CHANGES" = false ]; then
-      echo "* No new commits since last ${PKG_RELEASE_STREAM:-stable} release" >> "$MANIFEST"
-    fi
+    echo >> "$MANIFEST"
+    echo "* No changes to the image scripts since the last ${PKG_RELEASE_STREAM} release" >> "$MANIFEST"
   fi
 else
   # If no tags of this type exist, show recent commits
-  RECENT_COMMITS=$(git log --oneline --no-merges -5 2>/dev/null)
+  RECENT_COMMITS=$(stream_commits -5)
   if [ -n "$RECENT_COMMITS" ]; then
     echo "### Recent Changes" >> "$MANIFEST"
     echo >> "$MANIFEST"
-    while IFS= read -r commit; do
-      if [ -n "$commit" ]; then
-        COMMIT_HASH=$(echo "$commit" | cut -d' ' -f1)
-        COMMIT_MSG=$(echo "$commit" | cut -d' ' -f2-)
-        echo "* $COMMIT_MSG (\`$COMMIT_HASH\`)" >> "$MANIFEST"
-      fi
-    done <<< "$RECENT_COMMITS"
+    write_commits "$RECENT_COMMITS"
   else
     echo "* No commit history available" >> "$MANIFEST"
   fi

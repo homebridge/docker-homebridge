@@ -1,5 +1,14 @@
 #!/command/with-contenv sh
 
+. /etc/s6-overlay/scripts/service-user.sh
+
 [ -e /homebridge/homebridge.log ] || touch /homebridge/homebridge.log
 
-exec tail -f --follow=name /homebridge/homebridge.log
+# tail -F follows the log by name, so it keeps going when the UI truncates or
+# replaces the file
+
+if hb_resolve_service_user && hb_own_files /homebridge/homebridge.log; then
+  exec /command/s6-setuidgid homebridge tail -F /homebridge/homebridge.log
+fi
+
+exec tail -F /homebridge/homebridge.log
